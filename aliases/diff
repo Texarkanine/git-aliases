@@ -1,0 +1,5 @@
+# Diff and show
+d = diff
+ds = diff --staged
+dc = diff --cached
+wdiff = diff --word-diff

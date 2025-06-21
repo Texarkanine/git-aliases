@@ -1,0 +1,9 @@
+# Misc
+who = shortlog -sne
+short = rev-parse --short HEAD
+root = rev-parse --show-toplevel
+info = remote show origin
+uncommit = reset --soft HEAD~1
+wipe = reset --hard
+orphan = checkout --orphan
+count = rev-list --count HEAD
