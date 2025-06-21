@@ -16,7 +16,6 @@ Usage: git identity <command> [<args>]
 Commands:
   list                 List available identities
   use <identity>       Switch to specified identity
-  current              Show current identity (if set)
   create <identity>    Create a new identity
   -h                   Show this help message
 EOF
@@ -46,13 +45,20 @@ function process_directive() {
     case "${directive}" in
         hostname)
             # Get current remote URLs
-            git --no-pager remote -v | while read -r remote_line; do
-                if [[ "${remote_line}" =~ ^([^ ]+)[[:space:]]+([^ ]+) ]]; then
+            git --no-pager remote -v | grep "(push)" | while read -r remote_line; do
+                if [[ "${remote_line}" =~ ^([^[:space:]]+)[[:space:]]+(.+)[[:space:]]\(push\)$ ]]; then
                     local remote_name="${BASH_REMATCH[1]}"
                     local remote_url="${BASH_REMATCH[2]}"
                     
-                    # Extract current hostname
+                    # Extract current hostname for SSH URLs
                     if [[ "${remote_url}" =~ ^git@([^:]+): ]]; then
+                        local current_hostname="${BASH_REMATCH[1]}"
+                        # Replace hostname in the URL
+                        local new_url="${remote_url/${current_hostname}/${value}}"
+                        git remote set-url "${remote_name}" "${new_url}"
+                        echo "Updated remote '${remote_name}' to use ${value}"
+                    # Extract current hostname for HTTPS URLs
+                    elif [[ "${remote_url}" =~ ^https?://([^/]+)/ ]]; then
                         local current_hostname="${BASH_REMATCH[1]}"
                         # Replace hostname in the URL
                         local new_url="${remote_url/${current_hostname}/${value}}"
@@ -104,19 +110,7 @@ function use_identity() {
         fi
     done < "${identity_file}"
 
-    # Mark the current identity
-    mkdir -p "${IDENTITIES_DIR}"
-    echo "${identity}" > "${IDENTITIES_DIR}/.current"
     echo "Successfully switched to identity: ${identity}"
-}
-
-# Display current identity
-function show_current() {
-    if [[ -f "${IDENTITIES_DIR}/.current" ]]; then
-        echo "Current identity: $(cat "${IDENTITIES_DIR}/.current")"
-    else
-        echo "No identity currently set"
-    fi
 }
 
 # Create a new identity
@@ -180,9 +174,6 @@ case "${command}" in
             exit 1
         fi
         use_identity "$1"
-        ;;
-    current)
-        show_current
         ;;
     create)
         if [[ $# -eq 0 ]]; then
