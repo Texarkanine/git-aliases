@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # install-bash-completion.sh
 #
 # Installs or uninstalls git-aliases bash completion scripts in ~/.bash_completion.
@@ -12,7 +12,7 @@
 #
 # Returns 0 on success, 1 on error.
 
-set -e
+set -euo pipefail
 
 FENCE_START="# >>> git-aliases bash completion >>>"
 FENCE_END="# <<< git-aliases bash completion <<<"
@@ -48,7 +48,7 @@ case "$1" in
       base_name=$(basename "$completion_file")
       cp -f "$completion_file" "$INSTALL_DIR/$base_name"
       chmod +x "$INSTALL_DIR/$base_name"
-      echo "Copied $base_name to $INSTALL_DIR"
+      echo "	$base_name"
     done
     
     # Remove any previous git-aliases fenced block

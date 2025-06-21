@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # git-identity - Git addon to manage multiple identities
 # 
@@ -53,15 +53,17 @@ function process_directive() {
                     # Extract current hostname for SSH URLs
                     if [[ "${remote_url}" =~ ^git@([^:]+): ]]; then
                         local current_hostname="${BASH_REMATCH[1]}"
-                        # Replace hostname in the URL
-                        local new_url="${remote_url/${current_hostname}/${value}}"
+                        # Reconstruct the URL with the new hostname
+                        local new_url="git@${value}:${remote_url#git@${current_hostname}:}"
                         git remote set-url "${remote_name}" "${new_url}"
                         echo "Updated remote '${remote_name}' to use ${value}"
                     # Extract current hostname for HTTPS URLs
-                    elif [[ "${remote_url}" =~ ^https?://([^/]+)/ ]]; then
-                        local current_hostname="${BASH_REMATCH[1]}"
-                        # Replace hostname in the URL
-                        local new_url="${remote_url/${current_hostname}/${value}}"
+                    elif [[ "${remote_url}" =~ ^(https?://)([^/]+)(/.*)$ ]]; then
+                        local protocol="${BASH_REMATCH[1]}"
+                        local current_hostname="${BASH_REMATCH[2]}"
+                        local path="${BASH_REMATCH[3]}"
+                        # Reconstruct the URL with the new hostname
+                        local new_url="${protocol}${value}${path}"
                         git remote set-url "${remote_name}" "${new_url}"
                         echo "Updated remote '${remote_name}' to use ${value}"
                     fi
@@ -157,6 +159,12 @@ fi
 
 # Handle --help (exit with error code to let git's help system take over)
 if [[ "$1" == "--help" ]]; then
+    exit 1
+fi
+
+# Verify we're in a git repository
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    echo "Error: Not in a git repository" >&2
     exit 1
 fi
 

@@ -58,7 +58,7 @@ This directory contains various Git aliases organized by category. These aliases
 | Alias      | Command                | Description                                  |
 |------------|------------------------|----------------------------------------------|
 | `g`        | `grep -n`              | Search with line numbers                     |
-| `find`     | `!git ls-files | grep` | Search file names                            |
+| `find`     | `!git ls-files \| grep` | Search file names                            |
 
 ### Status, Log, and Branches (`status`)
 
@@ -74,5 +74,5 @@ This directory contains various Git aliases organized by category. These aliases
 | `s`        | `status -sb`                                           | Show status in short format with branch info |
 | `last`     | `log -1 HEAD`                                          | Show the last commit                         |
 | `l`        | `log --oneline --decorate --color`                     | Colorized oneline log                        |
-| `hist`     | `log --pretty=format:"%h %ad | %s%d [%an]" --graph --date=short` | Formatted log with dates           |
+| `hist`     | `log --pretty=format:"%h %ad \| %s%d [%an]" --graph --date=short` | Formatted log with dates           |
 | `lgn`      | `log --graph --pretty=format:'...' --abbrev-commit --date=relative` | Colorized graph log with relative dates | 

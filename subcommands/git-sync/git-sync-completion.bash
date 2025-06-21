@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Bash completion for git-sync
 # This script provides tab completion for git-sync command with branch names

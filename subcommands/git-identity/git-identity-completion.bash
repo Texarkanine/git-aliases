@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Bash completion for git-identity
 # This script provides tab completion for git-identity commands and identity names
 
 # Define completion function using Git's own naming convention
 _git_identity() {
-    local cur prev words cword
-    _get_comp_words_by_ref -n : cur prev words cword 2>/dev/null || return
+    local cur prev
+    _get_comp_words_by_ref -n : cur prev 2>/dev/null || return
 
     # If _get_comp_words_by_ref failed, try manual approach
     if [ -z "$cur" ]; then
@@ -27,9 +27,19 @@ _git_identity() {
         use)
             # Complete with available identities for the use command
             local identities_dir="${HOME}/.git-identities"
+            local identities=""
+            
             if [[ -d "${identities_dir}" ]]; then
-                local identities=$(find "${identities_dir}" -type f -exec basename {} \; 2>/dev/null)
-                COMPREPLY=($(compgen -W "$identities" -- "$cur"))
+                identities=$(find "${identities_dir}" -type f -exec basename {} \; 2>/dev/null)
+                if [[ $? -eq 0 && -n "$identities" ]]; then
+                    COMPREPLY=($(compgen -W "$identities" -- "$cur"))
+                else
+                    # No identities found or find command failed
+                    COMPREPLY=()
+                fi
+            else
+                # Directory doesn't exist
+                COMPREPLY=()
             fi
             return 0
             ;;

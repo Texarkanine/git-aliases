@@ -24,4 +24,4 @@
 - [ ] Changes maintain backward compatibility
 
 ## Additional Notes
-<!-- Any other relevant information --> 
+<!-- Any other relevant information -->

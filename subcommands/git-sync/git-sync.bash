@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # git-sync - Git addon to synchronize your current branch with another branch
 # 
@@ -22,6 +22,12 @@ Arguments:
   source-branch         Specify source branch to sync with (default: main)
 EOF
 }
+
+# Verify we're in a git repository
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    echo "Error: Not in a git repository" >&2
+    exit 1
+fi
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -110,15 +116,12 @@ if [[ "$NEED_STASH" = true ]]; then
     fi
 fi
 
-# Remember if we stashed something
-STASHED=$?
-
 # Switch to source branch and update
 echo "Switching to $SOURCE_BRANCH..."
 git checkout "$SOURCE_BRANCH"
 if [[ $? -ne 0 ]]; then
     echo "Error: Failed to switch to $SOURCE_BRANCH. Aborting."
-    if [[ "$NEED_STASH" = true && $STASHED -eq 0 ]]; then
+    if [[ "$NEED_STASH" = true ]]; then
         echo "Restoring stashed changes..."
         git stash pop
     fi
@@ -132,7 +135,7 @@ if [[ -n "$HAS_REMOTE" ]]; then
     if [[ $? -ne 0 ]]; then
         echo "Error: Failed to pull latest changes. Aborting."
         git checkout "$CURRENT_BRANCH"
-        if [[ "$NEED_STASH" = true && $STASHED -eq 0 ]]; then
+        if [[ "$NEED_STASH" = true ]]; then
             echo "Restoring stashed changes..."
             git stash pop
         fi
@@ -146,7 +149,7 @@ git checkout "$CURRENT_BRANCH"
 if [[ $? -ne 0 ]]; then
     echo "Error: Failed to switch back to $CURRENT_BRANCH."
     echo "You are currently on $SOURCE_BRANCH."
-    if [[ "$NEED_STASH" = true && $STASHED -eq 0 ]]; then
+    if [[ "$NEED_STASH" = true ]]; then
         echo "Warning: Your stashed changes have not been restored."
         echo "You can restore them with 'git stash pop'."
     fi
@@ -182,7 +185,7 @@ if [[ $SYNC_STATUS -ne 0 ]]; then
 fi
 
 # Pop the stash if we stashed changes
-if [[ "$NEED_STASH" = true && $STASHED -eq 0 ]]; then
+if [[ "$NEED_STASH" = true ]]; then
     echo "Restoring stashed changes..."
     git stash pop
     if [[ $? -ne 0 ]]; then
