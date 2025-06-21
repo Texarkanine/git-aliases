@@ -28,10 +28,10 @@ make completions
 
 ### Requirements
 
-- Git
-- Bash
-- ~/.local/bin directory in your PATH (for subcommands)
-- bash-completion package (for completions)
+- `git`
+- `bash`
+- `~/.local/bin` directory in your PATH (for subcommands)
+- [bash-completion](https://github.com/scop/bash-completion) package (for completions)
 
 ## Git Aliases
 

@@ -4,7 +4,7 @@ A Git subcommand to manage multiple Git identities with different configuration 
 
 ## Overview
 
-`git-identity` allows you to create and switch between different Git identities, each with its own configuration settings such as name, email, and signing key. This is particularly useful when you work with multiple Git accounts or need to use different credentials for different projects.
+`git-identity` allows you to create and switch between different Git identities, each with its own set of `git config` settings (such as name, email, and signing key). This is particularly useful when you work with multiple Git accounts or need to use different credentials for different projects.
 
 ## Usage
 
@@ -26,14 +26,6 @@ Switch to a specified identity
 
 ```bash
 git identity use <identity-name>
-```
-
-### current
-
-Show the currently active identity
-
-```bash
-git identity current
 ```
 
 ### create
@@ -78,36 +70,6 @@ Pair with a custom SSH host entry in `~/.ssh/config` to automatically use the co
 Host github-johndoe.com
 	IdentityFile ~/.ssh/id_rsa_work
 ```
-
-## Bash Completion
-
-The project includes bash completion for git-identity commands and identity names. After installation, you can use tab completion to:
-
-- Auto-complete git-identity commands (`list`, `use`, `current`, `create`)
-- Auto-complete identity names when using the `use` command
-
-### Installation
-
-Bash completion is automatically installed when you run `make` or `make completions`. The installation:
-
-1. Copies completion scripts to `~/.local/share/git-aliases/completions/`
-2. Adds references to these scripts in `~/.bash_completion`
-
-This ensures completions continue to work even if the original repository is moved or deleted.
-
-If completions don't work immediately after installation:
-
-1. Make sure the bash-completion package is installed on your system:
-   ```bash
-   sudo apt-get install bash-completion  # For Debian/Ubuntu
-   ```
-
-2. Source your bash completion file:
-   ```bash
-   source ~/.bash_completion
-   ```
-
-3. Or simply restart your shell session
 
 ## Examples
 
