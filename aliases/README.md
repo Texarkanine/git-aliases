@@ -73,9 +73,6 @@ This directory contains various Git aliases organized by category. These aliases
 | `cia`      | `commit -a --amend`                                    | Add all changes and amend the last commit    |
 | `s`        | `status -sb`                                           | Show status in short format with branch info |
 | `last`     | `log -1 HEAD`                                          | Show the last commit                         |
-| `lg`       | `log --oneline --graph --decorate --all`               | Pretty log graph of all branches             |
-| `lga`      | `log --oneline --graph --decorate --all --abbrev-commit` | Abbreviated pretty log                     |
-| `lol`      | `log --graph --decorate --pretty=oneline --abbrev-commit --all` | Another log format                  |
 | `l`        | `log --oneline --decorate --color`                     | Colorized oneline log                        |
 | `hist`     | `log --pretty=format:"%h %ad | %s%d [%an]" --graph --date=short` | Formatted log with dates           |
-| `lgn`      | `log -n $1 --oneline`                                 | Show n commits in oneline format             | 
+| `lgn`      | `log --graph --pretty=format:'...' --abbrev-commit --date=relative` | Colorized graph log with relative dates | 
