@@ -51,39 +51,20 @@ For a full list of aliases, see the [aliases README](aliases/README.md).
 
 Custom Git extensions that can be called as `git <subcommand>`:
 
-- **git-identity**: Manage multiple Git identities with different configuration settings
+- **[git-identity](subcommands/git-identity/README.md)**: Manage multiple Git identities with different configuration settings
+- **[git-sync](subcommands/git-sync/README.md)**: Synchronize your current branch with another branch using rebase or merge
 
 For more information on each subcommand, check their individual README files in the corresponding directory.
 
 ## Bash Completion
 
-Bash completion is included for custom Git subcommands:
-
-- **git-identity**: Completes commands and available identities
+Bash completion is included for some Git subcommands.
 
 The installation process:
 1. Copies completion scripts to `~/.local/share/git-aliases/completions/`
 2. Adds references to these scripts in `~/.bash_completion`
 
-This ensures completions continue to work even if the original repository is moved or deleted.
-
-### Manual Installation/Uninstallation
-
-You can also manually install or remove the bash completion scripts:
-
-```bash
-# Install completion scripts
-./install-bash-completion.sh install
-
-# Uninstall completion scripts
-./install-bash-completion.sh uninstall
-```
-
 After installation, you may need to source your bash completion file:
 ```bash
 source ~/.bash_completion
 ```
-
-## License
-
-See the [LICENSE](LICENSE) file for details.

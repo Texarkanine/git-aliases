@@ -12,12 +12,14 @@ HELP=false
 # Display usage information
 function show_usage() {
     cat <<EOF
-Usage: git sync [options]
+Usage: git sync [options] [source-branch]
 
 Options:
   -m, --merge           Use merge instead of rebase
-  --source-branch NAME  Specify source branch (default: main)
   -h                    Show this help message
+
+Arguments:
+  source-branch         Specify source branch to sync with (default: main)
 EOF
 }
 
@@ -30,10 +32,6 @@ while [[ $# -gt 0 ]]; do
             MERGE_MODE=true
             shift
             ;;
-        --source-branch)
-            SOURCE_BRANCH="$2"
-            shift 2
-            ;;
         -h)
             HELP=true
             shift
@@ -42,10 +40,15 @@ while [[ $# -gt 0 ]]; do
             # Pass --help along to git's help system
             exit 1
             ;;
-        *)
+        --*)
             echo "Unknown option: $1"
             show_usage
             exit 1
+            ;;
+        *)
+            # First non-option argument is the source branch
+            SOURCE_BRANCH="$1"
+            shift
             ;;
     esac
 done

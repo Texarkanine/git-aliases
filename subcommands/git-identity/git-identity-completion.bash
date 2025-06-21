@@ -3,7 +3,8 @@
 # Bash completion for git-identity
 # This script provides tab completion for git-identity commands and identity names
 
-_git_identity_complete() {
+# Define completion function using Git's own naming convention
+_git_identity() {
     local cur prev words cword
     _get_comp_words_by_ref -n : cur prev words cword 2>/dev/null || return
 
@@ -14,11 +15,11 @@ _git_identity_complete() {
     fi
 
     # Main git-identity commands
-    local commands="list use current create"
+    local commands="list use create"
     
     # Handle different completion contexts
     case "$prev" in
-        git-identity|identity)
+        identity|git-identity)
             # Complete with available commands
             COMPREPLY=($(compgen -W "$commands" -- "$cur"))
             return 0
@@ -27,34 +28,28 @@ _git_identity_complete() {
             # Complete with available identities for the use command
             local identities_dir="${HOME}/.git-identities"
             if [[ -d "${identities_dir}" ]]; then
-                local identities=$(find "${identities_dir}" -type f -not -name ".current" -exec basename {} \; 2>/dev/null)
+                local identities=$(find "${identities_dir}" -type f -exec basename {} \; 2>/dev/null)
                 COMPREPLY=($(compgen -W "$identities" -- "$cur"))
             fi
             return 0
             ;;
-        create|list|current)
+        create|list)
             # For these commands, we don't suggest anything specific
             return 0
             ;;
     esac
-
-    # Check if this is a git subcommand invocation
-    if [[ ${COMP_CWORD} -ge 2 && "${COMP_WORDS[COMP_CWORD-2]}" == "git" && "${COMP_WORDS[COMP_CWORD-1]}" == "identity" ]]; then
-        COMPREPLY=($(compgen -W "$commands" -- "$cur"))
-        return 0
-    fi
 
     # Default to command names if no context is recognized
     COMPREPLY=($(compgen -W "$commands" -- "$cur"))
     return 0
 }
 
-# Register the completion function for both standalone and git subcommand usage
-complete -F _git_identity_complete git-identity
+# For standalone command git-identity
+complete -F _git_identity git-identity
 
-# For when used as a git subcommand
+# For git's built-in completion system
 if declare -F __git_complete >/dev/null; then
-    __git_complete git-identity _git_identity_complete
-else
-    complete -o default -F _git_identity_complete git
+    # This allows git identity to use our custom completion
+    # The _git_ prefix is important for Git's completion system
+    __git_complete identity _git_identity
 fi

@@ -14,15 +14,20 @@ The command handles stashing any uncommitted changes during the sync process and
 ## Usage
 
 ```bash
-git sync [options]
+git sync [options] [source-branch]
 ```
 
 ### Options
 
 ```
 -m, --merge           Use merge instead of rebase
---source-branch NAME  Specify source branch (default: main)
 -h, --help            Show this help message
+```
+
+### Arguments
+
+```
+source-branch         Specify source branch to sync with (default: main)
 ```
 
 ## Examples
@@ -32,6 +37,8 @@ git sync [options]
 ```bash
 # Update main and rebase current branch on top of it
 git sync
+# or explicitly specify main
+git sync main
 ```
 
 ### Merge Updated Main into Current Branch
@@ -45,13 +52,35 @@ git sync --merge
 
 ```bash
 # Rebase current branch onto updated develop branch
-git sync --source-branch develop
+git sync develop
 ```
 
 ```bash
 # Merge updated release branch into current branch
-git sync --merge --source-branch release
+git sync --merge release
 ```
+
+## Bash Completion
+
+The command includes tab completion for branch names. When you type `git sync` and press Tab, it will suggest available branches in your repository.
+
+### Installing Completion
+
+1. Copy the completion script to your bash completion directory:
+
+```bash
+mkdir -p ~/.local/share/bash-completion/completions
+cp subcommands/git-sync/git-sync-completion.bash ~/.local/share/bash-completion/completions/git-sync
+chmod +x ~/.local/share/bash-completion/completions/git-sync
+```
+
+2. Source your bash configuration or restart your terminal:
+
+```bash
+source ~/.bashrc
+```
+
+3. Test the completion by typing `git sync` followed by Tab.
 
 ## Workflow
 
