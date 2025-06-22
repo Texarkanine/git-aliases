@@ -1,0 +1,4 @@
+d = diff
+ds = diff --staged
+dc = diff --cached
+wdiff = diff --word-diff

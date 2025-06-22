@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+**Always** follow [bash-style.mdc](mdc:.cursor/rules/shared/bash-style.mdc) for creating git subcommands.
+**Always** follow [shell-posix-style.mdc](mdc:.cursor/rules/shared/shell-posix-style.mdc) for shell code in Makefiles and embedded in git aliases. **Never** use bashisms in Makefiles or git aliases.

@@ -1,0 +1,5 @@
+rb = rebase
+rbi = rebase -i
+rbc = rebase --continue
+rba = rebase --abort
+cp = cherry-pick

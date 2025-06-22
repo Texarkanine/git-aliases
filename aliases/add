@@ -1,0 +1,5 @@
+aa = add --all
+ap = add -p
+unstage = reset HEAD --
+discard = checkout --
+cleanall = clean -fdx
