@@ -34,28 +34,28 @@ while [[ $# -gt 0 ]]; do
     key="$1"
 
     case $key in
-        -m|--merge)
-            MERGE_MODE=true
-            shift
-            ;;
-        -h)
-            HELP=true
-            shift
-            ;;
-        --help)
-            # Pass --help along to git's help system
-            exit 1
-            ;;
-        --*)
-            echo "Unknown option: $1"
-            show_usage
-            exit 1
-            ;;
-        *)
-            # First non-option argument is the source branch
-            SOURCE_BRANCH="$1"
-            shift
-            ;;
+    	-m|--merge)
+    		MERGE_MODE=true
+    		shift
+    		;;
+    	-h)
+    		HELP=true
+    		shift
+    		;;
+    	--help)
+    		# Pass --help along to git's help system
+    		exit 1
+    		;;
+    	--*)
+    		echo "Unknown option: $1"
+    		show_usage
+    		exit 1
+    		;;
+    	*)
+    		# First non-option argument is the source branch
+    		SOURCE_BRANCH="$1"
+    		shift
+    		;;
     esac
 done
 
@@ -111,8 +111,8 @@ if [[ "$NEED_STASH" = true ]]; then
     echo "Stashing uncommitted changes..."
     git stash push -m "git-sync: auto-stash before sync"
     if [[ $? -ne 0 ]]; then
-        echo "Error: Failed to stash changes. Aborting."
-        exit 1
+    	echo "Error: Failed to stash changes. Aborting."
+    	exit 1
     fi
 fi
 
@@ -122,8 +122,8 @@ git checkout "$SOURCE_BRANCH"
 if [[ $? -ne 0 ]]; then
     echo "Error: Failed to switch to $SOURCE_BRANCH. Aborting."
     if [[ "$NEED_STASH" = true ]]; then
-        echo "Restoring stashed changes..."
-        git stash pop
+    	echo "Restoring stashed changes..."
+    	git stash pop
     fi
     exit 1
 fi
@@ -133,13 +133,13 @@ if [[ -n "$HAS_REMOTE" ]]; then
     echo "Pulling latest changes for $SOURCE_BRANCH..."
     git pull
     if [[ $? -ne 0 ]]; then
-        echo "Error: Failed to pull latest changes. Aborting."
-        git checkout "$CURRENT_BRANCH"
-        if [[ "$NEED_STASH" = true ]]; then
-            echo "Restoring stashed changes..."
-            git stash pop
-        fi
-        exit 1
+    	echo "Error: Failed to pull latest changes. Aborting."
+    	git checkout "$CURRENT_BRANCH"
+    	if [[ "$NEED_STASH" = true ]]; then
+    		echo "Restoring stashed changes..."
+    		git stash pop
+    	fi
+    	exit 1
     fi
 fi
 
@@ -150,8 +150,8 @@ if [[ $? -ne 0 ]]; then
     echo "Error: Failed to switch back to $CURRENT_BRANCH."
     echo "You are currently on $SOURCE_BRANCH."
     if [[ "$NEED_STASH" = true ]]; then
-        echo "Warning: Your stashed changes have not been restored."
-        echo "You can restore them with 'git stash pop'."
+    	echo "Warning: Your stashed changes have not been restored."
+    	echo "You can restore them with 'git stash pop'."
     fi
     exit 1
 fi
@@ -171,11 +171,11 @@ fi
 if [[ $SYNC_STATUS -ne 0 ]]; then
     echo "Warning: Sync operation completed with issues."
     if [[ "$MERGE_MODE" = true ]]; then
-        echo "You may need to resolve merge conflicts."
+    	echo "You may need to resolve merge conflicts."
     else
-        echo "You may need to resolve rebase conflicts."
-        echo "After resolving conflicts, run 'git rebase --continue'"
-        echo "Or to abort, run 'git rebase --abort'"
+    	echo "You may need to resolve rebase conflicts."
+    	echo "After resolving conflicts, run 'git rebase --continue'"
+    	echo "Or to abort, run 'git rebase --abort'"
     fi
     
     # Don't restore stash if we have conflicts
@@ -189,9 +189,9 @@ if [[ "$NEED_STASH" = true ]]; then
     echo "Restoring stashed changes..."
     git stash pop
     if [[ $? -ne 0 ]]; then
-        echo "Warning: There were conflicts when restoring your stashed changes."
-        echo "Please resolve these conflicts manually."
-        exit 1
+    	echo "Warning: There were conflicts when restoring your stashed changes."
+    	echo "Please resolve these conflicts manually."
+    	exit 1
     fi
 fi
 

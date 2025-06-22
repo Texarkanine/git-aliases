@@ -1,3 +1,2 @@
-# Grep and search
 g = grep -n
 find = !git ls-files | grep

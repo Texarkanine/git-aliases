@@ -1,4 +1,3 @@
-# Misc
 who = shortlog -sne
 short = rev-parse --short HEAD
 root = rev-parse --show-toplevel

@@ -1,4 +1,3 @@
-# Rebase, merge, cherry-pick
 rb = rebase
 rbi = rebase -i
 rbc = rebase --continue
