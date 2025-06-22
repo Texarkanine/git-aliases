@@ -38,7 +38,8 @@ if [[ "$MODE" == "install" ]]; then
     mkdir -p "$INSTALL_DIR"
     
     # Find all bash scripts (not completion scripts) and install them
-    find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" | while read -r file; do
+    find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" -print0 | 
+    while IFS= read -r -d '' file; do
     	cmd_name=$(basename "$file" .bash)
     	cmd_base=$(basename "$cmd_name" | sed 's/^git-//')
     	target="$INSTALL_DIR/git-$cmd_base"
@@ -54,7 +55,8 @@ else
     echo "📤 Uninstalling Git subcommands..."
     
     # Find all subcommand files in the repo and remove their installed versions
-    find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" | while read -r file; do
+    find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" -print0 | 
+    while IFS= read -r -d '' file; do
     	cmd_name=$(basename "$file" .bash)
     	cmd_base=$(basename "$cmd_name" | sed 's/^git-//')
     	target="$INSTALL_DIR/git-$cmd_base"

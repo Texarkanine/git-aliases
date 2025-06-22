@@ -1,4 +1,4 @@
-.PHONY: all aliases subcommands completions clean test
+.PHONY: all aliases subcommands completions clean
 
 all: aliases subcommands completions
 

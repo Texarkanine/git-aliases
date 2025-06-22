@@ -35,22 +35,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$MODE" == "install" ]]; then
-    # Find all completion scripts
-    COMPLETION_FILES=$(find "$REPO_DIR/subcommands" -name "*-completion.bash" -type f)
-    if [ -z "$COMPLETION_FILES" ]; then
+    # Check for completion scripts using null-terminated names
+    if [ -z "$(find "$REPO_DIR/subcommands" -name "*-completion.bash" -type f -print0 | tr -d '\0')" ]; then
     	echo "No completion scripts found in $REPO_DIR/subcommands"
     	exit 1
     fi
     
     echo "📥 Installing bash completions..."
     
-    # Create directories
-    mkdir -p "$HOME"
+    # Create directories (home dir already exists, no need to create)
     mkdir -p "$INSTALL_DIR"
     touch "$COMPLETIONS_FILE"
     
-    # Copy completion files to install directory
-    for completion_file in $COMPLETION_FILES; do
+    # Copy completion files to install directory using null-terminated names
+    find "$REPO_DIR/subcommands" -name "*-completion.bash" -type f -print0 | while IFS= read -r -d '' completion_file; do
     	base_name=$(basename "$completion_file")
     	cp -f "$completion_file" "$INSTALL_DIR/$base_name"
     	chmod +x "$INSTALL_DIR/$base_name"
