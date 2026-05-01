@@ -86,11 +86,16 @@ if [[ -z "$HAS_REMOTE" ]]; then
     echo "Warning: No remote repository configured. Will sync with local branches only."
 fi
 
-# Check for uncommitted changes
-UNCOMMITTED_CHANGES=$(git --no-pager status --porcelain)
+# Check for uncommitted changes that git stash will actually capture.
+# We exclude untracked-only files (lines starting with '??') because
+# plain 'git stash push' ignores them; including them in NEED_STASH
+# would cause us to attempt a stash that creates no entry, and then
+# erroneously pop a pre-existing, unrelated stash on restore.
+UNCOMMITTED_CHANGES=$(git --no-pager status --porcelain | grep -v '^??')
 NEED_STASH=false
+STASH_REF=""
 
-if [[ -n "$UNCOMMITTED_CHANGES" ]]; then
+if [[ -n "${UNCOMMITTED_CHANGES}" ]]; then
     NEED_STASH=true
 fi
 
@@ -106,88 +111,98 @@ if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Stash uncommitted changes if necessary
-if [[ "$NEED_STASH" = true ]]; then
+# Stash uncommitted changes if necessary.
+# We capture the new stash ref so we can pop exactly what we pushed,
+# rather than blindly popping whatever is at the top of the stack.
+if [[ "${NEED_STASH}" = true ]]; then
     echo "Stashing uncommitted changes..."
-    git stash push -m "git-sync: auto-stash before sync"
-    if [[ $? -ne 0 ]]; then
+    if ! git stash push -m "git-sync: auto-stash before sync"; then
     	echo "Error: Failed to stash changes. Aborting."
+    	exit 1
+    fi
+    STASH_REF="$(git --no-pager stash list --format='%gd: %s' \
+        | grep 'git-sync: auto-stash before sync' \
+        | head -n 1 \
+        | cut -d: -f1)"
+    if [[ -z "${STASH_REF}" ]]; then
+    	echo "Error: Stash push reported success but no stash entry was created. Aborting."
     	exit 1
     fi
 fi
 
 # Switch to source branch and update
-echo "Switching to $SOURCE_BRANCH..."
-git checkout "$SOURCE_BRANCH"
+echo "Switching to ${SOURCE_BRANCH}..."
+git checkout "${SOURCE_BRANCH}"
 if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to switch to $SOURCE_BRANCH. Aborting."
-    if [[ "$NEED_STASH" = true ]]; then
+    echo "Error: Failed to switch to ${SOURCE_BRANCH}. Aborting."
+    if [[ "${NEED_STASH}" = true ]]; then
     	echo "Restoring stashed changes..."
-    	git stash pop
+    	git stash pop "${STASH_REF}"
     fi
     exit 1
 fi
 
 # Pull latest changes if there's a remote
-if [[ -n "$HAS_REMOTE" ]]; then
-    echo "Pulling latest changes for $SOURCE_BRANCH..."
+if [[ -n "${HAS_REMOTE}" ]]; then
+    echo "Pulling latest changes for ${SOURCE_BRANCH}..."
     git pull
     if [[ $? -ne 0 ]]; then
     	echo "Error: Failed to pull latest changes. Aborting."
-    	git checkout "$CURRENT_BRANCH"
-    	if [[ "$NEED_STASH" = true ]]; then
+    	git checkout "${CURRENT_BRANCH}"
+    	if [[ "${NEED_STASH}" = true ]]; then
     		echo "Restoring stashed changes..."
-    		git stash pop
+    		git stash pop "${STASH_REF}"
     	fi
     	exit 1
     fi
 fi
 
 # Switch back to the original branch
-echo "Switching back to $CURRENT_BRANCH..."
-git checkout "$CURRENT_BRANCH"
+echo "Switching back to ${CURRENT_BRANCH}..."
+git checkout "${CURRENT_BRANCH}"
 if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to switch back to $CURRENT_BRANCH."
-    echo "You are currently on $SOURCE_BRANCH."
-    if [[ "$NEED_STASH" = true ]]; then
+    echo "Error: Failed to switch back to ${CURRENT_BRANCH}."
+    echo "You are currently on ${SOURCE_BRANCH}."
+    if [[ "${NEED_STASH}" = true ]]; then
     	echo "Warning: Your stashed changes have not been restored."
-    	echo "You can restore them with 'git stash pop'."
+    	echo "You can restore them with 'git stash pop ${STASH_REF}'."
     fi
     exit 1
 fi
 
 # Perform the requested sync operation
-if [[ "$MERGE_MODE" = true ]]; then
-    echo "Merging $SOURCE_BRANCH into $CURRENT_BRANCH..."
-    git merge "$SOURCE_BRANCH"
+if [[ "${MERGE_MODE}" = true ]]; then
+    echo "Merging ${SOURCE_BRANCH} into ${CURRENT_BRANCH}..."
+    git merge "${SOURCE_BRANCH}"
     SYNC_STATUS=$?
 else
-    echo "Rebasing $CURRENT_BRANCH onto $SOURCE_BRANCH..."
-    git rebase "$SOURCE_BRANCH"
+    echo "Rebasing ${CURRENT_BRANCH} onto ${SOURCE_BRANCH}..."
+    git rebase "${SOURCE_BRANCH}"
     SYNC_STATUS=$?
 fi
 
 # Check if sync operation was successful
-if [[ $SYNC_STATUS -ne 0 ]]; then
+if [[ ${SYNC_STATUS} -ne 0 ]]; then
     echo "Warning: Sync operation completed with issues."
-    if [[ "$MERGE_MODE" = true ]]; then
+    if [[ "${MERGE_MODE}" = true ]]; then
     	echo "You may need to resolve merge conflicts."
     else
     	echo "You may need to resolve rebase conflicts."
     	echo "After resolving conflicts, run 'git rebase --continue'"
     	echo "Or to abort, run 'git rebase --abort'"
     fi
-    
-    # Don't restore stash if we have conflicts
-    echo "Stashed changes were not restored due to conflicts."
-    echo "You can restore them later with 'git stash pop' after resolving conflicts."
+
+    if [[ "${NEED_STASH}" = true ]]; then
+    	echo "Stashed changes were not restored due to conflicts."
+    	echo "You can restore them later with 'git stash pop ${STASH_REF}' after resolving conflicts."
+    fi
     exit 1
 fi
 
 # Pop the stash if we stashed changes
-if [[ "$NEED_STASH" = true ]]; then
+if [[ "${NEED_STASH}" = true ]]; then
     echo "Restoring stashed changes..."
-    git stash pop
+    git stash pop "${STASH_REF}"
     if [[ $? -ne 0 ]]; then
     	echo "Warning: There were conflicts when restoring your stashed changes."
     	echo "Please resolve these conflicts manually."
