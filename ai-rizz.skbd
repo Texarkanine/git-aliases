@@ -1,3 +1,4 @@
 https://github.com/texarkanine/.cursor-rules.git	.cursor/rules	rules	rulesets
 rules/bash-style.mdc
 rules/shell-posix-style.mdc
+rulesets/niko
