@@ -14,7 +14,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 ALIASES_DIR="$REPO_DIR/aliases"
+LIB_DIR="$SCRIPT_DIR/lib"
 MODE="install"
+
+# shellcheck source=lib/trim.sh
+. "${LIB_DIR}/trim.sh"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -40,8 +44,8 @@ if [[ "$MODE" == "install" ]]; then
     		
     		while IFS= read -r line; do
     			if [ -n "$line" ] && ! echo "$line" | grep -q "^[[:space:]]*#"; then
-    				name=$(echo "$line" | cut -d'=' -f1 | sed 's/^[ \t]*//;s/[ \t]*$//')
-    				value=$(echo "$line" | cut -d'=' -f2- | sed 's/^[ \t]*//;s/[ \t]*$//')
+    				name=$(trim_whitespace "$(echo "$line" | cut -d'=' -f1)")
+    				value=$(trim_whitespace "$(echo "$line" | cut -d'=' -f2-)")
     				
     				if [ -n "$name" ] && [ -n "$value" ]; then
     					echo "	$name -> $value"
@@ -62,7 +66,7 @@ else
     		
     		while IFS= read -r line; do
     			if [ -n "$line" ] && ! echo "$line" | grep -q "^[[:space:]]*#"; then
-    				name=$(echo "$line" | cut -d'=' -f1 | sed 's/^[ \t]*//;s/[ \t]*$//')
+    				name=$(trim_whitespace "$(echo "$line" | cut -d'=' -f1)")
     				
     				if [ -n "$name" ]; then
     					echo "	Removing alias.$name"

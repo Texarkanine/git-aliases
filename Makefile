@@ -1,4 +1,4 @@
-.PHONY: all aliases subcommands completions clean
+.PHONY: all aliases subcommands completions test clean
 
 all: aliases subcommands completions
 
@@ -13,6 +13,10 @@ subcommands:
 completions:
 	@chmod +x scripts/install-completions.sh
 	@./scripts/install-completions.sh
+
+test:
+	@chmod +x tests/test-trim.sh scripts/lib/trim.sh
+	@./tests/test-trim.sh
 
 clean:
 	@echo "🗑️ Cleaning up git-aliases installations..."
