@@ -10,9 +10,9 @@ Shell-only project: Bash subcommands, POSIX-compatible install scripts, and a GN
 
 ## Build Tools
 
-- **GNU Make** — orchestrates installation via `Makefile`. Three targets: `aliases`, `subcommands`, `completions`.
+- **GNU Make** — orchestrates installation via `Makefile`. Targets: `aliases`, `subcommands`, `completions`, `test`, `clean`.
 - **install scripts** — `scripts/install-*.sh` do the actual file placement; called by `make`.
 
 ## Testing Process
 
-No test framework is currently present in the repository. The bash-style guide (`.cursor/rules/shared/bash-style.mdc`) references **bats** (Bash Automated Testing System) as the preferred framework for shell script tests, but it is not yet installed or configured.
+Run `make test` to execute POSIX shell tests under `tests/`. The trim helper in `scripts/lib/trim.sh` is covered by `tests/test-trim.sh`, which guards against BSD/GNU sed whitespace-trim differences in alias installation.
