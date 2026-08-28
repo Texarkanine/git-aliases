@@ -186,7 +186,7 @@ None - implementation approach is clear. The issue is the spec; the local script
 1. Stub tests: cases for install (files + fences), idempotent reinstall (single fence), uninstall, second uninstall, `all` does not depend on `shell`, `clean` invokes the shell uninstaller.
 2. Stub interface: `install-shell-integration.sh` with `#!/usr/bin/env bash`, `set -euo pipefail`, `--uninstall`, empty install/uninstall bodies; Makefile `shell` target and `clean` hook present but no-op or failing.
 3. Write tests and run red: run installer against fake `HOME`; parse Makefile prerequisites (`make -n all` / `make -n clean` or a small awk of the Makefile). Expect fail.
-4. Write code and run green: copy fence strip/append from `install-completions.sh`; install dir `~/.local/share/git-aliases/shell/`; bashrc sources `wt.bash`, zshrc sources `wt.zsh`; create RC files if missing; `.PHONY: shell`; `shell` not in `all`; `clean` chmod+run `--uninstall`. Run tests then `make test`.
+4. Write code and run green: copy fence strip/append from `install-completions.sh`; install dir `~/.local/share/git-aliases/shell/`; bashrc sources `wt.bash`, zshrc sources `wt.zsh`; create RC files if missing; `.PHONY: shell`; `shell` not in `all`; `clean` chmod+run `--uninstall`. Wire `Makefile` `test` to run `tests/test-install-shell-integration.sh` (so `make test` runs `test-trim.sh` plus all three new test files). Run `./tests/test-install-shell-integration.sh` then `make test`.
 
 ### 4. User-facing docs — prose/policy
 
