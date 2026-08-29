@@ -20,14 +20,14 @@ Edge cases:
 
 - [Dialect] `*.bash` files are not passed to ShellCheck → `git-wt.bash` and other bash subcommands are out of this gate
 - [Severity] existing `*.sh` have warning/info findings (`SC1007`, `SC1010`, `SC2031`) → they must not fail the gate; do not rewrite those files to silence warnings
-- [Regression] existing homemade suites still pass under `make test` unchanged (except the Makefile listing the new smoke file)
+- [Regression] existing homemade suites still pass under `make test` unchanged (except the Makefile listing the new test files)
 
 ### Test Infrastructure
 
-- Framework: homemade POSIX `assert_*` / `fail` suites today; **new** tests use bundled [shunit2](https://github.com/kward/shunit2) (ai-rizz pattern: source at end of file)
+- Framework: homemade POSIX `assert_*` / `fail` suites today; **shunit2** only for the smoke file (ai-rizz pattern: source at end of file). `tests/test-shellcheck.sh` stays homemade so expected-failure PATH cases do not fight shunit2's last-command-as-status rule.
 - Test location: `tests/`
 - Conventions: `tests/test-<name>.sh`, shebang `#!/bin/sh`; `Makefile` `test` recipe chmod+x and lists files explicitly (no `find` runner)
-- New test files: `tests/test-shunit2-smoke.sh`
+- New test files: `tests/test-shunit2-smoke.sh`, `tests/test-shellcheck.sh`
 
 ## Implementation Plan
 
@@ -42,12 +42,12 @@ Edge cases:
 
 ### 2. `make shellcheck` — executable
 
-- Files: `Makefile`
+- Files: `scripts/run-shellcheck.sh`, `tests/test-shellcheck.sh`, `Makefile`
 
-1. Stub tests: none as a suite (do not assert on Makefile text). Verification is running the target: red before the target exists (`make: *** No rule to make target 'shellcheck'`).
-2. Stub interface: `.PHONY: shellcheck` with an empty recipe
-3. Write tests and run red: `make shellcheck` fails (empty/missing)
-4. Write code and run green: `find` all `*.sh` excluding `.git`; invoke `shellcheck --severity=error`; if `shellcheck` is missing, print that it is required and exit non-zero. Do not pass `--shell=sh` (installers are `*.sh` with bash shebang). Add `shellcheck` to `.PHONY`.
+1. Stub tests: `tests/test-shellcheck.sh` with empty `test_shellcheck_current_tree` and `test_shellcheck_missing_from_path` (homemade `fail` / exit-code checks, same style as `tests/test-trim.sh`)
+2. Stub interface: `scripts/run-shellcheck.sh` with `#!/bin/sh` and an empty body (or `exit 1`); Makefile `.PHONY: shellcheck` recipe that chmod+x and runs that script
+3. Write tests and run red: (a) `make shellcheck` from the repo root must exit 0 against the current tree — fails while the script is empty/exits 1; (b) `make shellcheck` with a PATH that contains `make` (symlink in a temp `bin/`) but not `shellcheck` must exit non-zero and print a message containing `shellcheck` — fails while the script does not check PATH. Do not assert on Makefile source text.
+4. Write code and run green: `scripts/run-shellcheck.sh` uses `command -v shellcheck` and on miss prints that `shellcheck` is required then exits non-zero; otherwise `find` (absolute `/usr/bin/find` so the miss-PATH test still has `find`) every `*.sh` under the repo, prune `.git`, run `shellcheck --severity=error` with no `--shell=sh`. Makefile `shellcheck` only invokes the script. Add `tests/test-shellcheck.sh` to the `test` recipe. Do not add a `make ci` umbrella target.
 
 ### 3. PR workflow — prose/policy
 
@@ -55,7 +55,7 @@ Edge cases:
 - No tests: prose/policy artifact (purpose-built CI gate; do not write a change-detector on YAML)
 
 1. Add `on: pull_request` for branch `main`
-2. Job `shellcheck`: checkout, install ShellCheck if needed, `make shellcheck`
+2. Job `shellcheck`: checkout, then `make shellcheck`. Do **not** apt-install ShellCheck: `ubuntu-latest` (24.04) already ships ShellCheck 0.9.0
 3. Job `tests`: checkout, `make test`
 4. Do not add docs jobs, push-to-main jobs, or ShellCheck of `*.bash`
 
@@ -71,7 +71,7 @@ Edge cases:
 
 - **shunit2**: copied from `../ai-rizz/shunit2` (header: Kate Ward, Apache-2.0, `SHUNIT_VERSION='2.1.9pre'`). PoC in a temp dir: one `assertEquals 1 1` test sourced the file → `Ran 1 test. / OK`, exit 0.
 - **ShellCheck**: Homebrew 0.11.0 on this machine. Current `*.sh` tree is **fail** at default severity (warnings) and **pass** at `--severity=error` (same setting as ai-rizz `ludeeus/action-shellcheck` `severity: error`).
-- **CI**: new GitHub Actions workflow; Ubuntu job will need `shellcheck` installed unless the Makefile target is only used with a preinstalled binary. Prefer `make shellcheck` over scanning the whole tree with the action so `*.bash` stays out of scope.
+- **CI**: new GitHub Actions workflow. `ubuntu-latest` already includes ShellCheck; jobs run `make shellcheck` and `make test` so `*.bash` is not scanned.
 
 ## Dependencies
 
@@ -82,7 +82,9 @@ Edge cases:
 ## Challenges & Mitigations
 
 - **Existing `*.sh` fail default ShellCheck**: use `--severity=error`; do not "fix" git-wt tests for `SC1010` (`git wt done`) or `CDPATH=` spacing as part of this task
-- **New test file omitted from Makefile**: put the smoke file on the `test` recipe in the same unit that adds the file (git-wt preflight lesson)
+- **New test file omitted from Makefile**: put each new `tests/test-*.sh` on the `test` recipe in the same unit that adds the file (git-wt preflight lesson)
+- **`PATH=` empty hides `make` too**: missing-tool test uses a temp `bin/` with a symlink to `make` only, so Ubuntu's `/usr/bin/shellcheck` is not inherited
+- **`find` missing when PATH hides `/usr/bin`**: `run-shellcheck.sh` calls `/usr/bin/find` after the `shellcheck` PATH check
 - **GitHub "required" checks**: the workflow failing is what we ship; marking the jobs required on `main` is a GitHub UI/settings step for the operator
 - **git-wt tests in Ubuntu CI**: they isolate `HOME`/`PATH`; if they fail on Actions, fix the environment in the workflow (git identity, etc.) — do not skip the suite
 - **Naming `shunit2.sh`**: would pull the vendor file into ShellCheck; keep the ai-rizz name `shunit2`
