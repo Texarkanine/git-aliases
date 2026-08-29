@@ -183,18 +183,18 @@ None - implementation approach is clear. The issue is the spec; the local script
 - Files: `tests/test-install-shell-integration.sh`, `scripts/install-shell-integration.bash`, `Makefile`
 - Creative ref: none
 
-1. Stub tests: cases for install (files + fences), idempotent reinstall (single fence), uninstall, second uninstall, `all` does not depend on `shell`, `clean` invokes the shell uninstaller.
-2. Stub interface: `install-shell-integration.bash` with `#!/usr/bin/env bash`, `set -euo pipefail`, `--uninstall`, empty install/uninstall bodies; Makefile `shell` target and `clean` hook present but no-op or failing.
-3. Write tests and run red: run installer against fake `HOME`; parse Makefile prerequisites (`make -n all` / `make -n clean` or a small awk of the Makefile). Expect fail.
-4. Write code and run green: copy fence strip/append from `install-completions.sh`; install dir `~/.local/share/git-aliases/shell/`; bashrc sources `wt.bash`, zshrc sources `wt.zsh`; create RC files if missing; `.PHONY: shell`; `shell` not in `all`; `clean` chmod+run `--uninstall`. Wire `Makefile` `test` to run `tests/test-install-shell-integration.sh` (so `make test` runs `test-trim.sh` plus all three new test files). Run `./tests/test-install-shell-integration.sh` then `make test`.
+1. [x] Stub tests: cases for install (files + fences), idempotent reinstall (single fence), uninstall, second uninstall, `all` does not depend on `shell`, `clean` invokes the shell uninstaller.
+2. [x] Stub interface: `install-shell-integration.bash` with `#!/usr/bin/env bash`, `set -euo pipefail`, `--uninstall`, empty install/uninstall bodies; Makefile `shell` target and `clean` hook present but no-op or failing.
+3. [x] Write tests and run red: run installer against fake `HOME`; parse Makefile prerequisites (`make -n all` / `make -n clean` or a small awk of the Makefile). Expect fail.
+4. [x] Write code and run green: copy fence strip/append from `install-completions.sh`; install dir `~/.local/share/git-aliases/shell/`; bashrc sources `wt.bash`, zshrc sources `wt.zsh`; create RC files if missing; `.PHONY: shell`; `shell` not in `all`; `clean` chmod+run `--uninstall`. Wire `Makefile` `test` to run `tests/test-install-shell-integration.sh` (so `make test` runs `test-trim.sh` plus all three new test files). Run `./tests/test-install-shell-integration.sh` then `make test`.
 
 ### 4. User-facing docs — prose/policy
 
 - Files: `subcommands/git-wt/README.md`, `README.md`
 - No tests: prose/policy artifact
 
-1. Write `subcommands/git-wt/README.md` covering `go`/`done` usage and examples, path convention, stdout/stderr contract, and a prominent Optional Shell Integration section (why it exists, `make` does not install it, how to `make shell`, that `wt` is not a git subcommand). Note removing any prior zsh `wt()` / `wt-go` on `PATH` so the wrapper can be found.
-2. Update root `README.md`: list git-wt under Git Subcommands; document `make shell` as optional and not part of default `make`; mention zsh/bash wrappers.
+1. [x] Write `subcommands/git-wt/README.md` covering `go`/`done` usage and examples, path convention, stdout/stderr contract, and a prominent Optional Shell Integration section (why it exists, `make` does not install it, how to `make shell`, that `wt` is not a git subcommand). Note removing any prior zsh `wt()` / `wt-go` on `PATH` so the wrapper can be found.
+2. [x] Update root `README.md`: list git-wt under Git Subcommands; document `make shell` as optional and not part of default `make`; mention zsh/bash wrappers.
 
 ## Technology Validation
 
@@ -227,9 +227,9 @@ No new technology - validation not required. Product runtime remains `git` + `ba
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
   - [x] Unit 1: git-wt CLI
   - [x] Unit 2: shell wrappers
-  - [ ] Unit 3: shell-integration install
-  - [ ] Unit 4: user-facing docs
+  - [x] Unit 3: shell-integration install
+  - [x] Unit 4: user-facing docs
 - [ ] QA

@@ -2,7 +2,7 @@
 
 ## How This System Works
 
-The repo is a collection of independently-installed Git extensions. There is no build step that produces a binary; the Makefile's job is to copy/symlink source files into `~/.local/bin` and `~/.local/share/git-aliases/completions/` so Git can discover them.
+The repo is a collection of independently-installed Git extensions. There is no build step that produces a binary; the Makefile's job is to copy source files into `~/.local/bin` (subcommands), `~/.local/share/git-aliases/completions/` (bash completion), and — only if you run `make shell` — `~/.local/share/git-aliases/shell/` (interactive `wt()` wrappers). `shell` is not a prerequisite of `all`; default `make` must not edit `~/.bashrc` or `~/.zshrc`.
 
 A Git subcommand is any executable on `PATH` named `git-<name>`; running `git <name>` dispatches to it. That's the entire extension mechanism. Each subcommand under `subcommands/<name>/` is a self-contained Bash script.
 
@@ -22,4 +22,4 @@ Git subcommands are `.bash`. Tests and `scripts/lib/trim.sh` are `.sh`. `scripts
 
 ## Install Script Idempotency
 
-`install-subcommands.sh`, `install-completions.sh`, and `install-aliases.sh` are designed to be re-run safely. They support an `--uninstall` flag for clean removal.
+`install-subcommands.sh`, `install-completions.sh`, `install-aliases.sh`, and `install-shell-integration.bash` are designed to be re-run safely. They support an `--uninstall` flag for clean removal. `make clean` runs all four uninstallers.

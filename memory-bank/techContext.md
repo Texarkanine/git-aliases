@@ -10,8 +10,8 @@ Shell-only project: Bash subcommands (`.bash`), POSIX tests/helpers (`.sh`), and
 
 ## Build Tools
 
-- **GNU Make** — orchestrates installation via `Makefile`. Targets: `aliases`, `subcommands`, `completions`, `test`, `clean`.
-- **install scripts** — `scripts/install-*.sh` do the actual file placement; called by `make`.
+- **GNU Make** — orchestrates installation via `Makefile`. Targets: `aliases`, `subcommands`, `completions`, `shell` (opt-in; not a prerequisite of `all`), `test`, `clean`.
+- **install scripts** — `scripts/install-*.sh` plus `scripts/install-shell-integration.bash` do the actual file placement; called by `make`.
 
 ## Testing Process
 

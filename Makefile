@@ -1,4 +1,4 @@
-.PHONY: all aliases subcommands completions test clean
+.PHONY: all aliases subcommands completions shell test clean
 
 all: aliases subcommands completions
 
@@ -14,19 +14,26 @@ completions:
 	@chmod +x scripts/install-completions.sh
 	@./scripts/install-completions.sh
 
+shell:
+	@chmod +x scripts/install-shell-integration.bash
+	@./scripts/install-shell-integration.bash
+
 test:
-	@chmod +x tests/test-trim.sh tests/test-git-wt.sh tests/test-wt-wrappers.sh scripts/lib/trim.sh
+	@chmod +x tests/test-trim.sh tests/test-git-wt.sh tests/test-wt-wrappers.sh tests/test-install-shell-integration.sh scripts/lib/trim.sh
 	@./tests/test-trim.sh
 	@./tests/test-git-wt.sh
 	@./tests/test-wt-wrappers.sh
+	@./tests/test-install-shell-integration.sh
 
 clean:
 	@echo "🗑️ Cleaning up git-aliases installations..."
-	@chmod +x scripts/install-aliases.sh scripts/install-subcommands.sh scripts/install-completions.sh
+	@chmod +x scripts/install-aliases.sh scripts/install-subcommands.sh scripts/install-completions.sh scripts/install-shell-integration.bash
 	@echo "- Removing subcommands..."
 	@./scripts/install-subcommands.sh --uninstall
 	@echo "- Removing completions..."
 	@./scripts/install-completions.sh --uninstall
 	@echo "- Removing aliases..."
 	@./scripts/install-aliases.sh --uninstall
+	@echo "- Removing shell integration..."
+	@./scripts/install-shell-integration.bash --uninstall
 	@echo "✅ Clean up complete!"

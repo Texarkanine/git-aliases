@@ -67,3 +67,17 @@ Add `git wt` for worktree create/teardown with a fixed `~/worktrees/<owner>/<rep
     - New `install-shell-integration.bash` (bash, so `.bash`). Tests remain POSIX `.sh`. Existing `scripts/install-*.sh` are misnamed, not a style exception.
 * Insights
     - The preflight advisory was a wording bug, not a prompt to convert installers to POSIX. `.sh` + bash shebang on the installers is leftover naming, not a dialect claim.
+
+## 2026-08-28 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented `git wt go` / `git wt done` in `subcommands/git-wt/git-wt.bash` with isolated integration tests.
+    - Added bash/zsh `wt()` wrappers, opt-in `make shell` installer, and Makefile contract tests (`shell` not in `all`; `clean` uninstalls).
+    - Documented usage, path/stdout contract, and optional shell integration in `subcommands/git-wt/README.md` and the root README.
+    - `make test` passes (trim, git-wt, wrappers, installer).
+* Decisions made
+    - HTTPS/scp owner/repo is the last two path segments after stripping `.git` and a URL scheme; do not use the local `*:*/*` parser.
+    - Idempotent `go` treats `${layout}/.git` as "already a worktree" so macOS `/var` vs `/private/var` does not look like a path collision.
+    - `git wt --help` is git's interceptor; our usage is `-h` / `help` via `git wt`, and `--help` on `git-wt` directly.
+* Insights
+    - Tests that invoke `git <cmd> --help` are testing git, not the subcommand. Drive `--help` on the binary on PATH instead.
