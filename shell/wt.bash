@@ -32,9 +32,10 @@ wt() {
 			cat <<'EOF'
 usage: wt <command>
   go <name>           create a git worktree and switch to it
-  done <name> [--force]
+  done [name] [--force]
                       remove a worktree so the branch can be checked out
-                      in the main tree; refuse if dirty unless --force
+                      in the main tree; omit name to use the current
+                      worktree; refuse if dirty unless --force
 EOF
 			;;
 		*)

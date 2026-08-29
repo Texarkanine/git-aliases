@@ -8,9 +8,10 @@
 #
 # Usage: git wt <command>
 #   go <name>           create a git worktree; print its path on stdout
-#   done <name> [--force]
+#   done [name] [--force]
 #                       remove a worktree so the branch can be checked out
-#                       in the main tree; refuse if dirty unless --force
+#                       in the main tree; omit name to use the current
+#                       worktree; refuse if dirty unless --force
 
 set -euo pipefail
 
@@ -28,9 +29,10 @@ usage() {
 	cat <<'EOF'
 usage: git wt <command>
   go <name>           create a git worktree; print its path on stdout
-  done <name> [--force]
+  done [name] [--force]
                       remove a worktree so the branch can be checked out
-                      in the main tree; refuse if dirty unless --force
+                      in the main tree; omit name to use the current
+                      worktree; refuse if dirty unless --force
 EOF
 }
 
@@ -129,6 +131,31 @@ wt_worktree_path() {
 	printf '%s\n' "${HOME}/worktrees/${owner}/${repo}/${repo}-${name}"
 }
 
+# Path of the linked worktree that contains cwd, or empty.
+#
+# Uses git-dir vs git-common-dir so a worktree nested inside the main
+# checkout is not mistaken for main. Empty in the main checkout.
+#
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   Absolute worktree path on STDOUT, or empty
+# Returns:
+#   0
+wt_worktree_containing_cwd() {
+	local git_dir common
+	git_dir="$(git rev-parse --absolute-git-dir 2>/dev/null)" || return 0
+	common="$(git rev-parse --git-common-dir 2>/dev/null)" || return 0
+	git_dir="$(CDPATH= cd "${git_dir}" && pwd -P)"
+	common="$(CDPATH= cd "${common}" && pwd -P)"
+	if [[ "${git_dir}" == "${common}" ]]; then
+		return 0
+	fi
+	git rev-parse --show-toplevel
+}
+
 # Path of the worktree that currently has the given branch checked out.
 #
 # Globals:
@@ -212,7 +239,7 @@ cmd_go() {
 # Globals:
 #   None
 # Arguments:
-#   positional branch name and optional --force
+#   optional positional branch name and optional --force
 # Outputs:
 #   Main checkout path on STDOUT only if cwd was inside the worktree;
 #   progress on STDERR
@@ -239,16 +266,20 @@ cmd_done() {
 		esac
 	done
 
-	[[ -n "${name}" ]] || wt_die "done: branch name required"
-
 	git rev-parse --git-dir >/dev/null 2>&1 \
 		|| wt_die "done: not inside a git repository"
 
 	local main wt_path
 	main="$(wt_main_worktree)"
-	wt_path="$(wt_worktree_for_branch "${name}")"
-
-	[[ -n "${wt_path}" ]] || wt_die "done: no worktree for branch ${name}"
+	if [[ -n "${name}" ]]; then
+		wt_path="$(wt_worktree_for_branch "${name}")"
+		[[ -n "${wt_path}" ]] \
+			|| wt_die "done: no worktree for branch ${name}"
+	else
+		wt_path="$(wt_worktree_containing_cwd)"
+		[[ -n "${wt_path}" ]] \
+			|| wt_die "done: refusing to remove the main checkout"
+	fi
 
 	if [[ "${wt_path}" == "${main}" ]]; then
 		wt_die "done: refusing to remove the main checkout"

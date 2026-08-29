@@ -227,10 +227,6 @@ test_missing_name() {
 	if [ "${last_rc}" -eq 0 ]; then
 		fail "git wt go without a name should be non-zero"
 	fi
-	invoke git wt done
-	if [ "${last_rc}" -eq 0 ]; then
-		fail "git wt done without a name should be non-zero"
-	fi
 }
 
 test_invalid_branch_name() {
@@ -381,6 +377,152 @@ test_go_from_linked_worktree() {
 	fi
 	if [ ! -d "${last_out}" ]; then
 		fail "go from linked worktree did not create ${last_out}"
+	fi
+}
+
+test_done_no_name_inside() {
+	tdni_repo=$(make_repo)
+	tdni_main=$(main_path "${tdni_repo}")
+	cd "${tdni_repo}"
+	invoke git wt go inside-nn
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go inside-nn failed: $(cat "${last_err}")"
+	fi
+	tdni_path="${last_out}"
+	cd "${tdni_path}"
+	invoke git wt done
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "nameless done inside failed: $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tdni_main}" ]; then
+		fail "nameless done inside should print ${tdni_main}, got ${last_out}"
+	fi
+	if [ -d "${tdni_path}" ]; then
+		fail "nameless done should remove ${tdni_path}"
+	fi
+	if ! git -C "${tdni_main}" show-ref --verify --quiet refs/heads/inside-nn; then
+		fail "nameless done should leave branch inside-nn"
+	fi
+}
+
+test_done_no_name_subdirectory() {
+	tdns_repo=$(make_repo)
+	tdns_main=$(main_path "${tdns_repo}")
+	cd "${tdns_repo}"
+	invoke git wt go sub-nn
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go sub-nn failed: $(cat "${last_err}")"
+	fi
+	tdns_path="${last_out}"
+	mkdir "${tdns_path}/nested"
+	cd "${tdns_path}/nested"
+	invoke git wt done
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "nameless done from subdirectory failed: $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tdns_main}" ]; then
+		fail "nameless done from subdir should print ${tdns_main}, got ${last_out}"
+	fi
+	if [ -d "${tdns_path}" ]; then
+		fail "nameless done from subdir should remove ${tdns_path}"
+	fi
+}
+
+test_done_no_name_foreign_worktree() {
+	tdnf_repo=$(make_repo)
+	tdnf_main=$(main_path "${tdnf_repo}")
+	tdnf_path="${tdnf_repo}/nested-wt"
+	git -C "${tdnf_repo}" worktree add -b foreign-nn "${tdnf_path}" \
+		>/dev/null 2>&1
+	cd "${tdnf_path}"
+	invoke git wt done
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "nameless done foreign failed: $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tdnf_main}" ]; then
+		fail "nameless done foreign should print ${tdnf_main}, got ${last_out}"
+	fi
+	if [ -d "${tdnf_path}" ]; then
+		fail "nameless done should remove foreign ${tdnf_path}"
+	fi
+}
+
+test_done_named_foreign_worktree() {
+	tdxf_repo=$(make_repo)
+	tdxf_parent=$(mktemp -d)
+	tdxf_path="${tdxf_parent}/foreign"
+	git -C "${tdxf_repo}" worktree add -b named-foreign "${tdxf_path}" \
+		>/dev/null 2>&1
+	cd "${tdxf_repo}"
+	invoke git wt done named-foreign
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "named done foreign failed: $(cat "${last_err}")"
+	fi
+	if [ -n "${last_out}" ]; then
+		fail "named done from main should print no path, got: ${last_out}"
+	fi
+	if [ -d "${tdxf_path}" ]; then
+		fail "named done should remove foreign ${tdxf_path}"
+	fi
+	if ! git show-ref --verify --quiet refs/heads/named-foreign; then
+		fail "named done should leave branch named-foreign"
+	fi
+}
+
+test_done_no_name_from_main() {
+	tdnm_repo=$(make_repo)
+	cd "${tdnm_repo}"
+	invoke git wt done
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "nameless done from main should be non-zero"
+	fi
+	if ! grep -q "main checkout" "${last_err}"; then
+		fail "nameless done from main should refuse main, got: $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tdnm_repo}" ]; then
+		fail "nameless done must not remove the main checkout"
+	fi
+}
+
+test_done_no_name_dirty_without_force() {
+	tdnd_repo=$(make_repo)
+	cd "${tdnd_repo}"
+	invoke git wt go dirty-nn
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go dirty-nn failed: $(cat "${last_err}")"
+	fi
+	tdnd_path="${last_out}"
+	printf 'y\n' >> "${tdnd_path}/file.txt"
+	cd "${tdnd_path}"
+	invoke git wt done
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "nameless dirty done without --force should fail"
+	fi
+	if ! grep -q force "${last_err}"; then
+		fail "nameless dirty refusal should mention --force"
+	fi
+	if [ ! -d "${tdnd_path}" ]; then
+		fail "nameless dirty done without --force should leave the worktree"
+	fi
+}
+
+test_done_no_name_force_yes() {
+	tdny_repo=$(make_repo)
+	cd "${tdny_repo}"
+	invoke git wt go dirty-nny
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go dirty-nny failed: $(cat "${last_err}")"
+	fi
+	tdny_path="${last_out}"
+	printf 'y\n' >> "${tdny_path}/file.txt"
+	cd "${tdny_path}"
+	tdny_rc=0
+	run_with_tty y git wt done --force || tdny_rc=$?
+	if [ "${tdny_rc}" -ne 0 ]; then
+		fail "nameless done --force with y should succeed (got ${tdny_rc})"
+	fi
+	if [ -d "${tdny_path}" ]; then
+		fail "nameless done --force with y should remove ${tdny_path}"
 	fi
 }
 
@@ -631,6 +773,13 @@ main() {
 	run_one test_go_idempotent
 	run_one test_go_path_exists_not_worktree
 	run_one test_go_from_linked_worktree
+	run_one test_done_no_name_inside
+	run_one test_done_no_name_subdirectory
+	run_one test_done_no_name_foreign_worktree
+	run_one test_done_named_foreign_worktree
+	run_one test_done_no_name_from_main
+	run_one test_done_no_name_dirty_without_force
+	run_one test_done_no_name_force_yes
 	run_one test_done_missing_worktree
 	run_one test_done_refuses_main
 	run_one test_done_clean
