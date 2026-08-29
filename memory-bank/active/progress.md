@@ -32,3 +32,26 @@ Add zsh tab completion for `git sync` and `git identity`, installed and uninstal
 * Insights
     - zsh’s `_git` and git’s `git-completion.zsh` wrapper use different function names
     - `make completions` already edits `~/.bash_completion`; zshrc is the matching surface, not `make shell`
+
+## 2026-08-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the Level 2 implementation plan against the repository and documented conventions
+    - Confirmed each executable unit encodes test-first execution and has concrete test coverage
+* Decisions made
+    - Preflight status is `FAIL (fixable)`; return to planning before build
+* Insights
+    - The Bash installer must be renamed from `scripts/install-completions.sh` to `.bash` when this task changes it
+    - Installing a zshrc fence from default `make` intentionally changes a documented system invariant and must be recorded in the plan
+
+## 2026-08-28 - PLAN - COMPLETE
+
+* Work completed
+    - Replanned units 3–5 from preflight `FAIL (fixable)`
+* Decisions made
+    - Rename `scripts/install-completions.sh` to `scripts/install-completions.bash` in the installer unit; update Makefile and tests
+    - Add a prose unit to record the default-`make` vs `make shell` RC split in persistent memory-bank files
+    - Do not expand ShellCheck to `*.bash` in this task
+* Insights
+    - The filename/shebang rule applies when this task modifies a misnamed Bash installer; other `scripts/install-*.sh` stay out of scope
+    - `~/.bash_completion` was already an RC-adjacent write from default `make`; `~/.zshrc` is the matching zsh surface, not `make shell`
