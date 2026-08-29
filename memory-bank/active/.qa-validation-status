@@ -1,3 +1,0 @@
-PASS
-
-Reviewed the zsh completion fence rework against the Level 1 task. The fence now initializes completion only when `compdef` is absent, preserving registrations created by an earlier compinit. `make test` and `make shellcheck` passed.
