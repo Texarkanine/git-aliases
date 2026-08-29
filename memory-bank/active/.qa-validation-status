@@ -1,8 +1,0 @@
-PASS
-
-QA review: 2026-08-28
-
-- `wt_worktree_containing_cwd` distinguishes a linked worktree from the main checkout through Git's own git-dir/common-dir relationship, including a linked worktree nested under the main checkout.
-- `cmd_done` applies inference only when the name is absent; the established named branch lookup, dirty/`--force` behavior, confirmation, and stdout contract remain intact.
-- Usage, README examples, flowchart, and optional wrapper help describe the optional name consistently.
-- `make test` passed: trim, git-wt, wrapper, and shell-integration tests.
