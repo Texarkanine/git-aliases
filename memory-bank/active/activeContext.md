@@ -1,13 +1,11 @@
 # Active Context
 
 ## Current Task: zsh-completion
-**Phase:** QA - COMPLETE (PASS)
+**Phase:** REFLECT COMPLETE
 
 ## What Was Done
-- Added `git-sync-completion.zsh` and `git-identity-completion.zsh` with `_git_<name>` / `_git-<name>` / `compdef` registration.
-- Renamed `scripts/install-completions.sh` to `scripts/install-completions.bash`; copies zsh completers and writes a `~/.zshrc` fence when `GIT_ALIASES_ZSH` is non-empty.
-- Tests: `tests/test-zsh-completion.sh`, `tests/test-install-completions.sh`. `make test` and `make shellcheck` passed.
-- Documented the RC-file split in README and persistent memory-bank files.
+- Reflected on zsh-completion. Persistent files were already updated in build; no further edits.
+- Key lesson: do not hide `zsh` by shrinking `PATH`; use `GIT_ALIASES_ZSH`. Rename a modified Bash installer to `.bash` in the same unit.
 
 ## Next Step
-- Run `/niko-reflect`.
+- Run `/niko-archive` to create the archive document and finalize the current project.

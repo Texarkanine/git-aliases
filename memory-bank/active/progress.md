@@ -107,6 +107,18 @@ Add zsh tab completion for `git sync` and `git identity`, installed and uninstal
 * Insights
     - Installer tests must use isolated HOME; this is the first suite that runs the real completions installer
 
+## 2026-08-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-zsh-completion.md`
+    - Reconciled persistent files (already current from build)
+* Decisions made
+    - Dual sourced completers plus one installer is the standing shape; a `--complete` flag on subcommands is a future option, not a rework
+* Insights
+    - `GIT_ALIASES_ZSH` is the portable without-zsh test hook
+    - `git mv` belongs in the stub-interface step so the red run is informative
+
+
 ## 2026-08-28 - QA - COMPLETE (PASS)
 
 * Work completed
