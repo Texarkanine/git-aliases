@@ -123,4 +123,14 @@ Vendor shunit2 (ai-rizz-style) and add a pull-request GitHub Action that ShellCh
 * Insights
     - A stub that always exits 1 cannot turn the dirty-tree test red; the miss-message and current-tree tests still went red first
 
+## 2026-08-28 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the vendored shunit2, test wiring, ShellCheck runner, PR workflow, and contributor documentation against the approved Level 2 plan
+    - Ran `make shellcheck` and the full `make test` suite successfully
+* Decisions made
+    - Accepted the implementation as-is; no build or plan rework is required
+* Insights
+    - The workflow delegates to the same Make targets exercised locally, preserving the `*.sh`-only ShellCheck scope and the existing homemade test harness
+
 

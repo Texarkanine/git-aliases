@@ -111,4 +111,4 @@ Edge cases:
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA — PASS: implementation matches the approved plan; `make shellcheck` and the full `make test` suite pass.
