@@ -61,7 +61,7 @@ wt_die() {
 #   0 on success, non-zero if not inside a git repository
 wt_main_worktree() {
 	git worktree list --porcelain \
-		| awk '$1 == "worktree" { print $2; exit }'
+		| awk '$1 == "worktree" { print substr($0, 10); exit }'
 }
 
 # Owner and repo names for the path layout.
@@ -142,7 +142,7 @@ wt_worktree_path() {
 wt_worktree_for_branch() {
 	local branch="${1}"
 	git worktree list --porcelain | awk -v branch="refs/heads/${branch}" '
-		$1 == "worktree" { path = $2 }
+		$1 == "worktree" { path = substr($0, 10) }
 		$1 == "branch" && $2 == branch { print path; exit }
 	'
 }

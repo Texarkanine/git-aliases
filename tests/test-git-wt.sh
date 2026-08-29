@@ -83,7 +83,7 @@ make_repo() {
 #   0
 main_path() {
 	git -C "$1" worktree list --porcelain \
-		| awk '$1 == "worktree" { print $2; exit }'
+		| awk '$1 == "worktree" { print substr($0, 10); exit }'
 }
 
 # Run a test body with HOME in a temp dir and git-wt first on PATH.
@@ -569,6 +569,34 @@ test_done_unknown_option() {
 	fi
 }
 
+# HOME (and therefore ~/worktrees/...) contains a space. Porcelain paths
+# must not be split on awk $2, or done cannot cd to the worktree.
+test_done_home_with_spaces() {
+	tdh_spaced="${HOME}/user space home"
+	mkdir -p "${tdh_spaced}"
+	HOME="${tdh_spaced}"
+	export HOME
+	tdh_repo=$(make_repo)
+	git -C "${tdh_repo}" remote add origin \
+		git@github.com:Texarkanine/ai-rizz.git
+	cd "${tdh_repo}"
+	tdh_want="${HOME}/worktrees/Texarkanine/ai-rizz/ai-rizz-space-br"
+	invoke git wt go space-br
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go with spaced HOME failed: $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tdh_want}" ]; then
+		fail "spaced go path: expected ${tdh_want}, got ${last_out}"
+	fi
+	invoke git wt done space-br
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "done with spaced HOME failed: $(cat "${last_err}")"
+	fi
+	if [ -d "${tdh_want}" ]; then
+		fail "done should remove ${tdh_want}"
+	fi
+}
+
 run_one() {
 	ro_name="$1"
 	if run_isolated "${ro_name}"; then
@@ -614,6 +642,7 @@ main() {
 	run_one test_done_dirty_force_yes_word
 	run_one test_done_force_on_clean
 	run_one test_done_unknown_option
+	run_one test_done_home_with_spaces
 
 	rm -rf "${TEST_BIN}"
 
