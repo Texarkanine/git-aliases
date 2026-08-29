@@ -4,10 +4,10 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Replanned after preflight `FAIL (fixable)`.
-- Native zsh completers for `git-sync` and `git-identity`; one installer owns both dialects; source from a fenced `~/.zshrc` when `zsh` is on PATH.
-- Unit 3 now `git mv`s `scripts/install-completions.sh` to `scripts/install-completions.bash` and updates Makefile callers.
-- Unit 5 records the RC-file invariant: default `make` may write `~/.bash_completion` and `~/.zshrc`; it does not edit `~/.bashrc`; `make shell` remains the `wt()` fences.
+- Replanned after the second preflight `FAIL (fixable)`.
+- Installer detects zsh via `GIT_ALIASES_ZSH="${GIT_ALIASES_ZSH-$(command -v zsh || true)}"`; without-zsh tests export it empty and assert exit 0 plus bash artifacts.
+- Unit 3 step 2 now `git mv`s the installer and updates Makefile callers so the red run fails on zsh behavior, not a missing file.
+- Unit 5 also sweeps the idempotency installer list and the bash-only completion use-case bullet.
 
 ## Next Step
 - Re-run preflight on the revised plan.

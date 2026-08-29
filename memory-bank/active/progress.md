@@ -55,3 +55,27 @@ Add zsh tab completion for `git sync` and `git identity`, installed and uninstal
 * Insights
     - The filename/shebang rule applies when this task modifies a misnamed Bash installer; other `scripts/install-*.sh` stay out of scope
     - `~/.bash_completion` was already an RC-adjacent write from default `make`; `~/.zshrc` is the matching zsh surface, not `make shell`
+
+## 2026-08-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-validated the revised Level 2 plan against the repository after the rename and RC-invariant replan
+    - Confirmed both prior `FAIL (fixable)` convention findings are resolved
+* Decisions made
+    - Preflight status is `FAIL (fixable)`; return to planning before build
+    - The two `make -n` behaviors are contract tests, not change-detectors; no plan edits made
+* Insights
+    - `zsh` shares a directory with the installer's required utilities on both macOS (`/bin`) and the CI runner (`/usr/bin`), so the without-zsh test cannot work by dropping a `PATH` entry and would pass for the wrong reason
+    - Unit 3 stubs in the `.sh` file while the tests point at `.bash`, so the red run fails on a missing file rather than on behavior
+
+## 2026-08-28 - PLAN - COMPLETE
+
+* Work completed
+    - Named `GIT_ALIASES_ZSH` as the without-zsh mechanism; moved `git mv` into unit 3 step 2; expanded unit 5 sweeps
+* Decisions made
+    - Empty `GIT_ALIASES_ZSH` means skip the zshrc fence; do not hide `zsh` by dropping a `PATH` directory
+    - Missing-zsh suite uses a temp symlink `PATH`
+    - Every installer-invoking test uses `run_isolated`
+* Insights
+    - A crash with no fence would look like a pass unless the test asserts exit 0 and bash artifacts
+    - `git mv` in the stub-interface step is what makes the installer-test red run informative
