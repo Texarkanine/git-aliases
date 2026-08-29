@@ -6,7 +6,7 @@ This repository contains a collection of useful Git aliases and custom Git subco
 
 - **Git Aliases**: Shortcuts for common Git commands that can be added to your global git config
 - **Git Subcommands**: Custom scripts that extend Git with new functionality
-- **Bash Completion**: Tab completion for custom Git subcommands
+- **Tab completion**: Tab-completion for custom Git subcommands in bash and zsh.
 
 ## Installation
 
@@ -22,7 +22,7 @@ make aliases
 # Install only Git subcommands
 make subcommands
 
-# Install only bash completions
+# Install only bash and zsh completions
 make completions
 
 # Optional: bash/zsh wt() wrappers that auto-cd (not part of default make)
@@ -64,17 +64,19 @@ Custom Git extensions that can be called as `git <subcommand>`:
 
 For more information on each subcommand, check their individual README files in the corresponding directory.
 
-## Bash Completion
+## Completions
 
-Bash completion is included for some Git subcommands.
+Bash and zsh completion is included for some Git subcommands (`git sync`, `git identity`). `git wt` has no completion.
 
-The installation process:
+The installation process (`make completions`, also part of default `make`):
 1. Copies completion scripts to `~/.local/share/git-aliases/completions/`
-2. Adds references to these scripts in `~/.bash_completion`
+2. Adds references to the bash scripts in `~/.bash_completion`
+3. When `zsh` is on `PATH`, adds a fenced block to `~/.zshrc` (this is not `make shell`; that target only installs `wt()` wrappers)
 
-After installation, you may need to source your bash completion file:
+After installation, source the completion file or restart your shell:
 ```bash
-source ~/.bash_completion
+source ~/.bash_completion   # bash
+source ~/.zshrc             # zsh
 ```
 
 ## Testing
