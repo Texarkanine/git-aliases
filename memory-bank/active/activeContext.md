@@ -1,11 +1,11 @@
 # Active Context
 
 ## Current Task: git-wt-done-current
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Confirmed intent: `git wt done` with no name uses the worktree you are in; any linked worktree counts; `wt()` stays an optional `cd` wrapper (not renamed, not a `git` shim).
-- Determined Level 2: small enhancement, self-contained in `git-wt` `done` plus tests and usage docs.
+- Level 2 plan: nameless `cmd_done` uses `wt_worktree_containing_cwd` (porcelain path of the worktree containing physical cwd); named `done` unchanged; tests in `tests/test-git-wt.sh`; usage/README/wrapper help as prose.
+- Wrapper `wt()` stays optional `cd` sugar; not renamed; `git` is not wrapped.
 
 ## Next Step
-- Load the Level 2 workflow and execute the plan phase
+- Preflight validation (spawn `/niko-preflight`)

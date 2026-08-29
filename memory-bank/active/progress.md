@@ -13,3 +13,13 @@ Make `git wt done` with no branch name infer the linked worktree from cwd, inclu
     - `wt()` stays optional opt-in `cd` sugar; no `__git_wt` rename; no wrapping `git`
 * Insights
     - A subprocess cannot `cd` the parent shell; auto-cd still requires a shell function the user types
+
+## 2026-08-28 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote Level 2 TDD plan: nameless `done` infers the linked worktree from cwd; foreign `git worktree add` paths included; named `done` and `wt()` out of behavior change
+* Decisions made
+    - Resolve a porcelain worktree *path* from cwd (`wt_worktree_containing_cwd`), not the current branch name or `~/worktrees/...` layout
+    - Keep `go` requiring a name; nameless `done` from main still refuses main
+* Insights
+    - Wrapper tests stay put: stdout-on-inside is already the `cd` contract
