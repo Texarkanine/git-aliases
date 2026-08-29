@@ -133,4 +133,15 @@ Vendor shunit2 (ai-rizz-style) and add a pull-request GitHub Action that ShellCh
 * Insights
     - The workflow delegates to the same Make targets exercised locally, preserving the `*.sh`-only ShellCheck scope and the existing homemade test harness
 
+## 2026-08-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-pr-ci-shunit2.md`
+    - Reconciled persistent files (techContext already updated in build; productContext and systemPatterns unchanged)
+* Decisions made
+    - Standing contract for tests/CI lives in techContext, not systemPatterns
+* Insights
+    - Preflight should not invent merge-protection scope from "CI should go red"
+
+
 
