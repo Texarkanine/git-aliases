@@ -99,3 +99,15 @@ Add `git wt` for worktree create/teardown with a fixed `~/worktrees/<owner>/<rep
     - Reverted QA-induced executable bits on sourced wrappers and unrelated git-identity/git-sync files.
 * Insights
     - `git <cmd> --help` tests git, not the subcommand. Porcelain path equality is unsafe when `$HOME` is a symlink (`/var` vs `/private/var`).
+
+## 2026-08-28 - POST-REFLECT - COMPLETE
+
+* Work completed
+    - PR #6 review: `git worktree list --porcelain` does not quote paths; awk `$2` truncated `$HOME` with spaces and `git wt done` could not `cd`. Parsers now use `substr($0, 10)`. Added `test_done_home_with_spaces`. Pushed as `991d3a2`.
+    - Installed Homebrew shellcheck 0.11.0 (QA had noted it missing). `shellcheck -s sh` on `git-wt.bash` is mechanical bashisms only (`local`, `[[ ]]`, `(( ))`, `pipefail`, `${url/:/\/}`, `BASH_SOURCE`).
+* Decisions made
+    - Operator: git-wt stays bash; do not convert to POSIX `sh`.
+* Insights
+    - Porcelain `worktree` values can contain spaces and are not quoted; take the rest of the line after the label, not field `$2`.
+
+## 2026-08-28 - ARCHIVE - IN-PROGRESS

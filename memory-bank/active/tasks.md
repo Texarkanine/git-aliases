@@ -234,6 +234,7 @@ No new technology - validation not required. Product runtime remains `git` + `ba
   - [x] Unit 4: user-facing docs
 - [x] QA
 - [x] Reflect
+- [x] Archive (in progress)
 
 ## QA Results
 
