@@ -6,7 +6,7 @@ The repo is a collection of independently-installed Git extensions. There is no 
 
 A Git subcommand is any executable on `PATH` named `git-<name>`; running `git <name>` dispatches to it. That's the entire extension mechanism. Each subcommand under `subcommands/<name>/` is a self-contained Bash script.
 
-Bash completion scripts are sourced by `~/.bash_completion` (written by `install-completions.bash`); zsh completion scripts are sourced from a fenced `~/.zshrc` block when `zsh` is on PATH. They must not produce output and must not modify global state when sourced.
+Bash completion scripts are sourced by `~/.bash_completion` (written by `install-completions.bash`); zsh completion scripts are sourced from a fenced `~/.zshrc` block when `zsh` is on PATH. They must not produce output and must not modify global state when sourced. The zshrc fence and each completer's register function run `compinit` only when `compdef` is missing: a second `compinit -C` reloads `~/.zcompdump` and would drop later `compdef`s.
 
 **Coupling to be aware of:** `git-sync` depends on the stash stack. If it detects changes and decides to stash, it must not pop an unrelated pre-existing stash entry on restore. Any logic that consults `git stash list` or `git stash pop` must guard against this.
 

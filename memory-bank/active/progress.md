@@ -162,3 +162,13 @@ Rework: the installed `~/.zshrc` fence must not unconditionally run `compinit -C
 * Insights
     - `grep -q 'compinit -C'` still matches a guarded fence; the behavioral `_comps` check is what locks the bug
 
+## 2026-08-28 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the installer fence and regression test against the Level 1 rework brief
+    - Ran `make test` and `make shellcheck`
+* Decisions made
+    - QA passed; no build or plan rework is required
+* Insights
+    - Checking for `compdef` before `compinit -C` preserves completions registered after a user's initial completion initialization while retaining vanilla-shell bootstrapping
+

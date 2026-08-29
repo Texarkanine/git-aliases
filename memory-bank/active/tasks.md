@@ -26,3 +26,10 @@ The installed `~/.zshrc` fence always ran `autoload -Uz compinit compdef` and `c
 ## Status
 
 - [x] Build
+- [x] QA — PASS
+
+## QA Findings
+
+- PASS — The installed zsh fence guards `compinit -C` with the existing `compdef` function check, so it bootstraps a vanilla shell once without reloading a user's completion dump after prior registrations.
+- PASS — `test_install_fence_preserves_prior_compdefs` exercises the reported regression by registering a dummy completion before sourcing the fence and confirms that registration remains.
+- PASS — The full test suite and ShellCheck pass; no implementation, documentation, or integrity issues require rework.
