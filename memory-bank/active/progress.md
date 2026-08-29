@@ -81,3 +81,12 @@ Add `git wt` for worktree create/teardown with a fixed `~/worktrees/<owner>/<rep
     - `git wt --help` is git's interceptor; our usage is `-h` / `help` via `git wt`, and `--help` on `git-wt` directly.
 * Insights
     - Tests that invoke `git <cmd> --help` are testing git, not the subcommand. Drive `--help` on the binary on PATH instead.
+
+## 2026-08-28 - QA - COMPLETE
+
+* Work completed
+    - Semantic review of the built `git-wt` task against `tasks.md`, `projectbrief.md`, and `systemPatterns.md`: KISS, DRY, YAGNI, completeness, regression, integrity, and documentation. Re-ran `make test` (all 4 suites green). Result: PASS. Findings written to `memory-bank/active/.qa-validation-status`.
+* Decisions made
+    - No Build or Plan rework required. Advisories accepted as-is: `shell/wt.bash`/`wt.zsh` intentional duplication (per-shell snippet, matches the plan), `wt_worktree_path`'s two-line-stdout helper is a minor KISS nit, shellcheck absence is a pre-existing environment gap.
+* Insights
+    - `git-wt.bash` follows the bash-style skill (tabs, full function-header comments, `main`/`BASH_SOURCE` guard) more rigorously than the pre-existing `git-sync.bash`, which predates that skill - a quality improvement rather than a pattern regression.

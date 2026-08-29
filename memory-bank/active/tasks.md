@@ -232,4 +232,14 @@ No new technology - validation not required. Product runtime remains `git` + `ba
   - [x] Unit 2: shell wrappers
   - [x] Unit 3: shell-integration install
   - [x] Unit 4: user-facing docs
-- [ ] QA
+- [x] QA
+
+## QA Results
+
+**Result:** PASS (see `memory-bank/active/.qa-validation-status` for full findings)
+
+- All TDD-planned behaviors implemented and asserted (not stubbed); `make test` passes all 4 suites.
+- `make shell` correctly excluded from `all`; `make clean` invokes the shell uninstaller.
+- New subcommand follows the bash-style skill more strictly than the pre-existing `git-sync.bash`.
+- Docs (`subcommands/git-wt/README.md`, root `README.md`, persistent memory-bank files) updated to match the implementation.
+- Advisories only (non-blocking): `wt_worktree_path`'s two-line-stdout return could be simpler; `shell/wt.bash`/`wt.zsh` are intentionally identical per-shell snippets; shellcheck is not installed on this machine (pre-existing environment gap).

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: git-wt
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Unit 1: `git-wt.bash` ports local wt-* with HTTPS last-two-segments parse; `tests/test-git-wt.sh` green. `git wt --help` is intercepted by git; `--help` is covered via `git-wt --help`. Idempotent `go` matches `.git` at the layout path so macOS `/var` vs `/private/var` does not false-collide.
@@ -20,4 +20,4 @@
 - Idempotent `go` detects an existing worktree via `${path}/.git` rather than porcelain path equality, so a logical `$HOME` under `/var/folders` still matches Git's `/private/var/folders` checkout.
 
 ## Next Step
-- QA review (spawned automatically after Build PASS).
+- QA PASSED - proceed to `/niko-reflect`.
