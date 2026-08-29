@@ -163,10 +163,10 @@ None - implementation approach is clear. The issue is the spec; the local script
 - Files: `tests/test-git-wt.sh`, `subcommands/git-wt/git-wt.bash`, `Makefile` (`test` target)
 - Creative ref: none
 
-1. Stub tests: create `tests/test-git-wt.sh` with empty cases named for each git-wt behavior above (help, errors, SSH/HTTPS/local paths, go new/existing/idempotent/collision, go from linked worktree, done missing/main/clean/inside/dirty/force-yes/force-no/unknown option). Fixture helpers: temp `HOME`, temp repo with `user.name`/`user.email`, `PATH` prefix containing `git-wt` copied or symlinked from the script under test.
-2. Stub interface: `subcommands/git-wt/git-wt.bash` with `#!/usr/bin/env bash`, `set -euo pipefail`, usage function, `cmd_go` / `cmd_done` / helpers (`wt_die`, `wt_main_worktree`, `wt_owner_repo`, `wt_worktree_path`, `wt_worktree_for_branch`, `wt_is_dirty`) empty-but-signed, `main` dispatch, `BASH_SOURCE` guard. Header comments per bash-style.
-3. Write tests and run red: implement assertions; run `./tests/test-git-wt.sh` (and keep `./tests/test-trim.sh` passing). All new cases fail.
-4. Write code and run green: port local `wt-go`/`wt-done`/`wt-common.sh` into the stub, fixing `wt_owner_repo` so HTTPS and scp-style URLs both yield `owner`/`repo` as the last two path segments. Wire `Makefile` `test` to run `test-git-wt.sh`. Run `./tests/test-git-wt.sh` then `make test`.
+1. [x] Stub tests: create `tests/test-git-wt.sh` with empty cases named for each git-wt behavior above (help, errors, SSH/HTTPS/local paths, go new/existing/idempotent/collision, go from linked worktree, done missing/main/clean/inside/dirty/force-yes/force-no/unknown option). Fixture helpers: temp `HOME`, temp repo with `user.name`/`user.email`, `PATH` prefix containing `git-wt` copied or symlinked from the script under test.
+2. [x] Stub interface: `subcommands/git-wt/git-wt.bash` with `#!/usr/bin/env bash`, `set -euo pipefail`, usage function, `cmd_go` / `cmd_done` / helpers (`wt_die`, `wt_main_worktree`, `wt_owner_repo`, `wt_worktree_path`, `wt_worktree_for_branch`, `wt_is_dirty`) empty-but-signed, `main` dispatch, `BASH_SOURCE` guard. Header comments per bash-style.
+3. [x] Write tests and run red: implement assertions; run `./tests/test-git-wt.sh` (and keep `./tests/test-trim.sh` passing). All new cases fail.
+4. [x] Write code and run green: port local `wt-go`/`wt-done`/`wt-common.sh` into the stub, fixing `wt_owner_repo` so HTTPS and scp-style URLs both yield `owner`/`repo` as the last two path segments. Wire `Makefile` `test` to run `test-git-wt.sh`. Run `./tests/test-git-wt.sh` then `make test`. Note: `git wt --help` is intercepted by git; tests cover `--help` via `git-wt --help`. Idempotent `go` matches on `.git` at the layout path so macOS `/var` vs `/private/var` does not false-collide.
 
 ### 2. Shell wrappers — executable
 
@@ -226,6 +226,10 @@ No new technology - validation not required. Product runtime remains `git` + `ba
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [x] Preflight
 - [ ] Build
+  - [x] Unit 1: git-wt CLI
+  - [ ] Unit 2: shell wrappers
+  - [ ] Unit 3: shell-integration install
+  - [ ] Unit 4: user-facing docs
 - [ ] QA

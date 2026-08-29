@@ -15,8 +15,9 @@ completions:
 	@./scripts/install-completions.sh
 
 test:
-	@chmod +x tests/test-trim.sh scripts/lib/trim.sh
+	@chmod +x tests/test-trim.sh tests/test-git-wt.sh scripts/lib/trim.sh
 	@./tests/test-trim.sh
+	@./tests/test-git-wt.sh
 
 clean:
 	@echo "🗑️ Cleaning up git-aliases installations..."
