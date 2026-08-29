@@ -73,3 +73,13 @@ Make `git wt done` with no branch name infer the linked worktree from cwd, inclu
     - QA result: PASS; no implementation changes are required
 * Insights
     - Git's `--absolute-git-dir` and `--git-common-dir` distinguish the primary checkout from a linked worktree without depending on the configured worktree path layout
+
+## 2026-08-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-git-wt-done-current.md`
+    - Reconciled persistent files (no edits)
+* Decisions made
+    - Standing contracts for git-wt stay in the subcommand; no product/system/tech context change
+* Insights
+    - Linked vs main is git-dir vs common-dir, not a path-prefix scan
