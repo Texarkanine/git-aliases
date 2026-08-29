@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: git-wt-done-current
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - `cmd_done` infers the linked worktree from cwd when no name is given via `wt_worktree_containing_cwd` (`--absolute-git-dir` vs `--git-common-dir`, then `--show-toplevel`).
@@ -20,4 +20,4 @@
 - Nameless foreign test adds the worktree *inside* the main checkout to lock that case.
 
 ## Next Step
-- QA review (spawn `/niko-qa`)
+- QA passed; proceed to `/niko-reflect`

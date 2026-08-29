@@ -63,3 +63,13 @@ Make `git wt done` with no branch name infer the linked worktree from cwd, inclu
     - Nameless foreign test uses `git worktree add` inside the main checkout
 * Insights
     - After `done` from inside the worktree, cwd is gone; `git show-ref` must use `git -C` on main
+
+## 2026-08-28 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the implementation against the Level 2 plan, including cwd inference, named-worktree preservation, dirty handling, stdout behavior, and documentation consistency
+    - Re-ran `make test`: trim, git-wt, wrapper, and shell-integration suites passed
+* Decisions made
+    - QA result: PASS; no implementation changes are required
+* Insights
+    - Git's `--absolute-git-dir` and `--git-common-dir` distinguish the primary checkout from a linked worktree without depending on the configured worktree path layout
