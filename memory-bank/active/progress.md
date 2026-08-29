@@ -130,3 +130,12 @@ Add zsh tab completion for `git sync` and `git identity`, installed and uninstal
 * Insights
     - The native zsh `_git` dispatcher invokes `_git-<subcommand>`, matching the wrappers provided by the new completers
 
+## 2026-08-28 - REWORK - INITIATED
+
+* Work completed
+    - Operator chose rework over archive after REFLECT COMPLETE
+* Decisions made
+    - Address [PR #9 cursor review](https://github.com/Texarkanine/git-aliases/pull/9#discussion_r3885613504): the installed `~/.zshrc` fence must not unconditionally run `compinit -C`
+* Insights
+    - A second `compinit -C` reloads `~/.zcompdump` and drops post-dump `compdef`s (oh-my-zsh / prezto). `_git_sync_register` / `_git_identity_register` already skip `compinit` when `compdef` exists.
+

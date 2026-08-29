@@ -38,3 +38,7 @@ In zsh, `git identity` and `git-identity` offer the same completions as bash: `l
 2. `make clean` removes zsh completion install artifacts without corrupting RC files.
 3. Existing bash completions still work after install and uninstall.
 4. Tests cover zsh completion behavior and install/uninstall; they fail if `zsh` is missing rather than skipping.
+
+## Rework
+
+PR #9 ([inline](https://github.com/Texarkanine/git-aliases/pull/9#discussion_r3885613504)): the installed `~/.zshrc` fence always emits `autoload -Uz compinit compdef` and `compinit -C`. That second `compinit` reloads `~/.zcompdump` and drops `compdef` registrations that ran after the user's first `compinit` (oh-my-zsh, prezto). `_git_sync_register` and `_git_identity_register` already skip `compinit` when `compdef` exists. Emit that same guard in the fence (or omit `compinit` from it). Relax `test_install_copies_zsh_and_writes_fence` so a conditional fence can pass. Completers must still bootstrap `compinit` for a vanilla `.zshrc`.
