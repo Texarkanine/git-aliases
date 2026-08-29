@@ -1,7 +1,16 @@
 ---
-description: 
-globs: 
+description: Filename chooses bash vs POSIX; the shebang must match. Git subcommands are .bash. Makefile recipes and git aliases are POSIX.
 alwaysApply: true
 ---
-**Always** follow [bash-style.mdc](mdc:.cursor/rules/shared/bash-style.mdc) for creating git subcommands.
-**Always** follow [shell-posix-style.mdc](mdc:.cursor/rules/shared/shell-posix-style.mdc) for shell code in Makefiles and embedded in git aliases. **Never** use bashisms in Makefiles or git aliases.
+
+# Choosing Shell Style
+
+Filename chooses the dialect. The shebang must match the filename.
+
+- `*.bash` uses `#!/usr/bin/env bash` and bash-style. The file runs in bash.
+- `*.sh` uses `#!/bin/sh` and posix-style. `sh` is not a specific shell, so the script must be POSIX.
+- Makefile recipes and git aliases have no filename. They are POSIX. Never use bashisms there.
+
+Git subcommands are `*.bash`.
+
+Do not give a bash script a `.sh` extension. If an existing `.sh` file shebangs bash, it is misnamed: rename it to `.bash`. Do not rewrite it to POSIX to match the old name.

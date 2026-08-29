@@ -10,6 +10,7 @@ Git power users on Linux/macOS who work with multiple branches, identities, or t
 - **Identity management** (`git-identity`): Switch between multiple Git identities (e.g., personal vs. work) without manually editing `.gitconfig`.
 - **Alias shortcuts**: Reduce keystrokes for everyday operations (staging, diffing, status, log, remote interaction, rebase/merge).
 - **Bash completion**: Tab-completion for the custom subcommands to reduce friction.
+- **Linked worktrees** (`git wt`): Create and tear down linked worktrees at a predictable `~/worktrees/...` layout; optional shell wrappers auto-`cd`.
 
 ## Key Benefits
 
@@ -20,11 +21,11 @@ Git power users on Linux/macOS who work with multiple branches, identities, or t
 ## Success Criteria
 
 - Subcommands handle edge cases (no remote, merge conflicts, stash failures) gracefully and provide actionable error messages.
-- Aliases and completions install/uninstall idempotently without corrupting global Git config or shell RC files.
+- Aliases and completions install/uninstall idempotently without corrupting global Git config or shell RC files. Default `make` does not edit RC files; opt-in `make shell` appends a fenced `wt()` block to `~/.bashrc` / `~/.zshrc`.
 - Bash completion scripts are correct and source-able without side effects.
 
 ## Key Constraints
 
 - Subcommands must run in `bash` (not `/bin/sh`); aliases and Makefile-embedded shell must remain POSIX-compatible.
-- Installation targets `~/.local/bin` for subcommands and `~/.local/share/git-aliases/completions/` for completion scripts.
+- Installation targets `~/.local/bin` for subcommands, `~/.local/share/git-aliases/completions/` for completion scripts, and (opt-in `make shell`) `~/.local/share/git-aliases/shell/` for wrappers.
 - No external runtime dependencies beyond `git` and `bash`.
