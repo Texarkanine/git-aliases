@@ -55,8 +55,10 @@ install_zsh_completions() {
 	touch "${ZSH_RC}"
 	{
 		echo "${ZSH_FENCE_START}"
-		echo "autoload -Uz compinit compdef"
-		echo "compinit -C"
+		echo 'if (( ! $+functions[compdef] )); then'
+		echo '	autoload -Uz compinit compdef'
+		echo '	compinit -C'
+		echo 'fi'
 		for izc_file in "${INSTALL_DIR}"/*-completion.zsh; do
 			if [ -f "${izc_file}" ]; then
 				echo "if [ -f \"${izc_file}\" ]; then"

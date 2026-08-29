@@ -151,3 +151,14 @@ Rework: the installed `~/.zshrc` fence must not unconditionally run `compinit -C
 * Insights
     - Completers already bootstrap when `compdef` is missing, so the fence can use the same guard
 
+## 2026-08-28 - BUILD - COMPLETE
+
+* Work completed
+    - Guarded the zshrc fence `compinit -C` with `(( ! $+functions[compdef] ))`
+    - Added `test_install_fence_preserves_prior_compdefs`; relaxed the copies-fence grep to require the guard
+    - `make test` and `make shellcheck` passed
+* Decisions made
+    - Same guard as the completers, not omit: vanilla `.zshrc` still gets one `compinit` before both files source
+* Insights
+    - `grep -q 'compinit -C'` still matches a guarded fence; the behavioral `_comps` check is what locks the bug
+

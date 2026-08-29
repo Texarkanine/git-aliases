@@ -1,11 +1,12 @@
 # Active Context
 
 ## Current Task: zsh-completion
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Classified the PR #9 fence `compinit -C` rework as Level 1
-- Rationale: isolated bug in the zsh completions fence; `_git_sync_register` / `_git_identity_register` already skip `compinit` when `compdef` exists
+- Guarded the zsh completions fence so `compinit -C` runs only when `compdef` is missing
+- Added an installer test that a prior `compdef` survives sourcing the installed fence
+- `make test` and `make shellcheck` passed
 
 ## Next Step
-- Load the Level 1 workflow and run Build
+- Spawn Level 1 QA

@@ -80,14 +80,36 @@ test_install_copies_zsh_and_writes_fence() {
 	if ! grep -qx "${ZSH_FENCE_END}" "${HOME}/.zshrc"; then
 		fail ".zshrc missing zsh fence end"
 	fi
+	if ! grep -Fq '$+functions[compdef]' "${HOME}/.zshrc"; then
+		fail ".zshrc fence should skip compinit when compdef exists"
+	fi
 	if ! grep -q 'compinit -C' "${HOME}/.zshrc"; then
-		fail ".zshrc fence should run compinit -C"
+		fail ".zshrc fence should bootstrap with compinit -C when needed"
 	fi
 	if ! grep -q 'git-sync-completion.zsh' "${HOME}/.zshrc"; then
 		fail ".zshrc should source git-sync-completion.zsh"
 	fi
 	if ! grep -q 'git-identity-completion.zsh' "${HOME}/.zshrc"; then
 		fail ".zshrc should source git-identity-completion.zsh"
+	fi
+}
+
+test_install_fence_preserves_prior_compdefs() {
+	printf '# keep-zshrc\n' > "${HOME}/.zshrc"
+	if ! "${INSTALLER}"; then
+		fail "install should succeed"
+	fi
+	if ! zsh -f -c '
+		autoload -Uz compinit compdef
+		compinit -C
+		_dummy() { :; }
+		compdef _dummy git-other
+		. "${HOME}/.zshrc"
+		if [[ -z ${_comps[git-other]-} ]]; then
+			exit 1
+		fi
+	'; then
+		fail "fence must not wipe a prior compdef"
 	fi
 }
 
@@ -245,6 +267,7 @@ main() {
 	chmod +x "${INSTALLER}"
 
 	run_one test_install_copies_zsh_and_writes_fence isolated
+	run_one test_install_fence_preserves_prior_compdefs isolated
 	run_one test_install_idempotent isolated
 	run_one test_install_preserves_zshrc_and_distinct_fence isolated
 	run_one test_install_without_zsh_skips_zshrc_keeps_bash isolated
