@@ -111,4 +111,16 @@ Vendor shunit2 (ai-rizz-style) and add a pull-request GitHub Action that ShellCh
 * Insights
     - The implementation plan is complete, correctly sequenced, and fully ready for the Build phase
 
+## 2026-08-28 - BUILD - COMPLETE
+
+* Work completed
+    - Operator correction: do not document or require GitHub rulesets; red CI on the PR is enough
+    - Vendored shunit2; smoke test; `run-shellcheck.sh` + homemade tests; PR workflow; README/techContext
+    - `make shellcheck` and `make test` green locally
+* Decisions made
+    - Did not add workflow concurrency (preflight advisory)
+    - Did not add `make ci` / `verify-pr.sh`
+* Insights
+    - A stub that always exits 1 cannot turn the dirty-tree test red; the miss-message and current-tree tests still went red first
+
 

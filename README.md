@@ -33,6 +33,7 @@ make shell
 
 - `git`
 - `bash`
+- `shellcheck` (for `make test` / `make shellcheck`)
 - `~/.local/bin` directory in your PATH (for subcommands)
 - [bash-completion](https://github.com/scop/bash-completion) package (for completions)
 
@@ -74,3 +75,12 @@ After installation, you may need to source your bash completion file:
 ```bash
 source ~/.bash_completion
 ```
+
+## Testing
+
+```bash
+make test        # POSIX test suites under tests/ (includes a shunit2 smoke test)
+make shellcheck  # ShellCheck tracked *.sh at error severity
+```
+
+Pull requests against `main` run both. A failing job shows as a red check on the PR.
