@@ -173,10 +173,10 @@ None - implementation approach is clear. The issue is the spec; the local script
 - Files: `tests/test-wt-wrappers.sh`, `shell/wt.bash`, `shell/wt.zsh`
 - Creative ref: none
 
-1. Stub tests: `tests/test-wt-wrappers.sh` with empty cases for bash and zsh: `go` cds, `done` with path cds, `done` with empty stdout stays, help, unknown command.
-2. Stub interface: `shell/wt.bash` and `shell/wt.zsh` defining `wt()` that errors/returns without `cd`.
-3. Write tests and run red: mock `git` executable on `PATH`; source wrappers in `bash` (prefer Homebrew bash if present) and `zsh -f`; assert pwd. Run tests, expect fail.
-4. Write code and run green: implement `wt go` → `cd "$(git wt go ...)"`; `wt done` → `cd` only when stdout is non-empty. Usage text from the issue. Wire `make test` to run this file. Run tests then `make test`.
+1. [x] Stub tests: `tests/test-wt-wrappers.sh` with empty cases for bash and zsh: `go` cds, `done` with path cds, `done` with empty stdout stays, help, unknown command.
+2. [x] Stub interface: `shell/wt.bash` and `shell/wt.zsh` defining `wt()` that errors/returns without `cd`.
+3. [x] Write tests and run red: mock `git` executable on `PATH`; source wrappers in `bash` (prefer Homebrew bash if present) and `zsh -f`; assert pwd. Run tests, expect fail.
+4. [x] Write code and run green: implement `wt go` → `cd "$(git wt go ...)"`; `wt done` → `cd` only when stdout is non-empty. Usage text from the issue. Wire `make test` to run this file. Run tests then `make test`.
 
 ### 3. Shell-integration install — executable
 
@@ -229,7 +229,7 @@ No new technology - validation not required. Product runtime remains `git` + `ba
 - [x] Preflight
 - [ ] Build
   - [x] Unit 1: git-wt CLI
-  - [ ] Unit 2: shell wrappers
+  - [x] Unit 2: shell wrappers
   - [ ] Unit 3: shell-integration install
   - [ ] Unit 4: user-facing docs
 - [ ] QA
