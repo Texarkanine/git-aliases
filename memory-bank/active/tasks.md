@@ -17,6 +17,7 @@
 - Nameless dirty without `--force`: dirty linked worktree, `git wt done` → non-zero, worktree remains, stderr mentions `--force`
 - Nameless `--force` on dirty: dirty linked worktree, `git wt done --force` with tty `y` → worktree removed
 - Named `done` still selects by branch: from main, `git wt done <name>` → still removes that branch's worktree even when cwd is not inside it
+- Named `done` on a foreign worktree: `git worktree add` at a path outside `~/worktrees/...`, then from main `git wt done <name>` → that path is removed, stdout empty
 - `go` still requires a name: `git wt go` with no args → non-zero (existing `test_missing_name` split or kept)
 
 ### Test Infrastructure
@@ -32,9 +33,9 @@
 
 - Files: `tests/test-git-wt.sh`, `subcommands/git-wt/git-wt.bash`
 
-1. Stub tests: add empty `test_done_no_name_inside`, `test_done_no_name_subdirectory`, `test_done_no_name_foreign_worktree`, `test_done_no_name_from_main`, `test_done_no_name_dirty_without_force`, `test_done_no_name_force_yes` in `tests/test-git-wt.sh`; register them in `main`; keep `test_missing_name` covering `git wt go` with no args (move the nameless-`done`-from-main assertion into `test_done_no_name_from_main` so the error contract is explicit)
-2. Stub interface: add `wt_worktree_containing_cwd` in `git-wt.bash` (porcelain path of the listed worktree that contains physical cwd, or empty); leave `cmd_done` requiring a name until tests are red for the new cases
-3. Write tests and run red: implement the stubbed cases (foreign tree via `git worktree add` at a temp path, not `git wt go`); run `tests/test-git-wt.sh` and confirm the new cases fail; existing named-`done` tests still pass
+1. Stub tests: add empty `test_done_no_name_inside`, `test_done_no_name_subdirectory`, `test_done_no_name_foreign_worktree`, `test_done_named_foreign_worktree`, `test_done_no_name_from_main`, `test_done_no_name_dirty_without_force`, `test_done_no_name_force_yes` in `tests/test-git-wt.sh`; register them in `main`; keep `test_missing_name` covering `git wt go` with no args (move the nameless-`done`-from-main assertion into `test_done_no_name_from_main` so the error contract is explicit)
+2. Stub interface: add `wt_worktree_containing_cwd` in `git-wt.bash` (porcelain path of the listed worktree that contains physical cwd, or empty); leave `cmd_done` requiring a name until tests are red for the nameless cases
+3. Write tests and run red: implement the stubbed cases (foreign trees via `git worktree add` at a temp path, not `git wt go`); run `tests/test-git-wt.sh`; nameless cases fail; `test_done_named_foreign_worktree` may already pass because named lookup is porcelain-by-branch — keep it as the regression net for requirement 4
 4. Write code and run green: `cmd_done` treats a missing positional as "use `wt_worktree_containing_cwd`"; if that path is empty or equals `wt_main_worktree`, `wt_die` refusing the main checkout (or not in a linked worktree); reuse existing dirty/`--force`/stdout-if-`in_wt` logic on the resolved path. Compare paths with `pwd -P` (same as today's `in_wt` check). Run `tests/test-git-wt.sh` then `make test`
 
 ### 2. Usage and README — prose/policy
@@ -59,7 +60,7 @@ No new technology - validation not required
 
 - macOS `/var` vs `/private/var`: match cwd to a porcelain worktree using `pwd -P`, same as the current `in_wt` block; do not parse porcelain with `awk $2`
 - Nameless `done` from main must keep failing: dedicated `test_done_no_name_from_main`; do not loosen `test_missing_name` into a false pass
-- Named `done` from a different cwd must not start using cwd: only call `wt_worktree_containing_cwd` when the positional name is absent; existing named tests stay the regression net
+- Named `done` from a different cwd must not start using cwd: only call `wt_worktree_containing_cwd` when the positional name is absent; `test_done_named_foreign_worktree` plus existing named tests stay the regression net
 
 ## Pre-Mortem
 
@@ -74,6 +75,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
+- [ ] Preflight (re-run after named foreign-worktree test added)
 - [ ] Build
 - [ ] QA

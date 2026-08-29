@@ -23,3 +23,21 @@ Make `git wt done` with no branch name infer the linked worktree from cwd, inclu
     - Keep `go` requiring a name; nameless `done` from main still refuses main
 * Insights
     - Wrapper tests stay put: stdout-on-inside is already the `cd` contract
+
+## 2026-08-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the Level 2 plan against the Bash subcommand, POSIX integration tests, and current worktree-path behavior
+* Decisions made
+    - Preflight result: `FAIL (fixable)`; return to planning before Build
+* Insights
+    - Existing named-`done` tests cover only `git wt go` paths, so the required named foreign-worktree contract needs an explicit regression test
+
+## 2026-08-28 - PLAN - COMPLETE
+
+* Work completed
+    - Added `test_done_named_foreign_worktree` to the TDD plan after preflight FAIL (fixable)
+* Decisions made
+    - Named foreign `done` is a regression test on existing porcelain-by-branch lookup; it may already be green before nameless `done` is implemented
+* Insights
+    - Requirement 4 was stated but only nameless foreign was scheduled; named and nameless foreign are different code paths

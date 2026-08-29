@@ -4,8 +4,8 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Level 2 plan: nameless `cmd_done` uses `wt_worktree_containing_cwd` (porcelain path of the worktree containing physical cwd); named `done` unchanged; tests in `tests/test-git-wt.sh`; usage/README/wrapper help as prose.
-- Wrapper `wt()` stays optional `cd` sugar; not renamed; `git` is not wrapped.
+- Re-planned after preflight FAIL (fixable): added `test_done_named_foreign_worktree` so named `git wt done <name>` is asserted on a `git worktree add` path, not only `git wt go` trees.
+- Nameless `cmd_done` still uses `wt_worktree_containing_cwd`; `wt()` unchanged.
 
 ## Next Step
 - Preflight validation (spawn `/niko-preflight`)
