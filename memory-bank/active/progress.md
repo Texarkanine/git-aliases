@@ -76,3 +76,24 @@ Vendor shunit2 (ai-rizz-style) and add a pull-request GitHub Action that ShellCh
     - Did not add `make ci`
 * Insights
     - Completeness FAIL was right: pass+miss without a dirty fixture does not prove ShellCheck runs
+
+## 2026-08-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the revised Level 2 plan against the project brief, TDD rule, current Makefile/test layout, tracked `.sh` files, and repository integration points
+    - Confirmed the previous test-coverage and stripped-PATH findings are resolved
+    - Wrote `.preflight-status`: first line `FAIL (fixable)`
+* Decisions made
+    - The workflow must run the checks, while branch ruleset or protection configuration must make them required before merging
+* Insights
+    - A workflow failure alone does not prevent a manual GitHub merge; that enforcement belongs to repository settings and needs an explicit scheduled contributor instruction
+
+## 2026-08-28 - PLAN - COMPLETE
+
+* Work completed
+    - Unit 4 README step now names the administrator action: require the two PR checks on `main`
+    - Left `scripts/verify-pr.sh` out of scope
+* Decisions made
+    - YAML stays jobs-only; merge-blocking is documented repo settings
+* Insights
+    - Acceptance criterion 3 is settings + workflow, not YAML alone

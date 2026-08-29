@@ -65,8 +65,9 @@ Edge cases:
 - Files: `README.md`, `memory-bank/techContext.md`
 - No tests: prose/policy artifact
 
-1. README: short Testing section — `make test`, `make shellcheck`, note PR CI; add `shellcheck` under Requirements because `make test` will run `test-shellcheck.sh`
-2. `techContext.md` Testing Process: shunit2 is bundled at repo root; `make test` / `make shellcheck`; PR workflow path
+1. README: short Testing section — `make test`, `make shellcheck`, note that PRs run those jobs. After the workflow has run once, a repository administrator must set the `main` branch ruleset (or classic branch protection) to require those two checks before merge; the YAML cannot do that.
+2. README Requirements: add `shellcheck` because `make test` will run `test-shellcheck.sh`
+3. `techContext.md` Testing Process: shunit2 is bundled at repo root; `make test` / `make shellcheck`; PR workflow path
 
 ## Technology Validation
 
