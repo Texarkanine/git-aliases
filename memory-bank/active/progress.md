@@ -107,3 +107,14 @@ Add zsh tab completion for `git sync` and `git identity`, installed and uninstal
 * Insights
     - Installer tests must use isolated HOME; this is the first suite that runs the real completions installer
 
+## 2026-08-28 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the zsh completers, installer, Makefile wiring, tests, and documentation against the approved Level 2 plan
+    - Ran `make test` and `make shellcheck`
+    - Loaded the installed zsh completion fence in a clean zsh session and confirmed wrapper and standalone-command registration
+* Decisions made
+    - QA passed; no implementation rework is required
+* Insights
+    - The native zsh `_git` dispatcher invokes `_git-<subcommand>`, matching the wrappers provided by the new completers
+

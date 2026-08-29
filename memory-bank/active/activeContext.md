@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: zsh-completion
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - Added `git-sync-completion.zsh` and `git-identity-completion.zsh` with `_git_<name>` / `_git-<name>` / `compdef` registration.
@@ -10,4 +10,4 @@
 - Documented the RC-file split in README and persistent memory-bank files.
 
 ## Next Step
-- QA review (spawn `/niko-qa`). Manual smoke: `git sync <TAB>` / `git identity <TAB>` in zsh after `make completions`.
+- Run `/niko-reflect`.
