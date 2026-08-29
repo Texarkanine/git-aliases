@@ -52,3 +52,14 @@ Make `git wt done` with no branch name infer the linked worktree from cwd, inclu
 * Insights
     - `git worktree list --porcelain` lists main first, so a first-match-wins cwd scan would wrongly refuse a worktree nested inside the main checkout; the helper needs longest-match-wins
     - `git rev-parse` can answer "which linked worktree am I in" directly, with physical paths, dissolving the `pwd -P` and spaces-in-`HOME` hazards the plan mitigates by hand
+
+## 2026-08-28 - BUILD - COMPLETE
+
+* Work completed
+    - Nameless `git wt done` infers the current linked worktree; named `done`, dirty/`--force`, and `wt()` unchanged
+    - `make test` passed (trim, git-wt, wrappers, shell-integration)
+* Decisions made
+    - Implemented `wt_worktree_containing_cwd` with `git rev-parse` (preflight advisory 2), not a porcelain scan
+    - Nameless foreign test uses `git worktree add` inside the main checkout
+* Insights
+    - After `done` from inside the worktree, cwd is gone; `git show-ref` must use `git -C` on main

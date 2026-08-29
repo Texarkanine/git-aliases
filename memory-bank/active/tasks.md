@@ -75,6 +75,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight (re-run after named foreign-worktree test added)
-- [ ] Build
+- [x] Preflight (re-run after named foreign-worktree test added)
+- [x] Build
 - [ ] QA

@@ -9,9 +9,10 @@ Create and tear down linked worktrees at a fixed path layout.
 ```
 usage: git wt <command>
   go <name>           create a git worktree; print its path on stdout
-  done <name> [--force]
+  done [name] [--force]
                       remove a worktree so the branch can be checked out
-                      in the main tree; refuse if dirty unless --force
+                      in the main tree; omit name to use the current
+                      worktree; refuse if dirty unless --force
 ```
 
 ### Examples
@@ -26,11 +27,15 @@ cd "$(git wt go feature-x)"
 # Remove the worktree (refuses if dirty)
 git wt done feature-x
 
+# From inside any linked worktree, omit the name
+git wt done
+
 # Discard uncommitted changes after a /dev/tty confirmation
 git wt done feature-x --force
+git wt done --force
 
 # If you ran done while inside the worktree, cd back to main
-cd "$(git wt done feature-x)"
+cd "$(git wt done)"
 ```
 
 ## Path Convention
@@ -51,7 +56,7 @@ Examples:
 
 `go` is idempotent: if that worktree already exists, it prints the path and exits 0.
 
-`done` refuses to remove the main checkout. It refuses a dirty worktree unless `--force`; `--force` on a dirty tree prompts on `/dev/tty` before discarding. The branch is left in place.
+`done` with no name removes the linked worktree that contains cwd, including worktrees `git wt go` did not create. An explicit name still selects that branch's worktree. `done` refuses to remove the main checkout. It refuses a dirty worktree unless `--force`; `--force` on a dirty tree prompts on `/dev/tty` before discarding. The branch is left in place.
 
 Works from any linked worktree of the repo (the main checkout is the first `git worktree list --porcelain` entry).
 
@@ -73,9 +78,15 @@ flowchart TD
     F --> C
     C --> G["optional wrapper: cd path"]
 
-    H["git wt done name"] --> I{"dirty?"}
+    H["git wt done [name]"] --> R{"name given?"}
+    R -->|yes| Blookup["worktree for branch"]
+    R -->|no| Cwd["worktree containing cwd"]
+    Cwd --> Main{"is main?"}
+    Main -->|yes| K["decline"]
+    Blookup --> I{"dirty?"}
+    Main -->|no| I
     I -->|clean| J["worktree remove"]
-    I -->|dirty, no --force| K["decline"]
+    I -->|dirty, no --force| K
     I -->|"dirty, --force"| L{"confirm on /dev/tty?"}
     L -->|no| K
     L -->|yes| M["worktree remove --force"]
@@ -90,7 +101,8 @@ flowchart TD
 
 ```bash
 wt go <name>   # cd to the new/existing worktree
-wt done ...    # cd to main if git wt done prints a path
+wt done        # cd to main if git wt done prints a path
+wt done <name> # same, for a named worktree
 ```
 
 `wt` is a shell function, not a Git subcommand. Scripts and CI should keep calling `git wt`.
