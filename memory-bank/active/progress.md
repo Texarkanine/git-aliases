@@ -2,7 +2,9 @@
 
 Add zsh tab completion for `git sync` and `git identity`, installed and uninstalled through the existing completions path, without regressing bash completions or adding `git wt` completion.
 
-**Complexity:** Level 2
+Rework: the installed `~/.zshrc` fence must not unconditionally run `compinit -C`, so a second init cannot wipe post-dump `compdef`s.
+
+**Complexity:** Level 1
 
 ## 2026-08-28 - COMPLEXITY-ANALYSIS - COMPLETE
 
@@ -138,4 +140,14 @@ Add zsh tab completion for `git sync` and `git identity`, installed and uninstal
     - Address [PR #9 cursor review](https://github.com/Texarkanine/git-aliases/pull/9#discussion_r3885613504): the installed `~/.zshrc` fence must not unconditionally run `compinit -C`
 * Insights
     - A second `compinit -C` reloads `~/.zcompdump` and drops post-dump `compdef`s (oh-my-zsh / prezto). `_git_sync_register` / `_git_identity_register` already skip `compinit` when `compdef` exists.
+
+## 2026-08-28 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Classified the fence `compinit` rework as Level 1
+* Decisions made
+    - Single-component bug fix: `scripts/install-completions.bash` zsh fence plus its installer tests
+    - Skip plan/creative/preflight; go to Build
+* Insights
+    - Completers already bootstrap when `compdef` is missing, so the fence can use the same guard
 
