@@ -22,7 +22,7 @@ graph TD
     All --> Sub["subcommands including git-wt"]:::default
     All --> Comp["completions"]:::default
     Sub --> Bin["~/.local/bin/git-wt"]:::out
-    Shell["make shell"]:::opt --> Integ["install-shell-integration.sh"]:::opt
+    Shell["make shell"]:::opt --> Integ["install-shell-integration.bash"]:::opt
     Integ --> Snip["~/.local/share/git-aliases/shell/wt.{bash,zsh}"]:::out
     Integ --> RC["fenced block in ~/.bashrc and ~/.zshrc"]:::out
     Clean["make clean"]:::default --> UnSub["uninstall subcommands"]:::default
@@ -62,7 +62,7 @@ flowchart TD
 ### Affected Components
 - **git-wt subcommand** (`subcommands/git-wt/git-wt.bash`): new. Git-dispatchable `git wt`. Ports `wt-go` / `wt-done` / `wt-common.sh` into one Bash script (helpers + `go`/`done` + `main`, with a `BASH_SOURCE` main guard). Install is automatic via existing `install-subcommands.sh` glob.
 - **Shell wrappers** (`shell/wt.bash`, `shell/wt.zsh`): new, sourceable only. Thin `wt()` that `cd`s on `git wt` stdout. Not a Git subcommand.
-- **Shell-integration installer** (`scripts/install-shell-integration.sh`): new. Mirrors `install-completions.sh` fence strip/append. Copies snippets to `~/.local/share/git-aliases/shell/`. `--uninstall` removes fences and snippets. Bash, matching existing `scripts/install-*.sh` (the issue's "POSIX install scripts" note does not match this repo; do not invent a POSIX-only installer).
+- **Shell-integration installer** (`scripts/install-shell-integration.bash`): new. Mirrors `install-completions.sh` fence strip/append. Copies snippets to `~/.local/share/git-aliases/shell/`. `--uninstall` removes fences and snippets. Bash, so the filename is `.bash` (do not add another misnamed `install-*.sh`).
 - **Makefile**: add `shell` (not in `all`); `clean` must call shell uninstall; `test` must run the new test files.
 - **Tests** (`tests/test-git-wt.sh`, `tests/test-wt-wrappers.sh`, `tests/test-install-shell-integration.sh`): extend the existing POSIX `tests/*.sh` + `make test` pattern. No new test framework.
 - **Docs**: `subcommands/git-wt/README.md` (new); root `README.md` (list `git-wt`, document `make shell`).
@@ -90,7 +90,7 @@ flowchart TD
 - Owner/repo must parse from `origin` (else first remote) for both scp-style `git@host:owner/repo.git` and HTTPS `https://host/owner/repo.git` as the last two path segments after stripping `.git`. The local `wt-common.sh` HTTPS branch is wrong (`https://...` matches `*:*/*` and sets owner to `//github.com/Texarkanine`); do not copy that. No-remote → `owner=local`, `repo=<basename of main checkout>`.
 - `git wt` must work when invoked from any linked worktree of the repo (main is the first `git worktree list --porcelain` entry, matching the local helper).
 - Tests must set `HOME` to a temp dir; they must not write to the operator's real `~/worktrees` or RC files.
-- Subcommand: Bash, `#!/usr/bin/env bash` (same as `git-sync`, so Homebrew bash wins over macOS `/bin/bash` 3.2). Makefile recipes stay POSIX. No new runtime dependencies.
+- Subcommand: `.bash` with `#!/usr/bin/env bash` (same as `git-sync`, so Homebrew bash wins over macOS `/bin/bash` 3.2). Tests: `.sh` with `#!/bin/sh` (POSIX). New installer: `scripts/install-shell-integration.bash` (bash, so `.bash`). Makefile recipes stay POSIX. No new runtime dependencies.
 - Local `wt()` in `~/.zshrc` and `~/.local/bin/wt-*` are operator-machine leftovers. Automated tests isolate via `zsh -f` / `PATH` / `HOME`. Manual smoke may disable or delete them (operator approved). Not part of the repo diff.
 
 ## Open Questions
@@ -180,11 +180,11 @@ None - implementation approach is clear. The issue is the spec; the local script
 
 ### 3. Shell-integration install — executable
 
-- Files: `tests/test-install-shell-integration.sh`, `scripts/install-shell-integration.sh`, `Makefile`
+- Files: `tests/test-install-shell-integration.sh`, `scripts/install-shell-integration.bash`, `Makefile`
 - Creative ref: none
 
 1. Stub tests: cases for install (files + fences), idempotent reinstall (single fence), uninstall, second uninstall, `all` does not depend on `shell`, `clean` invokes the shell uninstaller.
-2. Stub interface: `install-shell-integration.sh` with `#!/usr/bin/env bash`, `set -euo pipefail`, `--uninstall`, empty install/uninstall bodies; Makefile `shell` target and `clean` hook present but no-op or failing.
+2. Stub interface: `install-shell-integration.bash` with `#!/usr/bin/env bash`, `set -euo pipefail`, `--uninstall`, empty install/uninstall bodies; Makefile `shell` target and `clean` hook present but no-op or failing.
 3. Write tests and run red: run installer against fake `HOME`; parse Makefile prerequisites (`make -n all` / `make -n clean` or a small awk of the Makefile). Expect fail.
 4. Write code and run green: copy fence strip/append from `install-completions.sh`; install dir `~/.local/share/git-aliases/shell/`; bashrc sources `wt.bash`, zshrc sources `wt.zsh`; create RC files if missing; `.PHONY: shell`; `shell` not in `all`; `clean` chmod+run `--uninstall`. Wire `Makefile` `test` to run `tests/test-install-shell-integration.sh` (so `make test` runs `test-trim.sh` plus all three new test files). Run `./tests/test-install-shell-integration.sh` then `make test`.
 

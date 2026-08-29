@@ -26,13 +26,13 @@ Authoritative spec: [issue #5](https://github.com/Texarkanine/git-aliases/issues
 2. Path convention `~/worktrees/<owner>/<repo>/<repo>-<branch>` with remote parsing (prefer `origin`) and `owner=local` fallback.
 3. Consolidate logic in `subcommands/git-wt/git-wt.bash` (not separate `wt-go` / `wt-done` binaries).
 4. Default `make` / `make subcommands` installs `git-wt` only; no RC changes.
-5. `make shell` is a separate target (not part of `all`) that installs bash + zsh wrappers via `install-shell-integration.sh` using the completions fenced-block pattern; `make clean` / `--uninstall` removes fences and snippets.
+5. `make shell` is a separate target (not part of `all`) that installs bash + zsh wrappers via `install-shell-integration.bash` using the completions fenced-block pattern; `make clean` / `--uninstall` removes fences and snippets.
 6. `subcommands/git-wt/README.md` documents usage, path/stdout contract, and a prominent optional shell-integration section.
 7. Bash completion for `git wt` is stretch (same PR if cheap; otherwise follow-up).
 
 ## Constraints
 
-1. Subcommand is Bash per repo conventions; Makefile-embedded shell stays POSIX. New install script should follow existing `scripts/install-*.sh` patterns (note: `install-completions.sh` is Bash, not POSIX).
+1. Dialect follows the filename: `.bash` is bash, `.sh` is POSIX. Makefile-embedded shell stays POSIX. The new installer is bash, so it is `install-shell-integration.bash`. Do not copy the misnamed `scripts/install-*.sh` (bash shebang, `.sh` extension).
 2. No external runtime dependencies beyond `git` and `bash`.
 3. Existing local implementation is the reference: `~/.local/bin/wt-go`, `wt-done`, `wt-common.sh`, plus a `wt()` function in `~/.zshrc`. Port that behavior; do not invent a parallel design. Those PATH scripts and the zsh function will need to be disabled or removed before local testing so they do not shadow the repo install. Operator has approved that.
 4. Operator's login shell is zsh. Homebrew bash is installed and must be used to test bash wrappers as well as zsh.

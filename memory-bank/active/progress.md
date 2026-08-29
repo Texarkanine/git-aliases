@@ -47,3 +47,23 @@ Add `git wt` for worktree create/teardown with a fixed `~/worktrees/<owner>/<rep
     - Left the stale POSIX-install-script claim in persistent memory-bank docs for a later task; this plan already follows the real Bash installers.
 * Insights
     - Completeness checks catch "run make test" vs "change the Makefile test recipe" — the former can be satisfied by a one-off invocation and still leave a file unwired.
+
+## 2026-08-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-validated the corrected `git-wt` implementation plan against the issue specification, current repository structure, TDD ordering, integration dependencies, and existing installation/test conventions.
+    - Confirmed Unit 3 now explicitly adds its installer test to `make test`, closing the prior completeness gap.
+* Decisions made
+    - Preflight result: `PASS WITH ADVISORY`; the plan is ready for the Build phase.
+    - Kept `git wt list [--porcelain]` outside this issue's scope.
+* Insights
+    - Preflight advisory on installer dialect was a wording bug. Operator later stated the real rule (filename + matching shebang); persistent docs were corrected without rewriting `scripts/install-*.sh` to POSIX.
+
+## 2026-08-28 - PLAN - COMPLETE
+
+* Work completed
+    - Operator clarification: dialect follows filename + matching shebang (`.bash` → bash, `.sh` → POSIX because `sh` is unspecified). Rectified `systemPatterns.md`, `techContext.md`, `choosing-shell-style.mdc`, and the git-wt plan/brief. Did not POSIX-rewrite `scripts/install-*.sh`.
+* Decisions made
+    - New `install-shell-integration.bash` (bash, so `.bash`). Tests remain POSIX `.sh`. Existing `scripts/install-*.sh` are misnamed, not a style exception.
+* Insights
+    - The preflight advisory was a wording bug, not a prompt to convert installers to POSIX. `.sh` + bash shebang on the installers is leftover naming, not a dialect claim.

@@ -1,20 +1,18 @@
-FAIL (fixable)
+PASS WITH ADVISORY
 
 # Preflight Findings — git-wt
 
 ## TDD Plan Encoding — PASS
 
-Each executable unit (1: git-wt CLI, 2: shell wrappers, 3: install script) is ordered stub-tests → stub-interface → write-tests-and-run-red → write-code-and-run-green, matching the always-tdd.mdc four-step process exactly. Unit 4 (README docs) correctly claims the prose/policy exemption and carries no test steps. No scheduled change-detectors found among the new test cases: Unit 3's "`all` does not depend on `shell`" / "`clean` invokes the shell uninstaller" checks assert on actual `make -n all` / `make -n clean` dependency-resolution behavior (a real, user-facing contract — default `make` must never touch RC files) rather than on document prose, so they are not change-detectors and were left in place.
+Each executable unit (1: git-wt CLI, 2: shell wrappers, 3: install script) is ordered stub-tests → stub-interface → write-tests-and-run-red → write-code-and-run-green, matching the required test-first workflow. Unit 4 (README docs) correctly claims the prose/policy exemption and carries no test steps. No scheduled change-detectors found: Unit 3's "`all` does not depend on `shell`" / "`clean` invokes the shell uninstaller" checks assert on actual Make dependency-resolution behavior — a user-facing default-install safety contract — rather than document prose.
 
 ## Convention Compliance — PASS (one advisory below)
 
 `subcommands/git-wt/git-wt.bash` matches the existing `git-sync.bash` / `git-identity.bash` layout and naming (install-subcommands.sh strips the `git-` prefix and reinstalls `git-<name>`). The new top-level `shell/` directory and `scripts/install-shell-integration.sh` match both the issue's specified repo layout and the existing `scripts/install-*.sh` fence-block pattern (`install-completions.sh`). New test files (`tests/test-git-wt.sh`, `tests/test-wt-wrappers.sh`, `tests/test-install-shell-integration.sh`) match the existing POSIX `tests/*.sh` + `make test` convention (`test-trim.sh`: `#!/bin/sh`, `set -eu`, failure counter). Deferring `git-wt-completion.bash` is consistent with systemPatterns.md's "adding a subcommand does not automatically gain completion" note.
 
-## Dependency Impact / Completeness Precheck — FAIL (fixable)
+## Dependency Impact / Completeness Precheck — PASS
 
-Component Analysis states "Makefile: ... `test` must run the new test files" (plural — all three). Implementation Plan Units 1 and 2 each carry an explicit instruction to wire their new test file into the Makefile's `test` target ("Wire `Makefile` `test` target to run `test-git-wt.sh`" / "Wire `make test` to run this file"). Unit 3 step 4 has no equivalent instruction for `tests/test-install-shell-integration.sh` — it only says "Run tests then `make test`," which describes verifying the plan, not updating the `test` recipe. As written, an implementer can satisfy step 4 by running the test file once by hand and calling the unit done, leaving it permanently unwired from `make test` and silently dropping coverage for the installer/Makefile-contract tests thereafter.
-
-**Fix:** add an explicit instruction to Unit 3 step 4 — e.g. "wire `tests/test-install-shell-integration.sh` into the Makefile `test` target" — matching the phrasing already used in Units 1 and 2.
+The prior gap is resolved: Unit 3 step 4 now explicitly wires `tests/test-install-shell-integration.sh` into `Makefile`'s `test` target. All three proposed test files are therefore run through the project's standard verification entry point. The plan identifies all affected consumers: Git dispatch through `PATH`, standalone wrappers calling `git wt`, Make's opt-in/default target split, shell RC files and snippets, and real-git integration tests isolated from the operator environment. Its concrete steps map every stated requirement and acceptance criterion.
 
 ## Conflict Detection — PASS
 

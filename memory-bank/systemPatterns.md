@@ -16,10 +16,9 @@ Each subcommand in `subcommands/<name>/git-<name>.bash` has an optional companio
 
 ## Bash vs. POSIX Split
 
-- `.bash` files (subcommand scripts): full Bash, `#!/usr/bin/env bash`, may use `[[`, `(( ))`, arrays, etc.
-- Shell code in `Makefile` and install scripts: POSIX `/bin/sh` only — no bashisms.
+Dialect follows the filename; the shebang must match. `.bash` means bash (`#!/usr/bin/env bash`). `.sh` means POSIX (`#!/bin/sh`) because `sh` is not a specific shell. Makefile recipes and git aliases have no filename and stay POSIX.
 
-See `.cursor/rules/shared/bash-style.mdc` and `.cursor/rules/shared/shell-posix-style.mdc` for the enforced style rules.
+Git subcommands are `.bash`. Tests and `scripts/lib/trim.sh` are `.sh`. `scripts/install-*.sh` currently shebang bash, so they are misnamed (they should be `.bash`), not POSIX.
 
 ## Install Script Idempotency
 

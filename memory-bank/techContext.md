@@ -1,6 +1,6 @@
 # Tech Context
 
-Shell-only project: Bash subcommands, POSIX-compatible install scripts, and a GNU Make build façade.
+Shell-only project: Bash subcommands (`.bash`), POSIX tests/helpers (`.sh`), and a GNU Make façade. Filename chooses the dialect; the shebang must match. `scripts/install-*.sh` shebang bash, so they are misnamed (should be `.bash`).
 
 ## Environment Setup
 

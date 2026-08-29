@@ -2,3 +2,4 @@ https://github.com/texarkanine/.cursor-rules.git	.cursor/rules	rules	rulesets
 rulesets/niko
 rules/bash-style
 rules/shell-posix-style
+rulesets/shell
