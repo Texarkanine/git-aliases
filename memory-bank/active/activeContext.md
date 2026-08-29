@@ -4,7 +4,7 @@
 **Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Re-planned after Preflight FAIL (fixable): Unit 2 now has homemade `tests/test-shellcheck.sh` (current-tree pass + PATH-miss) before `scripts/run-shellcheck.sh` / Makefile recipe. Unit 3 no longer "installs ShellCheck if needed" (`ubuntu-latest` already has it). No `make ci` target.
+- Second re-plan after Preflight FAIL (fixable): added dirty-tree fixture test (`run-shellcheck.sh <dir>`), PATH-miss invokes the script not `make`, default scan is `git ls-files '*.sh'`. Kept `*.bash` out of scope. README will list `shellcheck` as a `make test` requirement.
 
 ## Next Step
 - Preflight validation

@@ -12,8 +12,9 @@ Vendor shunit2 at the repo root (same bundled file as `../ai-rizz`) and add a pu
 
 - [Smoke] `tests/test-shunit2-smoke.sh` sources repo-root `shunit2` and a passing assertion → suite prints OK and exits 0
 - [Runner] `make test` runs the smoke file in addition to the four existing homemade suites → a failing smoke assertion fails `make test`
-- [ShellCheck] `make shellcheck` runs ShellCheck on every `*.sh` under the repo (not `*.bash`, not the extensionless `shunit2` file) at `--severity=error` → current tree exits 0
-- [ShellCheck miss] `make shellcheck` when `shellcheck` is not on PATH → non-zero exit and a message that names the missing tool
+- [ShellCheck] `make shellcheck` / `scripts/run-shellcheck.sh` with no args scans tracked `*.sh` in this repo at `--severity=error` (not `*.bash`, not extensionless `shunit2`) → current tree exits 0
+- [ShellCheck dirty] `scripts/run-shellcheck.sh <dir>` on a temp directory containing a `*.sh` with an error-severity finding (unterminated `if`) → non-zero exit
+- [ShellCheck miss] `scripts/run-shellcheck.sh` with `PATH` empty of `shellcheck` (script invoked directly, not via `make`) → non-zero exit and a message that names `shellcheck`
 - [CI] a `pull_request` against `main` runs ShellCheck and tests → job failure is the merge gate (required-check toggle is GitHub repo settings, not this repo)
 
 Edge cases:
@@ -35,7 +36,7 @@ Edge cases:
 
 - Files: `shunit2`, `tests/test-shunit2-smoke.sh`, `Makefile`
 
-1. Stub tests: `tests/test-shunit2-smoke.sh` with empty `test_shunit2_equals` (and a trailing source of `../shunit2` once the file exists; until then the source line is the red)
+1. Stub tests: `tests/test-shunit2-smoke.sh` with empty `test_shunit2_equals`; resolve `SCRIPT_DIR`/`REPO_DIR` like `tests/test-trim.sh`; trailing source of `"${REPO_DIR}/shunit2"`
 2. Stub interface: none (shunit2 is a vendored script, not an API we author)
 3. Write tests and run red: `assertEquals` a known pair; run the file without `shunit2` present → fail
 4. Write code and run green: copy `../ai-rizz/shunit2` to repo-root `shunit2` (keep the name extensionless); add `tests/test-shunit2-smoke.sh` to the Makefile `test` recipe (chmod + execute). Confirm `make test` still runs trim, git-wt, wrappers, and install-shell-integration.
@@ -44,10 +45,10 @@ Edge cases:
 
 - Files: `scripts/run-shellcheck.sh`, `tests/test-shellcheck.sh`, `Makefile`
 
-1. Stub tests: `tests/test-shellcheck.sh` with empty `test_shellcheck_current_tree` and `test_shellcheck_missing_from_path` (homemade `fail` / exit-code checks, same style as `tests/test-trim.sh`)
-2. Stub interface: `scripts/run-shellcheck.sh` with `#!/bin/sh` and an empty body (or `exit 1`); Makefile `.PHONY: shellcheck` recipe that chmod+x and runs that script
-3. Write tests and run red: (a) `make shellcheck` from the repo root must exit 0 against the current tree — fails while the script is empty/exits 1; (b) `make shellcheck` with a PATH that contains `make` (symlink in a temp `bin/`) but not `shellcheck` must exit non-zero and print a message containing `shellcheck` — fails while the script does not check PATH. Do not assert on Makefile source text.
-4. Write code and run green: `scripts/run-shellcheck.sh` uses `command -v shellcheck` and on miss prints that `shellcheck` is required then exits non-zero; otherwise `find` (absolute `/usr/bin/find` so the miss-PATH test still has `find`) every `*.sh` under the repo, prune `.git`, run `shellcheck --severity=error` with no `--shell=sh`. Makefile `shellcheck` only invokes the script. Add `tests/test-shellcheck.sh` to the `test` recipe. Do not add a `make ci` umbrella target.
+1. Stub tests: `tests/test-shellcheck.sh` with empty `test_shellcheck_current_tree`, `test_shellcheck_dirty_tree`, and `test_shellcheck_missing_from_path` (homemade `fail` / exit-code checks, same style as `tests/test-trim.sh`)
+2. Stub interface: `scripts/run-shellcheck.sh` with `#!/bin/sh` and an empty body (or `exit 1`); Makefile `.PHONY: shellcheck` recipe that chmod+x and runs that script with no args
+3. Write tests and run red: (a) `make shellcheck` from the repo root exits 0; (b) `scripts/run-shellcheck.sh <tmpdir>` where `<tmpdir>` holds a `*.sh` with an unterminated `if` (error-severity) exits non-zero — fixture must be outside the repo so (a) stays green; (c) `env PATH=/usr/bin/false-dir ./scripts/run-shellcheck.sh` (empty dir only; invoke the script, not `make`) exits non-zero and stderr contains `shellcheck`. Do not assert on Makefile source text.
+4. Write code and run green: `command -v shellcheck` first; on miss print that `shellcheck` is required and exit non-zero. With no args, scan `git ls-files '*.sh'` from the repo root (no `find`, no `/usr/bin/find`). With one directory argument, ShellCheck `*.sh` under that directory only (the dirty-fixture path). Always `--severity=error`, never `--shell=sh`. Makefile `shellcheck` invokes the script with no args. Add `tests/test-shellcheck.sh` to the `test` recipe. Do not add a `make ci` umbrella target. Do not scan `*.bash` (operator-confirmed scope).
 
 ### 3. PR workflow — prose/policy
 
@@ -64,7 +65,7 @@ Edge cases:
 - Files: `README.md`, `memory-bank/techContext.md`
 - No tests: prose/policy artifact
 
-1. README: short Testing section — `make test`, `make shellcheck`, note PR CI
+1. README: short Testing section — `make test`, `make shellcheck`, note PR CI; add `shellcheck` under Requirements because `make test` will run `test-shellcheck.sh`
 2. `techContext.md` Testing Process: shunit2 is bundled at repo root; `make test` / `make shellcheck`; PR workflow path
 
 ## Technology Validation
@@ -83,8 +84,10 @@ Edge cases:
 
 - **Existing `*.sh` fail default ShellCheck**: use `--severity=error`; do not "fix" git-wt tests for `SC1010` (`git wt done`) or `CDPATH=` spacing as part of this task
 - **New test file omitted from Makefile**: put each new `tests/test-*.sh` on the `test` recipe in the same unit that adds the file (git-wt preflight lesson)
-- **`PATH=` empty hides `make` too**: missing-tool test uses a temp `bin/` with a symlink to `make` only, so Ubuntu's `/usr/bin/shellcheck` is not inherited
-- **`find` missing when PATH hides `/usr/bin`**: `run-shellcheck.sh` calls `/usr/bin/find` after the `shellcheck` PATH check
+- **A no-op script would pass pass/miss tests**: dirty-tree test against a temp dir is required so the gate must actually invoke ShellCheck
+- **`make` + stripped PATH dies on `chmod`**: missing-tool test runs `scripts/run-shellcheck.sh` directly
+- **Dirty fixture inside the repo**: would fail the current-tree scan forever; fixture is `mktemp -d` only
+- **`*.bash` advisory**: declined — projectbrief constraint 1 is `*.sh` only (operator confirmed)
 - **GitHub "required" checks**: the workflow failing is what we ship; marking the jobs required on `main` is a GitHub UI/settings step for the operator
 - **git-wt tests in Ubuntu CI**: they isolate `HOME`/`PATH`; if they fail on Actions, fix the environment in the workflow (git identity, etc.) — do not skip the suite
 - **Naming `shunit2.sh`**: would pull the vendor file into ShellCheck; keep the ai-rizz name `shunit2`
@@ -95,6 +98,8 @@ Edge cases:
 - **shunit2 is in the tree but CI never runs a shunit2 test**: already covered by Challenge 2 (Makefile wiring + smoke file)
 - **Operator thinks merge is blocked but branch protection still allows merge with failing checks**: document in README that Actions must be set required; do not pretend YAML can flip that
 - **CI ShellChecks `*.bash` because we copied ai-rizz's action verbatim**: plan uses `make shellcheck` (`*.sh` only), not `ludeeus` with `scandir: '.'`
+- **Gate never calls ShellCheck but still looks green**: already covered by dirty-tree behavior
+- **PATH-miss test stays red because `make` cannot find `chmod`**: already covered (invoke the script directly)
 
 ## Status
 

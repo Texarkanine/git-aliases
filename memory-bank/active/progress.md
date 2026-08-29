@@ -48,3 +48,31 @@ Vendor shunit2 (ai-rizz-style) and add a pull-request GitHub Action that ShellCh
     - `run-shellcheck.sh` uses `/usr/bin/find` so find still works when `/usr/bin` is not on PATH
 * Insights
     - Preflight FAIL (fixable) was a real TDD encoding gap, not a docs nit
+
+## 2026-08-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Second Preflight run against the re-planned `tasks.md`; wrote `.preflight-status` with first line `FAIL (fixable)`
+    - Confirmed the prior FAIL is resolved: Unit 2 now has test steps ordered before implementation, Unit 3's install conditional is gone
+    - Re-verified toolchain facts independently: `../ai-rizz/shunit2` present, ShellCheck 0.11.0, the eight `*.sh` files exit 0 at `--severity=error` and 1 at default severity, baseline `make test` green
+    - Reproduced the Unit 2 PATH-miss test in a scratch dir and confirmed it fails for the wrong reason
+* Decisions made
+    - FAIL (fixable) on Completeness, not TDD encoding: no planned test proves the gate catches a ShellCheck error, so a `run-shellcheck.sh` that never invokes shellcheck passes every planned assertion
+    - Second fixable: the PATH-miss test's temp `bin/` carries only `make`, so the recipe dies on `chmod: No such file or directory` and stderr never contains `shellcheck`
+    - No in-phase edits to `tasks.md` — there was no change-detector to strike and no test/code step order to swap
+* Insights
+    - Any error-severity fixture must live outside the repo tree, or the whole-tree scan in the current-tree test will find it and stay red
+    - `/usr/bin/find` was hardcoded to survive a stripped `PATH`, but the script exits on the missing-tool branch before it ever reaches `find`
+    - The `*.bash` tree already passes at `--severity=error`, so the `*.sh`-only scope leaves every shipped subcommand ungated for no present benefit
+
+## 2026-08-28 - PLAN - COMPLETE
+
+* Work completed
+    - Added dirty-tree behavior: `run-shellcheck.sh <dir>` + `mktemp` fixture with unterminated `if`
+    - PATH-miss now invokes the script directly; default scan is `git ls-files '*.sh'`
+    - README Requirements will include `shellcheck`
+* Decisions made
+    - Declined `*.bash` expansion: operator confirmed `*.sh` only
+    - Did not add `make ci`
+* Insights
+    - Completeness FAIL was right: pass+miss without a dirty fixture does not prove ShellCheck runs
