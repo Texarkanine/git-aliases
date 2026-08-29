@@ -154,6 +154,6 @@ No new technology - validation not required. Completions stay shell scripts; tes
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight (re-run after GIT_ALIASES_ZSH + git mv step-2 replan)
-- [ ] Build
+- [x] Preflight (re-run after GIT_ALIASES_ZSH + git mv step-2 replan)
+- [x] Build
 - [ ] QA

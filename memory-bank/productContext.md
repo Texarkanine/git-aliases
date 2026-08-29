@@ -9,7 +9,7 @@ Git power users on Linux/macOS who work with multiple branches, identities, or t
 - **Branch synchronization** (`git sync`): Keep a feature branch up to date with `main` (or another source branch) via rebase or merge, with automatic stash/restore handling.
 - **Identity management** (`git-identity`): Switch between multiple Git identities (e.g., personal vs. work) without manually editing `.gitconfig`.
 - **Alias shortcuts**: Reduce keystrokes for everyday operations (staging, diffing, status, log, remote interaction, rebase/merge).
-- **Bash completion**: Tab-completion for the custom subcommands to reduce friction.
+- **Tab completion**: Tab-completion for the custom subcommands in bash and zsh.
 - **Linked worktrees** (`git wt`): Create and tear down linked worktrees at a predictable `~/worktrees/...` layout; optional shell wrappers auto-`cd`.
 
 ## Key Benefits
@@ -21,8 +21,8 @@ Git power users on Linux/macOS who work with multiple branches, identities, or t
 ## Success Criteria
 
 - Subcommands handle edge cases (no remote, merge conflicts, stash failures) gracefully and provide actionable error messages.
-- Aliases and completions install/uninstall idempotently without corrupting global Git config or shell RC files. Default `make` does not edit RC files; opt-in `make shell` appends a fenced `wt()` block to `~/.bashrc` / `~/.zshrc`.
-- Bash completion scripts are correct and source-able without side effects.
+- Aliases and completions install/uninstall idempotently without corrupting global Git config or shell RC files. Default `make` (via `completions`) writes `~/.bash_completion` and, when `zsh` is on PATH, a fenced completions block in `~/.zshrc`; it does not edit `~/.bashrc`. Opt-in `make shell` appends a fenced `wt()` block to `~/.bashrc` / `~/.zshrc`.
+- Bash and zsh completion scripts are correct and source-able without side effects.
 
 ## Key Constraints
 

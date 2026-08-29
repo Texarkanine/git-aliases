@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: zsh-completion
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Re-ran preflight on the twice-revised plan; both prior `FAIL (fixable)` findings are resolved.
-- Confirmed `GIT_ALIASES_ZSH` override mechanism and the unit-3-step-2 `git mv` timing against the real `Makefile` and `scripts/install-completions.sh`.
-- Recorded three non-blocking advisories: ShellCheck coverage loss on rename, AC1 needs a manual smoke test (dispatcher mismatch not exercised by the suite), and a "single source of truth" completion-query redesign as a future option.
+- Added `git-sync-completion.zsh` and `git-identity-completion.zsh` with `_git_<name>` / `_git-<name>` / `compdef` registration.
+- Renamed `scripts/install-completions.sh` to `scripts/install-completions.bash`; copies zsh completers and writes a `~/.zshrc` fence when `GIT_ALIASES_ZSH` is non-empty.
+- Tests: `tests/test-zsh-completion.sh`, `tests/test-install-completions.sh`. `make test` and `make shellcheck` passed.
+- Documented the RC-file split in README and persistent memory-bank files.
 
 ## Next Step
-- Proceed to Build.
+- QA review (spawn `/niko-qa`). Manual smoke: `git sync <TAB>` / `git identity <TAB>` in zsh after `make completions`.

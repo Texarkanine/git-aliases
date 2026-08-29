@@ -92,3 +92,18 @@ Add zsh tab completion for `git sync` and `git identity`, installed and uninstal
 * Insights
     - `shell/wt.zsh`/`wt.bash` already establish a no-shebang, sourced-snippet precedent that the new zsh completers actually match better than the existing `.bash` completers do
     - AC1 ("zsh tab-completes `git sync`" end to end through `_git`) is not exercised by the automated suite; recorded as an advisory for QA to smoke-test manually
+
+## 2026-08-28 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented zsh completers for `git-sync` and `git-identity`
+    - Renamed completions installer to `.bash` and added zsh copy/fence via `GIT_ALIASES_ZSH`
+    - Added `tests/test-zsh-completion.sh` and `tests/test-install-completions.sh`
+    - Updated README and persistent memory-bank RC-file invariant
+    - `make test` and `make shellcheck` passed
+* Decisions made
+    - Empty `GIT_ALIASES_ZSH` skips zsh copy and fence; uninstall still strips the fence
+    - Nested helpers in `_git_sync` were inlined so they do not leak as global zsh functions
+* Insights
+    - Installer tests must use isolated HOME; this is the first suite that runs the real completions installer
+
