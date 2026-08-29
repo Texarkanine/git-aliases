@@ -34,6 +34,7 @@ make shell
 - `git`
 - `bash`
 - `shellcheck` (for `make test` / `make shellcheck`)
+- `zsh` (for `make test` wrapper coverage)
 - `~/.local/bin` directory in your PATH (for subcommands)
 - [bash-completion](https://github.com/scop/bash-completion) package (for completions)
 
