@@ -1,10 +1,10 @@
 # Active Context
 
 ## Current Task: pr-ci-shunit2
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Level 2 determined: add shunit2 and a PR CI gate (ShellCheck `*.sh`, run tests). Self-contained enhancement; not a bug fix; not a multi-subsystem product feature.
+- Level 2 plan: vendor extensionless `shunit2`, shunit2 smoke test wired into `make test`, `make shellcheck` on `*.sh` at `--severity=error`, PR workflow calling those targets, README/techContext notes. Existing homemade tests not converted.
 
 ## Next Step
-- Load the Level 2 workflow and enter Plan
+- Preflight validation
