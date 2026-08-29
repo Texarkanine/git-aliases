@@ -90,3 +90,12 @@ Add `git wt` for worktree create/teardown with a fixed `~/worktrees/<owner>/<rep
     - No Build or Plan rework required. Advisories accepted as-is: `shell/wt.bash`/`wt.zsh` intentional duplication (per-shell snippet, matches the plan), `wt_worktree_path`'s two-line-stdout helper is a minor KISS nit, shellcheck absence is a pre-existing environment gap.
 * Insights
     - `git-wt.bash` follows the bash-style skill (tabs, full function-header comments, `main`/`BASH_SOURCE` guard) more rigorously than the pre-existing `git-sync.bash`, which predates that skill - a quality improvement rather than a pattern regression.
+
+## 2026-08-28 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-git-wt.md`. Reconciled persistent files (no further edits; Build already recorded `make shell` and the snippet dir).
+* Decisions made
+    - Reverted QA-induced executable bits on sourced wrappers and unrelated git-identity/git-sync files.
+* Insights
+    - `git <cmd> --help` tests git, not the subcommand. Porcelain path equality is unsafe when `$HOME` is a symlink (`/var` vs `/private/var`).

@@ -233,6 +233,7 @@ No new technology - validation not required. Product runtime remains `git` + `ba
   - [x] Unit 3: shell-integration install
   - [x] Unit 4: user-facing docs
 - [x] QA
+- [x] Reflect
 
 ## QA Results
 
