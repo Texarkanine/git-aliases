@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: zsh-completion
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Intent confirmed: zsh tab completion for `git sync` and `git identity` only; `git wt` out of scope; ai-rizz `zsh-tabs` is reference, not a copy.
-- Complexity determined: Level 2. This is a small enhancement to the existing completions subsystem (companion scripts + installer + tests), not a new architectural surface.
+- Classified as Level 2.
+- Planned native zsh completers for `git-sync` and `git-identity`, installed by extending `scripts/install-completions.sh` (one owner of `INSTALL_DIR`), sourced from a fenced `~/.zshrc` when `zsh` is on PATH.
+- Locked git dispatch as `_git_<name>` plus `_git-<name>` plus `compdef` for the standalone command; tests invoke functions with stubbed `compadd`, not `git <TAB>`.
+- `git wt` remains out of scope.
 
 ## Next Step
-- Load the Level 2 workflow and execute the plan phase.
+- Preflight validation of this plan (spawn `/niko-preflight`).
