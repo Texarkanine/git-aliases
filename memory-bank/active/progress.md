@@ -41,3 +41,14 @@ Make `git wt done` with no branch name infer the linked worktree from cwd, inclu
     - Named foreign `done` is a regression test on existing porcelain-by-branch lookup; it may already be green before nameless `done` is implemented
 * Insights
     - Requirement 4 was stated but only nameless foreign was scheduled; named and nameless foreign are different code paths
+
+## 2026-08-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-validated the Level 2 plan after the added named foreign-worktree test; checked TDD encoding, conventions, the five duplicated usage strings, wrapper tests, and requirement-to-step mapping
+    - Empirically probed `git rev-parse --show-toplevel` / `--git-dir` / `--git-common-dir` and nested-worktree porcelain ordering
+* Decisions made
+    - Preflight result: `PASS WITH ADVISORY`; plan is buildable as written, no plan edits made
+* Insights
+    - `git worktree list --porcelain` lists main first, so a first-match-wins cwd scan would wrongly refuse a worktree nested inside the main checkout; the helper needs longest-match-wins
+    - `git rev-parse` can answer "which linked worktree am I in" directly, with physical paths, dissolving the `pwd -P` and spaces-in-`HOME` hazards the plan mitigates by hand
