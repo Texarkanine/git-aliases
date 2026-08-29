@@ -79,3 +79,16 @@ Add zsh tab completion for `git sync` and `git identity`, installed and uninstal
 * Insights
     - A crash with no fence would look like a pass unless the test asserts exit 0 and bash artifacts
     - `git mv` in the stub-interface step is what makes the installer-test red run informative
+
+## 2026-08-28 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-validated the twice-replanned Level 2 plan against the current repository
+    - Confirmed both prior `FAIL (fixable)` findings (missing `GIT_ALIASES_ZSH` mechanism; git-mv timing) are resolved in `tasks.md`
+    - Cross-checked plan claims against `Makefile`, `scripts/install-completions.sh`, `scripts/install-shell-integration.bash`, `shell/wt.zsh`/`wt.bash`, `README.md`, `systemPatterns.md`, and `productContext.md`
+* Decisions made
+    - Preflight status is `PASS WITH ADVISORY`; plan is ready for Build
+    - No in-phase plan edits made - TDD ordering was already correct, no scheduled change-detectors found
+* Insights
+    - `shell/wt.zsh`/`wt.bash` already establish a no-shebang, sourced-snippet precedent that the new zsh completers actually match better than the existing `.bash` completers do
+    - AC1 ("zsh tab-completes `git sync`" end to end through `_git`) is not exercised by the automated suite; recorded as an advisory for QA to smoke-test manually
