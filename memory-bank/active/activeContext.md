@@ -1,10 +1,10 @@
 # Active Context
 
 ## Current Task: pr-ci-shunit2
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
-- Third re-plan: Unit 4 now schedules explicit README instructions for requiring the ShellCheck and test checks on `main` (ruleset/branch protection). No `verify-pr.sh`.
+- Validated implementation plan, TDD encoding, conventions, dependencies, conflicts, and completeness against the codebase. Preflight passed with advisory.
 
 ## Next Step
-- Preflight validation
+- Build phase (`/niko-build`)
