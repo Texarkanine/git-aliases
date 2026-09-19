@@ -67,3 +67,14 @@ Factor `git sync` so it refreshes the source branch without checking it out, so 
     - No changes required; implementation accepted as-is
 * Insights
     - Advisory only: `scripts/run-shellcheck.sh` scans `*.sh` and never lints `git-sync.bash` (`*.bash`) — a pre-existing repo-wide gap, not introduced by this task
+
+## 2026-09-19 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-git-sync-worktrees.md`
+    - Reconciled persistent files (all skipped)
+* Decisions made
+    - Persistent files unchanged: no product/system/tech contract shifted outside git-sync
+* Insights
+    - Fetch-into-branch is not a worktree workaround
+    - First-suite TDD mixes red proofs with characterization; name which cases must go red
