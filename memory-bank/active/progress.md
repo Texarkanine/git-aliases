@@ -16,3 +16,18 @@ Factor `git sync` so it refreshes the source branch without checking it out, so 
 * Insights
     - Today's failure is `git checkout "${SOURCE_BRANCH}"` in `subcommands/git-sync/git-sync.bash` (around the pull step). Rebase/merge already accept a branch name without checkout.
     - `tests/` has no behavioral `git-sync` suite — only completion coverage. Plan must add a homemade POSIX suite.
+
+## 2026-09-19 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote Level 2 plan in `tasks.md`: checkout-free refresh via `SOURCE@{upstream}` after `git fetch`
+    - Mapped nine behaviors onto a new `tests/test-git-sync.sh`
+    - Documented README workflow rewrite as prose/policy
+* Decisions made
+    - One path for worktree and primary: never check out source, never `git -C` another worktree, never `fetch src:src`
+    - Onto-ref is `SOURCE@{upstream}` when set, else local `SOURCE`
+    - Accepted tradeoff: unpushed local-only commits on a source branch checked out elsewhere are not included
+    - Confirm driven by stdin in tests; no PTY
+* Insights
+    - `git fetch origin main:main` fails for the same reason as `git checkout main` when another worktree holds `main` — it is not a workaround
+    - First `git-sync` behavioral suite; keep it to the listed cases
