@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: git-sync-worktrees
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - Planned a checkout-free `git sync`: fetch `SOURCE@{upstream}` when it exists and rebase/merge onto that ref; otherwise rebase/merge onto local source. No second worktree, no `fetch src:src`.
@@ -10,4 +10,4 @@
 - Operator constraints held: KISS-max code edits; full Niko rigor.
 
 ## Next Step
-- Preflight validation of the Level 2 plan.
+- Build: TDD the checkout-free sync path. Apply fetch-the-upstream-remote advisory; skip the confirm-prompt innovation (KISS).

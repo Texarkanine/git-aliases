@@ -31,3 +31,15 @@ Factor `git sync` so it refreshes the source branch without checking it out, so 
 * Insights
     - `git fetch origin main:main` fails for the same reason as `git checkout main` when another worktree holds `main` — it is not a workaround
     - First `git-sync` behavioral suite; keep it to the listed cases
+
+## 2026-09-19 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Validated TDD ordering, conventions, dependency impact, conflicts, and completeness against the codebase
+    - Wrote `memory-bank/active/.preflight-status`: first line `PASS WITH ADVISORY`
+* Decisions made
+    - No blocking or fixable failures; plan is build-ready as-is
+* Insights
+    - Advisory: bare `git fetch` may not fetch the remote owning `SOURCE@{upstream}` in multi-remote setups; build should fetch the upstream's own remote
+    - Advisory (radical innovation, not applied): show the resolved onto-ref and short sha in the confirm prompt
+    - Informational: local source ref is never advanced by the new design — documented tradeoff, matches acceptance criteria

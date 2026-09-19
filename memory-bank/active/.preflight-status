@@ -1,0 +1,17 @@
+PASS WITH ADVISORY
+
+Preflight run 2026-09-19 against the Level 2 git-sync-worktrees plan.
+
+TDD Plan Encoding: PASS. The single executable unit (checkout-free git-sync) orders its substeps stub-tests -> stub-interface -> write-tests-run-red -> write-code-run-green; a reasonable implementer cannot follow it code-first. The README unit is prose/policy and correctly owes no tests. No change-detectors are scheduled; the Pre-Mortem explicitly forbids README-wording and Makefile-line-presence assertions.
+
+Convention Compliance: PASS. tests/test-git-sync.sh follows the tests/test-<name>.sh POSIX standalone-suite pattern (helpers copied, not sourced, per test-git-wt.sh precedent). Subcommand stays .bash. Makefile test target lists suites explicitly and the plan wires in both the chmod line and the run line.
+
+Dependency Impact: PASS. git-sync ships companion completions (git-sync-completion.bash/.zsh), but the CLI surface (-m/--merge, -h, positional source-branch) is unchanged, so completions are unaffected. Install scripts copy subcommands wholesale; no impact. No other module consumes git-sync.
+
+Conflict Detection: PASS with one advisory. No duplicated existing utility; public contract preserved. Advisory: plan step 4 says a bare `git fetch`, but a bare fetch updates only the current branch's upstream remote (or origin). If SOURCE@{upstream} lives on a different remote than the feature branch's default fetch remote, the rebase/merge operand could be stale. Known one-line fix at build time: fetch the remote parsed from the upstream ref (e.g. `git rev-parse --abbrev-ref "${SOURCE_BRANCH}@{upstream}"` and strip the branch, or `git config branch."${SOURCE_BRANCH}".remote`). The plan's challenge section already mandates SOURCE@{upstream} over hardcoded origin, so this is a refinement, not a redesign.
+
+Completeness: PASS. All four requirements and all four acceptance criteria map to concrete behaviors and implementation steps. Stash-safety and cancel behaviors lock the parts not being rewritten.
+
+Informational (no action): the new design never advances the local source ref; local main will sit behind origin/main until someone checks it out and pulls. This is the documented tradeoff of the checkout-free design and matches the acceptance criteria.
+
+Radical Innovation (advisory, not applied): resolve the sync operand once into a named ref and show it in the confirm prompt - "Rebase feature onto origin/main (<short-sha>)?" instead of "onto updated main". Structurally: after resolving SOURCE@{upstream}, capture ONTO_DESC via rev-parse --abbrev-ref/--short, and interpolate it into the existing read -p strings. Cost is two lines; it turns the command's one interactive moment into an informed confirmation of the actual target, and the cancel test already exercises the prompt path.
