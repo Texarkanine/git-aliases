@@ -19,9 +19,10 @@ shell:
 	@./scripts/install-shell-integration.bash
 
 test:
-	@chmod +x tests/test-trim.sh tests/test-git-wt.sh tests/test-wt-wrappers.sh tests/test-install-shell-integration.sh tests/test-install-completions.sh tests/test-zsh-completion.sh tests/test-shunit2-smoke.sh tests/test-shellcheck.sh scripts/lib/trim.sh
+	@chmod +x tests/test-trim.sh tests/test-git-wt.sh tests/test-git-sync.sh tests/test-wt-wrappers.sh tests/test-install-shell-integration.sh tests/test-install-completions.sh tests/test-zsh-completion.sh tests/test-shunit2-smoke.sh tests/test-shellcheck.sh scripts/lib/trim.sh
 	@./tests/test-trim.sh
 	@./tests/test-git-wt.sh
+	@./tests/test-git-sync.sh
 	@./tests/test-wt-wrappers.sh
 	@./tests/test-install-shell-integration.sh
 	@./tests/test-install-completions.sh
