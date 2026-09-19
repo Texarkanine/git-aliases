@@ -66,8 +66,6 @@ When you run `git sync`, the command will:
 
 1. Prompt for confirmation
 2. Stash any uncommitted changes
-3. Switch to the source branch
-4. Pull the latest changes from the remote
-5. Switch back to your working branch
-6. Perform the requested sync operation (rebase or merge)
-7. Restore any stashed changes
+3. Fetch the source branch's upstream, if it has one (it does not check out the source branch, so this works when that branch is already checked out in another worktree)
+4. Perform the requested sync operation (rebase or merge onto the upstream, or onto the local source branch if there is no upstream)
+5. Restore any stashed changes

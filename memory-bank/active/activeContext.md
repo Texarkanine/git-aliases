@@ -1,13 +1,26 @@
 # Active Context
 
 ## Current Task: git-sync-worktrees
-**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Planned a checkout-free `git sync`: fetch `SOURCE@{upstream}` when it exists and rebase/merge onto that ref; otherwise rebase/merge onto local source. No second worktree, no `fetch src:src`.
-- Test plan: new `tests/test-git-sync.sh` (homemade POSIX, isolated HOME) covering worktree+remote, worktree+merge, primary feature checkout, no-remote, cancel, already-on-source, stash safety, not-a-repo, detached HEAD.
-- Code touchpoints: `subcommands/git-sync/git-sync.bash`, `Makefile` `test` target, `subcommands/git-sync/README.md`.
-- Operator constraints held: KISS-max code edits; full Niko rigor.
+- Replaced checkout+pull+checkout in `subcommands/git-sync/git-sync.bash` with fetch of `branch.<source>.remote` and rebase/merge onto `SOURCE@{upstream}` (else local source).
+- Added `tests/test-git-sync.sh` (9 cases). Worktree cases went red on the old checkout path, then green.
+- Wired the suite into the `Makefile` `test` target. Updated `subcommands/git-sync/README.md` workflow.
+- `make test` and `make shellcheck` passed.
+
+## Files created or modified
+- `/Users/tex/worktrees/Texarkanine/git-aliases/git-aliases-sync-my-worktrees/subcommands/git-sync/git-sync.bash`
+- `/Users/tex/worktrees/Texarkanine/git-aliases/git-aliases-sync-my-worktrees/tests/test-git-sync.sh`
+- `/Users/tex/worktrees/Texarkanine/git-aliases/git-aliases-sync-my-worktrees/Makefile`
+- `/Users/tex/worktrees/Texarkanine/git-aliases/git-aliases-sync-my-worktrees/subcommands/git-sync/README.md`
+
+## Key implementation decisions
+- Applied preflight advisory 1: `git fetch "${SOURCE_REMOTE}"` using `branch.<source>.remote`, not a bare `git fetch`.
+- Skipped preflight advisory 2 (onto-ref in the confirm prompt) — KISS.
+
+## Deviations from Plan
+- None beyond the fetch-remote advisory (planned refinement, not a redesign).
 
 ## Next Step
-- Build: TDD the checkout-free sync path. Apply fetch-the-upstream-remote advisory; skip the confirm-prompt innovation (KISS).
+- QA review.

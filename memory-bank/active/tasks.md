@@ -53,7 +53,7 @@ Tradeoff accepted: unpushed local-only commits on a source branch that is checke
 
 ## Implementation Plan
 
-### 1. Checkout-free git-sync — executable
+### 1. Checkout-free git-sync — executable ✅
 
 - Files: `tests/test-git-sync.sh`, `subcommands/git-sync/git-sync.bash`, `Makefile`
 
@@ -62,7 +62,7 @@ Tradeoff accepted: unpushed local-only commits on a source branch that is checke
 3. Write tests and run red: implement the assertions listed under Behaviors. Drive confirm with `printf 'y\n'` / `printf 'n\n'` on stdin (no PTY). Build remotes as local bare repos. Create the worktree case with `git worktree add` while the primary stays on `main`. Run `./tests/test-git-sync.sh` — the worktree and primary-refresh cases must fail on today's checkout+pull path.
 4. Write code and run green: in `git-sync.bash`, delete the `git checkout "${SOURCE_BRANCH}"` / `git pull` / `git checkout "${CURRENT_BRANCH}"` block. After stash, if `SOURCE_BRANCH@{upstream}` resolves, `git fetch` and set the rebase/merge operand to that upstream; else use `SOURCE_BRANCH`. On fetch failure, restore stash (already on `CURRENT_BRANCH`) and exit 1. Wire `tests/test-git-sync.sh` into the `Makefile` `test` target (`chmod` line and the run list). Run `./tests/test-git-sync.sh`, then `make test`.
 
-### 2. Sync README workflow — prose/policy
+### 2. Sync README workflow — prose/policy ✅
 
 - Files: `subcommands/git-sync/README.md`
 - No tests: prose/policy artifact
@@ -102,6 +102,6 @@ No new technology - validation not required
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

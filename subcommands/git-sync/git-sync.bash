@@ -130,54 +130,32 @@ if [[ "${NEED_STASH}" = true ]]; then
     fi
 fi
 
-# Switch to source branch and update
-echo "Switching to ${SOURCE_BRANCH}..."
-git checkout "${SOURCE_BRANCH}"
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to switch to ${SOURCE_BRANCH}. Aborting."
-    if [[ "${NEED_STASH}" = true ]]; then
-    	echo "Restoring stashed changes..."
-    	git stash pop "${STASH_REF}"
-    fi
-    exit 1
-fi
-
-# Pull latest changes if there's a remote
-if [[ -n "${HAS_REMOTE}" ]]; then
-    echo "Pulling latest changes for ${SOURCE_BRANCH}..."
-    git pull
-    if [[ $? -ne 0 ]]; then
-    	echo "Error: Failed to pull latest changes. Aborting."
-    	git checkout "${CURRENT_BRANCH}"
+# Refresh source without checking it out. Rebase/merge onto the
+# upstream remote-tracking ref when one exists, else the local branch.
+ONTO_REF="${SOURCE_BRANCH}"
+SOURCE_UPSTREAM=$(git rev-parse --abbrev-ref "${SOURCE_BRANCH}@{upstream}" 2>/dev/null || true)
+if [[ -n "${SOURCE_UPSTREAM}" ]]; then
+    SOURCE_REMOTE=$(git config --get "branch.${SOURCE_BRANCH}.remote")
+    echo "Fetching latest changes for ${SOURCE_BRANCH}..."
+    if ! git fetch "${SOURCE_REMOTE}"; then
+    	echo "Error: Failed to fetch latest changes. Aborting."
     	if [[ "${NEED_STASH}" = true ]]; then
     		echo "Restoring stashed changes..."
     		git stash pop "${STASH_REF}"
     	fi
     	exit 1
     fi
-fi
-
-# Switch back to the original branch
-echo "Switching back to ${CURRENT_BRANCH}..."
-git checkout "${CURRENT_BRANCH}"
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to switch back to ${CURRENT_BRANCH}."
-    echo "You are currently on ${SOURCE_BRANCH}."
-    if [[ "${NEED_STASH}" = true ]]; then
-    	echo "Warning: Your stashed changes have not been restored."
-    	echo "You can restore them with 'git stash pop ${STASH_REF}'."
-    fi
-    exit 1
+    ONTO_REF="${SOURCE_UPSTREAM}"
 fi
 
 # Perform the requested sync operation
 if [[ "${MERGE_MODE}" = true ]]; then
-    echo "Merging ${SOURCE_BRANCH} into ${CURRENT_BRANCH}..."
-    git merge "${SOURCE_BRANCH}"
+    echo "Merging ${ONTO_REF} into ${CURRENT_BRANCH}..."
+    git merge "${ONTO_REF}"
     SYNC_STATUS=$?
 else
-    echo "Rebasing ${CURRENT_BRANCH} onto ${SOURCE_BRANCH}..."
-    git rebase "${SOURCE_BRANCH}"
+    echo "Rebasing ${CURRENT_BRANCH} onto ${ONTO_REF}..."
+    git rebase "${ONTO_REF}"
     SYNC_STATUS=$?
 fi
 

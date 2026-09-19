@@ -43,3 +43,16 @@ Factor `git sync` so it refreshes the source branch without checking it out, so 
     - Advisory: bare `git fetch` may not fetch the remote owning `SOURCE@{upstream}` in multi-remote setups; build should fetch the upstream's own remote
     - Advisory (radical innovation, not applied): show the resolved onto-ref and short sha in the confirm prompt
     - Informational: local source ref is never advanced by the new design — documented tradeoff, matches acceptance criteria
+
+## 2026-09-19 - BUILD - COMPLETE
+
+* Work completed
+    - TDD: stubbed then implemented `tests/test-git-sync.sh`; worktree cases failed on checkout, then passed after the fetch/onto change
+    - Replaced checkout+pull+checkout with `SOURCE@{upstream}` fetch + rebase/merge onto that ref
+    - Wired suite into `Makefile`; rewrote git-sync README workflow
+    - `make test` and `make shellcheck` passed
+* Decisions made
+    - Fetch `branch.<source>.remote` (preflight advisory 1)
+    - Did not add onto-ref/sha to the confirm prompt (advisory 2, KISS)
+* Insights
+    - Red run confirmed the reported failure: `fatal: 'main' is already used by worktree at ...`
