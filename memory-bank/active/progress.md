@@ -11,3 +11,13 @@ Add `git wt cleanup` to find and tear down worktrees that `git wt go` created (c
 * Decisions made
     - Level 2: single-subcommand enhancement.
     - Default scope current repo; `--all` for every repo under `~/worktrees`; `--list` prints paths.
+
+## 2026-09-24 - PLAN - COMPLETE
+
+* Work completed
+    - Level 2 plan written to `tasks.md` (5 steps, 20 behaviors).
+* Decisions made
+    - Extract `wt_remove_worktree` shared by `done` and `cleanup`; `cleanup` runs it per row in a subshell.
+    - Without `--force`, dirty rows are skipped (success). With `--force`, one cleanup confirmation replaces per-tree prompts.
+    - `--all` discovers repos by scanning `~/worktrees` to worktree roots (slash-branch aware), deduped by main checkout.
+    - `wt` wrappers forward `cleanup`; `--list` passes through uncaptured.
