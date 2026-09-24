@@ -27,3 +27,14 @@ Honor `GITWT_ROOT` as the root where `git wt` creates worktrees, falling back to
 * Insights
     - Shell wrappers only `cd` to stdout, so the variable belongs in `git-wt.bash`
     - `run_isolated` must unset `GITWT_ROOT` or an exported value would retarget the existing path tests
+
+## 2026-09-24 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Validated the Level 2 plan against codebase reality (default-preflight checks 1-7)
+    - Verified both `${HOME}/worktrees` touchpoints are covered and cursor roots stay excluded
+    - Wrote `memory-bank/active/.preflight-status` with first line `PASS WITH ADVISORY`
+* Decisions made
+    - No plan edits required: TDD order correct, no change-detectors, no reorder needed
+* Insights
+    - Wrappers only `cd` to stdout, confirmed no third root call site in `shell/wt.bash`

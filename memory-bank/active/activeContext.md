@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: GITWT_ROOT envvar support
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - Confirmed intent against [issue #15](https://github.com/Texarkanine/git-aliases/issues/15).

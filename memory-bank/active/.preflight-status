@@ -1,0 +1,17 @@
+PASS WITH ADVISORY
+
+Preflight run 2026-09-24 for task gitwt-root (Level 2, GITWT_ROOT envvar support). All blocking checks passed; no plan edits were required, so tasks.md was left untouched.
+
+Checks performed (default-preflight, L2/L3):
+1. Wrong-reference guard: progress.md Complexity is Level 2, so this reference is correct. Pass.
+2. Prerequisites: tasks.md shows initialization, test planning, implementation plan, technology validation, and pre-mortem complete. Level 2 needs no creative-phase docs; none exist. Implementation plan and design decisions read. Pass.
+3. TDD Plan Encoding: the executable unit (worktree root in git-wt.bash) orders stub tests, stub interface, write-tests-red, then write-code-green, so a reasonable implementer cannot code first. The docs unit (READMEs) owes no tests under What TDD Governs; omitting them passes. No scheduled change-detectors and no misordered steps found, so no strike or swap was performed. Pass.
+4. Convention Compliance: wt_worktrees_root follows the existing wt_* naming and comment-header style in git-wt.bash; new cases live in tests/test-git-wt.sh as test_* functions wired via run_one, matching the homemade POSIX suite; no new files, so bash/POSIX filename-dialect rules are unaffected. Pass.
+5. Dependency Impact: both production touchpoints (wt_layout_prefix, wt_all_mains) are routed through wt_worktrees_root; cursor roots (wt_cursor_worktrees, wt_all_cursor_mains) are explicitly excluded; existing path tests are protected by unsetting GITWT_ROOT in run_isolated; shell wrappers (shell/wt.bash, shell/wt.zsh) verified to only cd to stdout and need no change; logical/physical match in wt_created_worktrees is preserved. Pass.
+6. Conflict Detection: no existing GITWT_ROOT or wt_worktrees_root in the tree, so nothing to deduplicate; the public stdout/path contract is preserved under the default root and retargeted only when the variable is set, per issue #15. Pass.
+7. Completeness Precheck: all three requirements map to concrete steps (go prints/creates under the root, done removes, cleanup --all --list and +cursor combined share it; empty keeps default; relative errors; trailing slash and spaces covered). Test coverage is planned for every new executable behavior. Pass.
+
+Advisories (non-blocking):
+- When retargeting wt_all_mains, preserve the surrounding dotglob glob structure and no-match behavior; the plan's "use that value instead" implies it, but the diff should keep those lines intact.
+- The relative-root error contract is only specified as non-zero plus creates-nothing; consider a stderr message naming the absolute-path requirement for UX, without adding new test obligations beyond what the plan states.
+- Radical-innovation sketch (advisory only, no plan change): canonicalize GITWT_ROOT once inside wt_worktrees_root (absolute check, single-trailing-slash strip, logical-path return) and have every consumer use that one canonical string, so go, cleanup scanning, and listing can never disagree on spellings of the same root. The plan already moves in this direction; the sketch just names the invariant explicitly.
