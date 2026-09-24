@@ -91,6 +91,20 @@ case ${sub} in
 			printf '%s\n' "${MOCK_ROOT}/main"
 		fi
 		;;
+	cleanup)
+		case " $* " in
+			*" --list "*)
+				printf '%s\n' "${MOCK_ROOT}/wt-a" "${MOCK_ROOT}/wt-b"
+				;;
+			*" --partial "*)
+				printf '%s\n' "${MOCK_ROOT}/main"
+				exit 1
+				;;
+			*" --inside "*)
+				printf '%s\n' "${MOCK_ROOT}/main"
+				;;
+		esac
+		;;
 	*)
 		echo "mock git wt: unknown ${sub}" >&2
 		exit 1
@@ -195,6 +209,100 @@ test_zsh_done_empty_stays() {
 	")
 	if [ "${tze_pwd}" != "${START_DIR}" ]; then
 		fail "zsh wt done outside should stay, got ${tze_pwd}"
+	fi
+}
+
+test_bash_cleanup_cds() {
+	tbc_pwd=$(run_bash "
+		. \"${WRAPPER_BASH}\"
+		cd \"${START_DIR}\"
+		wt cleanup --inside
+		pwd
+	")
+	tbc_want="${MOCK_ROOT}/main"
+	if [ "${tbc_pwd}" != "${tbc_want}" ]; then
+		fail "bash wt cleanup: expected ${tbc_want}, got ${tbc_pwd}"
+	fi
+}
+
+test_zsh_cleanup_cds() {
+	tzc_pwd=$(run_zsh "
+		. \"${WRAPPER_ZSH}\"
+		cd \"${START_DIR}\"
+		wt cleanup --inside
+		pwd
+	")
+	tzc_want="${MOCK_ROOT}/main"
+	if [ "${tzc_pwd}" != "${tzc_want}" ]; then
+		fail "zsh wt cleanup: expected ${tzc_want}, got ${tzc_pwd}"
+	fi
+}
+
+# cleanup removed cwd's worktree but another removal failed: still cd out
+# of the deleted directory, and still report failure.
+test_bash_cleanup_partial_cds() {
+	tbcp_out=$(run_bash "
+		. \"${WRAPPER_BASH}\"
+		cd \"${START_DIR}\"
+		set +e
+		wt cleanup --partial
+		echo RC:\$?
+		pwd
+	")
+	case "${tbcp_out}" in
+		*RC:0*) fail "bash wt cleanup partial should be non-zero: ${tbcp_out}" ;;
+	esac
+	case "${tbcp_out}" in
+		*"${MOCK_ROOT}/main") ;;
+		*) fail "bash wt cleanup partial should cd to main: ${tbcp_out}" ;;
+	esac
+}
+
+test_zsh_cleanup_partial_cds() {
+	tzcp_out=$(run_zsh "
+		. \"${WRAPPER_ZSH}\"
+		cd \"${START_DIR}\"
+		set +e
+		wt cleanup --partial
+		echo RC:\$?
+		pwd
+	")
+	case "${tzcp_out}" in
+		*RC:0*) fail "zsh wt cleanup partial should be non-zero: ${tzcp_out}" ;;
+	esac
+	case "${tzcp_out}" in
+		*"${MOCK_ROOT}/main") ;;
+		*) fail "zsh wt cleanup partial should cd to main: ${tzcp_out}" ;;
+	esac
+}
+
+test_bash_cleanup_list_stays() {
+	tbcl_out=$(run_bash "
+		. \"${WRAPPER_BASH}\"
+		cd \"${START_DIR}\"
+		wt cleanup --list
+		pwd
+	")
+	tbcl_want="${MOCK_ROOT}/wt-a
+${MOCK_ROOT}/wt-b
+${START_DIR}"
+	if [ "${tbcl_out}" != "${tbcl_want}" ]; then
+		fail "bash wt cleanup --list: expected [${tbcl_want}], got [${tbcl_out}]"
+	fi
+}
+
+test_zsh_cleanup_list_stays() {
+	tzcl_out=$(run_zsh "
+		. \"${WRAPPER_ZSH}\"
+		cd \"${START_DIR}\"
+		wt cleanup --list
+		pwd
+	")
+	tzcl_want="${MOCK_ROOT}/wt-a
+${MOCK_ROOT}/wt-b
+${START_DIR}"
+	if [ "${tzcl_out}" != "${tzcl_want}" ]; then
+		fail "zsh wt cleanup --list: expected [${tzcl_want}], got [${tzcl_out}]"
 	fi
 }
 
@@ -303,6 +411,12 @@ main() {
 	run_one test_zsh_done_with_path_cds
 	run_one test_bash_done_empty_stays
 	run_one test_zsh_done_empty_stays
+	run_one test_bash_cleanup_cds
+	run_one test_zsh_cleanup_cds
+	run_one test_bash_cleanup_partial_cds
+	run_one test_zsh_cleanup_partial_cds
+	run_one test_bash_cleanup_list_stays
+	run_one test_zsh_cleanup_list_stays
 	run_one test_bash_help
 	run_one test_zsh_help
 	run_one test_bash_unknown

@@ -158,6 +158,33 @@ sys.exit(os.WEXITSTATUS(status) if os.WIFEXITED(status) else 1)
 ' "${rwt_reply}" "$@"
 }
 
+# Run a command in its own session; kill the whole session on timeout.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - timeout in seconds
+#   $@ - command after shift
+# Outputs:
+#   Child stdout/stderr (inherited)
+# Returns:
+#   Child exit status, or 124 on timeout
+run_with_timeout() {
+	rwto_secs="$1"
+	shift
+	python3 -c '
+import os, signal, subprocess, sys
+
+p = subprocess.Popen(sys.argv[2:], start_new_session=True)
+try:
+	sys.exit(p.wait(timeout=float(sys.argv[1])))
+except subprocess.TimeoutExpired:
+	os.killpg(p.pid, signal.SIGKILL)
+	p.wait()
+	sys.exit(124)
+' "${rwto_secs}" "$@"
+}
+
 test_help_flags() {
 	# git intercepts `git <cmd> --help` before the subcommand runs, so
 	# --help is invoked as git-wt directly. -h and help go through git.
@@ -702,12 +729,396 @@ test_done_force_on_clean() {
 	fi
 }
 
+# --yes skips the discard prompt. The PTY answers n, so a prompt would
+# abort and leave the worktree.
+test_done_force_yes_flag_no_prompt() {
+	tdyf_repo=$(make_repo)
+	cd "${tdyf_repo}"
+	invoke git wt go dirty-yf
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go dirty-yf failed: $(cat "${last_err}")"
+	fi
+	tdyf_path="${last_out}"
+	printf 'y\n' >> "${tdyf_path}/file.txt"
+	tdyf_rc=0
+	run_with_tty n git wt done dirty-yf --force --yes || tdyf_rc=$?
+	if [ "${tdyf_rc}" -ne 0 ]; then
+		fail "done --force --yes should not prompt (got ${tdyf_rc})"
+	fi
+	if [ -d "${tdyf_path}" ]; then
+		fail "done --force --yes should remove ${tdyf_path}"
+	fi
+}
+
+test_done_yes_without_force_dirty() {
+	tdyw_repo=$(make_repo)
+	cd "${tdyw_repo}"
+	invoke git wt go dirty-yw
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go dirty-yw failed: $(cat "${last_err}")"
+	fi
+	tdyw_path="${last_out}"
+	printf 'y\n' >> "${tdyw_path}/file.txt"
+	invoke git wt done dirty-yw -y
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "done -y on a dirty tree without --force should fail"
+	fi
+	if ! grep -q force "${last_err}"; then
+		fail "done -y dirty refusal should mention --force"
+	fi
+	if [ ! -d "${tdyw_path}" ]; then
+		fail "done -y without --force should leave ${tdyw_path}"
+	fi
+}
+
 test_done_unknown_option() {
 	tdu_repo=$(make_repo)
 	cd "${tdu_repo}"
 	invoke git wt done br --bogus
 	if [ "${last_rc}" -eq 0 ]; then
 		fail "done unknown option should be non-zero"
+	fi
+}
+
+# Sorted lines of $1, for order-insensitive path-list comparison.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - newline-separated text
+# Outputs:
+#   Sorted non-empty lines on STDOUT
+# Returns:
+#   0
+sorted_lines() {
+	printf '%s\n' "$1" | sed '/^$/d' | LC_ALL=C sort
+}
+
+# --list prints exactly the go-created worktrees (including a slash
+# branch), not main or a foreign worktree, and removes nothing.
+test_cleanup_list_current_repo() {
+	tclc_repo=$(make_repo)
+	cd "${tclc_repo}"
+	invoke git wt go list-a
+	tclc_a="${last_out}"
+	invoke git wt go feature/x
+	tclc_x="${last_out}"
+	tclc_foreign="$(mktemp -d)/foreign"
+	git worktree add -q -b foreign-l "${tclc_foreign}" >/dev/null 2>&1
+	invoke git wt cleanup --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --list failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	tclc_want=$(sorted_lines "${tclc_a}
+${tclc_x}")
+	tclc_got=$(sorted_lines "${last_out}")
+	if [ "${tclc_got}" != "${tclc_want}" ]; then
+		fail "cleanup --list: expected [${tclc_want}], got [${tclc_got}]"
+	fi
+	for tclc_dir in "${tclc_a}" "${tclc_x}" "${tclc_foreign}"; do
+		if [ ! -d "${tclc_dir}" ]; then
+			fail "cleanup --list must not remove ${tclc_dir}"
+		fi
+	done
+}
+
+test_cleanup_list_excludes_other_repo() {
+	tclo_one=$(make_repo)
+	tclo_two=$(make_repo)
+	cd "${tclo_two}"
+	invoke git wt go other-b
+	cd "${tclo_one}"
+	invoke git wt go mine-a
+	tclo_mine="${last_out}"
+	invoke git wt cleanup --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --list failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tclo_mine}" ]; then
+		fail "cleanup --list should print only ${tclo_mine}, got: ${last_out}"
+	fi
+}
+
+# --all from outside any repo finds go worktrees in every repo, including
+# a slash branch nested one directory deeper.
+test_cleanup_list_all() {
+	tcla_one=$(make_repo)
+	tcla_two=$(make_repo)
+	cd "${tcla_one}"
+	invoke git wt go all-a
+	tcla_a="${last_out}"
+	invoke git wt go feat/y
+	tcla_y="${last_out}"
+	cd "${tcla_two}"
+	invoke git wt go all-b
+	tcla_b="${last_out}"
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all --list failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	tcla_want=$(sorted_lines "${tcla_a}
+${tcla_y}
+${tcla_b}")
+	tcla_got=$(sorted_lines "${last_out}")
+	if [ "${tcla_got}" != "${tcla_want}" ]; then
+		fail "cleanup --all --list: expected [${tcla_want}], got [${tcla_got}]"
+	fi
+}
+
+# Repos whose name starts with a dot (e.g. .github) live in dot-named
+# directories under ~/worktrees; --all must still find them.
+test_cleanup_list_all_dot_repo() {
+	tcld_repo=$(make_repo)
+	git -C "${tcld_repo}" remote add origin \
+		git@github.com:Texarkanine/.github.git
+	cd "${tcld_repo}"
+	invoke git wt go dot-br
+	tcld_path="${last_out}"
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all --list failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tcld_path}" ]; then
+		fail "cleanup --all --list should print ${tcld_path}, got: ${last_out}"
+	fi
+}
+
+# A stray non-worktree directory with symlink loops must not hang the
+# --all scan, and the real worktree beside it is still listed.
+test_cleanup_list_all_symlink_loop() {
+	tcsl_repo=$(make_repo)
+	tcsl_base=$(basename "${tcsl_repo}")
+	cd "${tcsl_repo}"
+	invoke git wt go real
+	tcsl_real="${last_out}"
+	tcsl_stray="${HOME}/worktrees/local/${tcsl_base}/${tcsl_base}-stray"
+	mkdir -p "${tcsl_stray}/sub"
+	ln -s . "${tcsl_stray}/self"
+	ln -s .. "${tcsl_stray}/sub/up"
+	cd "$(mktemp -d)"
+	tcsl_rc=0
+	run_with_timeout 20 git wt cleanup --all --list \
+		>"${HOME}/out" 2>"${HOME}/err" || tcsl_rc=$?
+	if [ "${tcsl_rc}" -ne 0 ]; then
+		fail "cleanup --all --list hung or failed (${tcsl_rc}): $(cat "${HOME}/err")"
+	fi
+	if [ "$(cat "${HOME}/out")" != "${tcsl_real}" ]; then
+		fail "cleanup --all --list should print ${tcsl_real}, got: $(cat "${HOME}/out")"
+	fi
+}
+
+test_cleanup_list_empty() {
+	tcle_repo=$(make_repo)
+	cd "${tcle_repo}"
+	invoke git wt cleanup --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --list with none should exit 0 (got ${last_rc})"
+	fi
+	if [ -n "${last_out}" ]; then
+		fail "cleanup --list with none should print nothing, got: ${last_out}"
+	fi
+}
+
+# A worktree whose directory was deleted by hand is prunable, not listed.
+test_cleanup_list_skips_missing() {
+	tcls_repo=$(make_repo)
+	cd "${tcls_repo}"
+	invoke git wt go gone
+	rm -rf "${last_out}"
+	invoke git wt go kept
+	tcls_kept="${last_out}"
+	invoke git wt cleanup --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --list with a missing tree failed: $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tcls_kept}" ]; then
+		fail "cleanup --list should print only ${tcls_kept}, got: ${last_out}"
+	fi
+}
+
+# Without --force, dirty worktrees are skipped (not a failure); foreign
+# worktrees and branches are untouched.
+test_cleanup_yes_clean_only() {
+	tcyc_repo=$(make_repo)
+	cd "${tcyc_repo}"
+	invoke git wt go yc-clean
+	tcyc_clean="${last_out}"
+	invoke git wt go yc-dirty
+	tcyc_dirty="${last_out}"
+	printf 'y\n' >> "${tcyc_dirty}/file.txt"
+	tcyc_foreign="$(mktemp -d)/foreign"
+	git worktree add -q -b yc-foreign "${tcyc_foreign}" >/dev/null 2>&1
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -n "${last_out}" ]; then
+		fail "cleanup --yes from main should print nothing, got: ${last_out}"
+	fi
+	if [ -d "${tcyc_clean}" ]; then
+		fail "cleanup --yes should remove clean ${tcyc_clean}"
+	fi
+	if [ ! -d "${tcyc_dirty}" ]; then
+		fail "cleanup --yes without --force should keep dirty ${tcyc_dirty}"
+	fi
+	if ! grep -q force "${last_err}"; then
+		fail "cleanup --yes should say dirty trees need --force"
+	fi
+	if [ ! -d "${tcyc_foreign}" ]; then
+		fail "cleanup --yes must not remove foreign ${tcyc_foreign}"
+	fi
+	if ! git show-ref --verify --quiet refs/heads/yc-clean; then
+		fail "cleanup should leave branch yc-clean"
+	fi
+}
+
+# --yes --force removes dirty trees too. The PTY answers n, so any prompt
+# would abort.
+test_cleanup_yes_force_no_prompt() {
+	tcyf_repo=$(make_repo)
+	cd "${tcyf_repo}"
+	invoke git wt go yf-clean
+	tcyf_clean="${last_out}"
+	invoke git wt go yf-dirty
+	tcyf_dirty="${last_out}"
+	printf 'y\n' >> "${tcyf_dirty}/file.txt"
+	tcyf_foreign="$(mktemp -d)/foreign"
+	git worktree add -q -b yf-foreign "${tcyf_foreign}" >/dev/null 2>&1
+	tcyf_rc=0
+	run_with_tty n git wt cleanup --yes --force || tcyf_rc=$?
+	if [ "${tcyf_rc}" -ne 0 ]; then
+		fail "cleanup --yes --force should not prompt (got ${tcyf_rc})"
+	fi
+	if [ -d "${tcyf_clean}" ] || [ -d "${tcyf_dirty}" ]; then
+		fail "cleanup --yes --force should remove clean and dirty trees"
+	fi
+	if [ ! -d "${tcyf_foreign}" ]; then
+		fail "cleanup --yes --force must not remove foreign ${tcyf_foreign}"
+	fi
+}
+
+test_cleanup_prompt_yes() {
+	tcpy_repo=$(make_repo)
+	cd "${tcpy_repo}"
+	invoke git wt go py-clean
+	tcpy_path="${last_out}"
+	tcpy_rc=0
+	run_with_tty y git wt cleanup || tcpy_rc=$?
+	if [ "${tcpy_rc}" -ne 0 ]; then
+		fail "cleanup answered y should succeed (got ${tcpy_rc})"
+	fi
+	if [ -d "${tcpy_path}" ]; then
+		fail "cleanup answered y should remove ${tcpy_path}"
+	fi
+}
+
+test_cleanup_prompt_no() {
+	tcpn_repo=$(make_repo)
+	cd "${tcpn_repo}"
+	invoke git wt go pn-clean
+	tcpn_path="${last_out}"
+	tcpn_rc=0
+	run_with_tty n git wt cleanup || tcpn_rc=$?
+	if [ "${tcpn_rc}" -eq 0 ]; then
+		fail "cleanup answered n should be non-zero"
+	fi
+	if [ ! -d "${tcpn_path}" ]; then
+		fail "cleanup answered n should keep ${tcpn_path}"
+	fi
+}
+
+test_cleanup_nothing() {
+	tcn_repo=$(make_repo)
+	cd "${tcn_repo}"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup with nothing to do should exit 0 (got ${last_rc})"
+	fi
+	if [ -n "${last_out}" ]; then
+		fail "cleanup with nothing to do should print nothing: ${last_out}"
+	fi
+}
+
+# From inside a go worktree, cleanup removes it and prints main so the
+# wt wrapper can cd there.
+test_cleanup_inside_worktree() {
+	tciw_repo=$(make_repo)
+	tciw_main=$(main_path "${tciw_repo}")
+	cd "${tciw_repo}"
+	invoke git wt go iw-other
+	tciw_other="${last_out}"
+	invoke git wt go iw-here
+	tciw_here="${last_out}"
+	cd "${tciw_here}"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup from inside failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tciw_main}" ]; then
+		fail "cleanup from inside should print ${tciw_main}, got: ${last_out}"
+	fi
+	if [ -d "${tciw_here}" ] || [ -d "${tciw_other}" ]; then
+		fail "cleanup from inside should remove both worktrees"
+	fi
+}
+
+test_cleanup_all_yes() {
+	tcay_one=$(make_repo)
+	tcay_two=$(make_repo)
+	cd "${tcay_one}"
+	invoke git wt go ay-a
+	tcay_a="${last_out}"
+	cd "${tcay_two}"
+	invoke git wt go ay-b
+	tcay_b="${last_out}"
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all --yes failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tcay_a}" ] || [ -d "${tcay_b}" ]; then
+		fail "cleanup --all --yes should remove worktrees in both repos"
+	fi
+}
+
+# A locked worktree cannot be removed; cleanup keeps going and exits
+# non-zero.
+test_cleanup_continues_after_failure() {
+	tccf_repo=$(make_repo)
+	cd "${tccf_repo}"
+	invoke git wt go cf-locked
+	tccf_locked="${last_out}"
+	invoke git wt go cf-ok
+	tccf_ok="${last_out}"
+	git worktree lock "${tccf_locked}"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "cleanup with a locked worktree should be non-zero"
+	fi
+	if [ ! -d "${tccf_locked}" ]; then
+		fail "cleanup should leave locked ${tccf_locked}"
+	fi
+	if [ -d "${tccf_ok}" ]; then
+		fail "cleanup should still remove ${tccf_ok}"
+	fi
+}
+
+test_cleanup_not_a_repo() {
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --list
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "cleanup outside a repo without --all should be non-zero"
+	fi
+}
+
+test_cleanup_unknown_option() {
+	tcuo_repo=$(make_repo)
+	cd "${tcuo_repo}"
+	invoke git wt cleanup --bogus
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "cleanup unknown option should be non-zero"
 	fi
 }
 
@@ -790,8 +1201,27 @@ main() {
 	run_one test_done_dirty_force_no
 	run_one test_done_dirty_force_yes_word
 	run_one test_done_force_on_clean
+	run_one test_done_force_yes_flag_no_prompt
+	run_one test_done_yes_without_force_dirty
 	run_one test_done_unknown_option
 	run_one test_done_home_with_spaces
+	run_one test_cleanup_list_current_repo
+	run_one test_cleanup_list_excludes_other_repo
+	run_one test_cleanup_list_all
+	run_one test_cleanup_list_all_symlink_loop
+	run_one test_cleanup_list_all_dot_repo
+	run_one test_cleanup_list_empty
+	run_one test_cleanup_list_skips_missing
+	run_one test_cleanup_yes_clean_only
+	run_one test_cleanup_yes_force_no_prompt
+	run_one test_cleanup_prompt_yes
+	run_one test_cleanup_prompt_no
+	run_one test_cleanup_nothing
+	run_one test_cleanup_inside_worktree
+	run_one test_cleanup_all_yes
+	run_one test_cleanup_continues_after_failure
+	run_one test_cleanup_not_a_repo
+	run_one test_cleanup_unknown_option
 
 	rm -rf "${TEST_BIN}"
 
