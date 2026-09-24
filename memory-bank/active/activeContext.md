@@ -2,8 +2,8 @@
 
 **Current Task:** git wt cleanup +cursor
 
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
-**What Was Done:** Level 2 plan revised after preflight FAIL (fixable). `--all` resolves scanned roots to unique real mains. Every new test is registered with `run_one`. `+cursor` still unions with `git wt go` worktrees. `+claude` remains an issue, not an implementation.
+**What Was Done:** Re-validated the revised Level 2 plan. Prior unique-mains and `run_one` findings are closed. Advisories only: put exclusion assertions on the current-repo list test, wrapper help and the README cleanup mermaid still omit `+cursor`, and the source-descriptor redesign stays out of this plan.
 
-**Next Step:** Preflight.
+**Next Step:** Build.

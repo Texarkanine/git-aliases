@@ -57,3 +57,14 @@ Add a positional `+cursor` token to `git wt cleanup` so it can also assess Curso
 * Insights
     - `--all` concatenating `wt_all_mains` and cursor-discovered roots without resolving to unique mains would double-remove on a mixed repo
     - New `test_*` functions in `tests/test-git-wt.sh` never run unless `main()` gets `run_one` lines
+
+## 2026-09-24 - PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
+
+* Work completed
+    - Re-validated the revised Level 2 plan against `git-wt.bash`, `tests/test-git-wt.sh`, wrappers, README, and issue #11
+    - Wrote `memory-bank/active/.preflight-status` with first line `PASS WITH ADVISORY`
+* Decisions made
+    - Prior FAIL (fixable) items (unique mains + `run_one`) are closed; do not edit the plan in this phase
+    - Advisories only: exclusion assertions belong on the current-repo list test, wrapper help / README mermaid are still silent, source-descriptor redesign stays out of scope
+* Insights
+    - `wt cleanup +cursor --list` already works at the wrapper: leftover args are forwarded and `--list` is detected anywhere in them
