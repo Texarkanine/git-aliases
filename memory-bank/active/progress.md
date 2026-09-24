@@ -58,3 +58,23 @@ Add `git wt cleanup` to find and tear down worktrees that `git wt go` created (c
     - Full suite rerun: all green except `test-install-completions`, which fails identically on unmodified HEAD with the extracted zsh (environmental).
 * Decisions made
     - Declined QA advisories (shared prompt helper, explicit main-checkout skip, `done:` message prefix): untestable without environment tricks or unreachable; git already refuses to remove a main worktree.
+
+## 2026-09-24 - QA (re-run) - COMPLETE
+
+* Result: `FAIL (fixable)`; Build must rerun.
+* Work completed
+    - Reviewed the rework `f2e1bd2..HEAD` and re-checked `f877ec5..HEAD`. B1 is fixed correctly; declining the earlier advisories is accepted.
+    - Ran all suites. Everything passes except the two zsh-completion suites, which fail because the extracted zsh cannot load its modules; no completion files changed.
+* Findings
+    - Blocking B2: the new test's watchdog leaks processes. The orphaned `sleep 20` holds suite stdout, so a piped run takes 24 s instead of 7 s, and CI pays that on every run. On the red path, `kill` misses the scan's bash subprocesses, which keep running (reproduced against the `f2e1bd2` scan).
+    - Advisory: a symlinked top-level `<repo>-*` entry is still followed, though the depth cap bounds it; the depth cap (branches with 10 or more segments are missed) is not documented.
+
+## 2026-09-24 - BUILD (QA rework 2) - COMPLETE
+
+* Work completed
+    - Replaced the leaking sh watchdog in `test_cleanup_list_all_symlink_loop` with `run_with_timeout` (python3, new session, `killpg` on timeout; python3 is already a suite dependency).
+    - Verified in a scratch copy with pre-fix `git-wt.bash` (f2e1bd2): test fails with 124 at 20s, no leftover processes. Current code: whole file passes piped in 7s (was ~24s).
+    - README notes the `--all` scan does not follow symlinks and covers branch names of up to nine `/`-separated parts.
+* Decisions made
+    - `set -m` process-group kill does not work in non-interactive dash; python session kill is portable to Linux and macOS.
+    - Declined advisory: skipping a symlinked top-level `<repo>-*` entry (depth cap already bounds it).

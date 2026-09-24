@@ -116,7 +116,7 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA - FAIL (fixable); Build must rerun for finding B1
+- [ ] QA - re-run FAIL (fixable); B1 fixed, Build must rerun for finding B2
 
 ## QA Results
 
@@ -131,3 +131,19 @@ Result: FAIL (fixable). Reviewed `f877ec5..HEAD` against this plan. `test-git-wt
 - **A1. Duplicated confirmation logic (DRY).** `cmd_cleanup` re-implements the `/dev/tty` prompt/read/`case` from `wt_remove_worktree`, and the two now differ: cleanup dies with "no terminal to confirm; use --yes", while `done --force` without a terminal still fails with a raw `/dev/tty` error. A small `wt_confirm <prompt>` helper would unify them.
 - **A2. Main entry not excluded explicitly.** The plan said discovery walks non-main porcelain entries; `wt_created_worktrees` relies on the main checkout never sitting at a layout path. If it did, `--list` would print it and removal would fail (git refuses to remove a main worktree), so it is not destructive.
 - **A3. `done:` prefix in shared helper.** `wt_remove_worktree` dies with `done: ...` messages. They are unreachable from `cleanup` today (dirty rows are skipped without `--force`, and cleanup passes yes=1), so this is cosmetic.
+
+## QA Re-run Results
+
+Result: FAIL (fixable). Reviewed the rework `f2e1bd2..HEAD` plus a regression pass over `f877ec5..HEAD`. B1 is fixed: `wt_scan_worktree_roots` skips symlinked dirs and caps depth at 8, which is correct and minimal. Declining A1-A3 is accepted. `test-git-wt.sh`, `test-git-sync.sh`, `test-wt-wrappers.sh` (with `/tmp/zsh-local/root/bin` on PATH), `test-install-shell-integration.sh`, `test-shunit2-smoke.sh`, `test-shellcheck.sh`, `test-trim.sh`, and `make shellcheck` pass. `test-install-completions.sh` and `test-zsh-completion.sh` fail only because the extracted zsh cannot load `zsh/parameter`, `compinit`, or `zstyle`; no completion files changed in this task.
+
+### Blocking
+
+- **B2. The watchdog in `test_cleanup_list_all_symlink_loop` leaks processes (Integrity).** The watchdog is `( sleep 20; kill "${tcsl_pid}" ) &`.
+    - Green path: `kill "${tcsl_dog}"` kills the subshell but not its `sleep 20`. The orphaned `sleep` still holds the suite's stdout/stderr, so any run whose output is captured waits for it to finish. Measured: `./tests/test-git-wt.sh >file` takes 7 s and `./tests/test-git-wt.sh | cat` takes 24 s. CI runs `make test` with captured output, so every CI run pays about 20 s.
+    - Red path, the case the test exists for: `kill` reaches only the top `git` process. The recursive scan's bash subprocesses survive and keep walking the loop. Reproduced with the pre-fix `git-wt.bash` from `f2e1bd2`: after the watchdog fired, 3 `git-wt cleanup --all --list` bash processes were still running and had to be killed by hand, while `run_isolated` deletes their HOME underneath them.
+    - Fix: detach the watchdog from the suite's fds, e.g. `( exec >/dev/null 2>&1; sleep 20; ... ) &`, and kill the whole process tree when it fires, e.g. start the command in its own process group with `set -m` and `kill -- -"${tcsl_pid}"`, or use an equivalent that works on both Linux and macOS. Verify that a piped run takes about the same time as a direct run, and that a red run against the `f2e1bd2` scan leaves no `git-wt` processes behind.
+
+### Advisory
+
+- **A4. Top-level entry still follows a symlink.** `wt_all_mains` globs `"${repo_dir}${name}"-*/`, which follows a symlinked `<repo>-*` entry into its target, and `wt_scan_worktree_roots` does not check `-L` on the directory it is given. The depth cap bounds this walk, so it cannot hang. It can still wander outside `~/worktrees` (up to 8 levels) if someone symlinks an entry there.
+- **A5. Depth cap is not documented.** `cleanup --all` misses a go worktree whose branch has 10 or more `/`-separated segments. The scan starts at `<repo>-<first segment>` and descends at most 8 levels below it. That is unlikely in practice, but the README's discovery rule does not mention it.

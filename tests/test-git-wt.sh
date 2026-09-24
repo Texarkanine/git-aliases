@@ -158,6 +158,33 @@ sys.exit(os.WEXITSTATUS(status) if os.WIFEXITED(status) else 1)
 ' "${rwt_reply}" "$@"
 }
 
+# Run a command in its own session; kill the whole session on timeout.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - timeout in seconds
+#   $@ - command after shift
+# Outputs:
+#   Child stdout/stderr (inherited)
+# Returns:
+#   Child exit status, or 124 on timeout
+run_with_timeout() {
+	rwto_secs="$1"
+	shift
+	python3 -c '
+import os, signal, subprocess, sys
+
+p = subprocess.Popen(sys.argv[2:], start_new_session=True)
+try:
+	sys.exit(p.wait(timeout=float(sys.argv[1])))
+except subprocess.TimeoutExpired:
+	os.killpg(p.pid, signal.SIGKILL)
+	p.wait()
+	sys.exit(124)
+' "${rwto_secs}" "$@"
+}
+
 test_help_flags() {
 	# git intercepts `git <cmd> --help` before the subcommand runs, so
 	# --help is invoked as git-wt directly. -h and help go through git.
@@ -852,13 +879,9 @@ test_cleanup_list_all_symlink_loop() {
 	ln -s . "${tcsl_stray}/self"
 	ln -s .. "${tcsl_stray}/sub/up"
 	cd "$(mktemp -d)"
-	git wt cleanup --all --list >"${HOME}/out" 2>"${HOME}/err" &
-	tcsl_pid=$!
-	( sleep 20; kill "${tcsl_pid}" 2>/dev/null ) &
-	tcsl_dog=$!
 	tcsl_rc=0
-	wait "${tcsl_pid}" || tcsl_rc=$?
-	kill "${tcsl_dog}" 2>/dev/null || true
+	run_with_timeout 20 git wt cleanup --all --list \
+		>"${HOME}/out" 2>"${HOME}/err" || tcsl_rc=$?
 	if [ "${tcsl_rc}" -ne 0 ]; then
 		fail "cleanup --all --list hung or failed (${tcsl_rc}): $(cat "${HOME}/err")"
 	fi

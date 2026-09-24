@@ -1,7 +1,7 @@
 # Active Context
 
 - **Current Task:** git wt cleanup
-- **Phase:** QA - COMPLETE (FAIL)
+- **Phase:** BUILD - COMPLETE (QA rework 2)
 - **What Was Done:** Built all 5 plan steps, test-first.
 - **Files modified:**
     - `/home/mobaxterm/Documents/git/git-aliases/subcommands/git-wt/git-wt.bash`
@@ -19,4 +19,5 @@
 - **Deviations from plan:** Added preflight advisories: wrapper cds on printed path even on failure (+2 tests); missing-dir test; locked-worktree continue-after-failure test; `usage`/header for `done --yes`. Help `cleanup` assertion struck by preflight as a change-detector.
 - **Environment note:** zsh is not installed on this machine (no passwordless sudo). Wrapper tests ran with a zsh extracted to `/tmp/zsh-local`; `test-install-completions` fails there identically on unmodified HEAD (missing zsh modules), so it is environmental.
 - **QA rework:** symlink-loop hang in the `--all` scan fixed (no symlink following, depth cap 8) with a regression test.
+- **QA rework 2:** regression test's watchdog replaced with `run_with_timeout` (python3 session kill); no leaked processes, no 20s pipe hold.
 - **Next Step:** QA (subagent), re-run.

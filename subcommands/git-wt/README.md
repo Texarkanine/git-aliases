@@ -86,7 +86,7 @@ Examples:
 
 ## Cleanup
 
-`cleanup` finds the worktrees `git wt go` created: linked worktrees that exist on disk at the path above for the branch they have checked out. Worktrees made with plain `git worktree add`, or moved elsewhere, are not touched. By default it looks at the current repo. `--all` looks at every repo with a worktree under `~/worktrees`, and works from outside any repo.
+`cleanup` finds the worktrees `git wt go` created: linked worktrees that exist on disk at the path above for the branch they have checked out. Worktrees made with plain `git worktree add`, or moved elsewhere, are not touched. By default it looks at the current repo. `--all` looks at every repo with a worktree under `~/worktrees`, and works from outside any repo. To find those repos it scans `~/worktrees` without following symlinks, for branch names of up to nine `/`-separated parts.
 
 - `--list` prints their paths, one per line, and removes nothing.
 - Otherwise it lists them on stderr and asks once on `/dev/tty`. `--yes` skips the question.
