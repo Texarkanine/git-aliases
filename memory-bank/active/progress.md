@@ -63,3 +63,13 @@ Honor `GITWT_ROOT` as the root where `git wt` creates worktrees, falling back to
     - PASS with two non-blocking advisories: `GITWT_ROOT=/` yields a doubled slash in printed paths (plan-accepted), and the relative-root error names the post-strip value
 * Insights
     - The preflight advisories were honored in the build: `dotglob` structure in `wt_all_mains` is intact and the relative-root error message names the absolute-path requirement
+
+## 2026-09-24 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-gitwt-root.md`
+    - Left `productContext.md`, `systemPatterns.md`, and `techContext.md` unchanged
+* Decisions made
+    - Empty and relative `GITWT_ROOT` stay as built: empty means the default root, relative is an error
+* Insights
+    - `run_isolated` must unset `GITWT_ROOT` or the operator's environment retargets the existing path tests
