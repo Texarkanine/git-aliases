@@ -2,8 +2,8 @@
 
 **Current Task:** git wt cleanup +cursor
 
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
-**What Was Done:** Level 2. Self-contained enhancement to the existing `git wt cleanup` command, plus a research-only follow-up issue if Claude Code's worktree layout is deterministic.
+**What Was Done:** Level 2 plan for `+cursor` on `git wt cleanup`. Membership comes from `git worktree list`; `~/.cursor/worktrees` is scanned only for `--all` repo discovery. Unknown `+source` is an error. An empty Cursor session directory is removed after a successful removal. `+claude` is an issue, not an implementation: Claude Code's default path is `<repo>/.claude/worktrees/<name>/`.
 
-**Next Step:** Load the Level 2 workflow and run the plan phase.
+**Next Step:** Preflight.
