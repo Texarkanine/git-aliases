@@ -78,3 +78,13 @@ Add `git wt cleanup` to find and tear down worktrees that `git wt go` created (c
 * Decisions made
     - `set -m` process-group kill does not work in non-interactive dash; python session kill is portable to Linux and macOS.
     - Declined advisory: skipping a symlinked top-level `<repo>-*` entry (depth cap already bounds it).
+
+## 2026-09-24 - QA (re-run 2) - COMPLETE
+
+* Result: `PASS`
+* Work completed
+    - Reviewed the rework `c32d511..HEAD` and re-checked `f877ec5..HEAD`. B2 is fixed; A5 is documented correctly; declining A4 is accepted.
+    - Verified piped and direct runs of `test-git-wt.sh` both take about 7 s, and that a red run against the `f2e1bd2` scan fails with 124 at 20 s and leaves no processes behind.
+    - All suites pass except the two zsh-completion suites, which fail only because the extracted zsh cannot load its modules.
+* Findings
+    - Advisory: Ctrl-C during a hung red run orphans the scan, because the child runs in its own session. Test-only and needs a manual interrupt; not blocking.

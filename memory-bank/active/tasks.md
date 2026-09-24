@@ -116,7 +116,7 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA - re-run FAIL (fixable); B1 fixed, Build must rerun for finding B2
+- [x] QA - PASS (third run; B1 and B2 fixed)
 
 ## QA Results
 
@@ -147,3 +147,16 @@ Result: FAIL (fixable). Reviewed the rework `f2e1bd2..HEAD` plus a regression pa
 
 - **A4. Top-level entry still follows a symlink.** `wt_all_mains` globs `"${repo_dir}${name}"-*/`, which follows a symlinked `<repo>-*` entry into its target, and `wt_scan_worktree_roots` does not check `-L` on the directory it is given. The depth cap bounds this walk, so it cannot hang. It can still wander outside `~/worktrees` (up to 8 levels) if someone symlinks an entry there.
 - **A5. Depth cap is not documented.** `cleanup --all` misses a go worktree whose branch has 10 or more `/`-separated segments. The scan starts at `<repo>-<first segment>` and descends at most 8 levels below it. That is unlikely in practice, but the README's discovery rule does not mention it.
+
+## QA Re-run 2 Results
+
+Result: PASS. Reviewed the rework `c32d511..HEAD` (test watchdog and README) plus a regression pass over `f877ec5..HEAD`.
+
+- **B2 fixed.** `run_with_timeout` starts the command in a new session and `killpg`s it on timeout. It follows the `run_with_tty` pattern (python3 inline, same doc header), and python3 is already a suite dependency. Verified: `./tests/test-git-wt.sh` takes 7.0 s direct and 7.0 s piped (was 24 s piped). Against the pre-fix `git-wt.bash` from `f2e1bd2` in a scratch copy, the test fails with 124 at the 20 s timeout and no `git-wt cleanup` processes remain.
+- **A5 addressed.** The README says the `--all` scan does not follow symlinks and covers branch names of up to nine `/`-separated parts. That matches the code: depth 8 below `<repo>-<first segment>` is nine segments.
+- **A4 decline accepted.** The depth cap bounds the walk.
+- Suites: `test-trim`, `test-git-wt`, `test-git-sync`, `test-wt-wrappers` (with `/tmp/zsh-local/root/bin` on PATH), `test-install-shell-integration`, `test-shunit2-smoke`, `test-shellcheck`, and `make shellcheck` pass. `test-install-completions` and `test-zsh-completion` fail only because the extracted zsh cannot load `zsh/parameter`, `compinit`, or `zstyle`; no completion files changed in this task. On this machine `make test` stops at `test-install-completions`, so the later suites were run by hand.
+
+### Advisory
+
+- **A6. Ctrl-C during a hung run orphans the scan.** With `start_new_session=True`, the child does not get the terminal's SIGINT. If someone interrupts a red run before the 20 s timeout, python3 exits with `KeyboardInterrupt` and the scan keeps running. This is test-only and needs both a regressed scan and a manual interrupt, so it does not block.
