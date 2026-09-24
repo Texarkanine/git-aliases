@@ -1,7 +1,7 @@
 # Active Context
 
 - **Current Task:** git wt cleanup
-- **Phase:** QA - COMPLETE (PASS)
+- **Phase:** REFLECT COMPLETE
 - **What Was Done:** Built all 5 plan steps, test-first.
 - **Files modified:**
     - `/home/mobaxterm/Documents/git/git-aliases/subcommands/git-wt/git-wt.bash`
@@ -20,4 +20,5 @@
 - **Environment note:** zsh is not installed on this machine (no passwordless sudo). Wrapper tests ran with a zsh extracted to `/tmp/zsh-local`; `test-install-completions` fails there identically on unmodified HEAD (missing zsh modules), so it is environmental.
 - **QA rework:** symlink-loop hang in the `--all` scan fixed (no symlink following, depth cap 8) with a regression test.
 - **QA rework 2:** regression test's watchdog replaced with `run_with_timeout` (python3 session kill); no leaked processes, no 20s pipe hold.
-- **Next Step:** QA (subagent), re-run.
+- **Reflection:** `memory-bank/active/reflection/reflection-git-wt-cleanup.md`. Persistent files: none changed (productContext edit reverted as feature accretion).
+- **Next Step:** Operator runs `/niko-archive`.

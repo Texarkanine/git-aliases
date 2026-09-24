@@ -88,3 +88,10 @@ Add `git wt cleanup` to find and tear down worktrees that `git wt go` created (c
     - All suites pass except the two zsh-completion suites, which fail only because the extracted zsh cannot load its modules.
 * Findings
     - Advisory: Ctrl-C during a hung red run orphans the scan, because the child runs in its own session. Test-only and needs a manual interrupt; not blocking.
+
+## 2026-09-24 - REFLECT - COMPLETE
+
+* Work completed
+    - Reflection written; persistent files reconciled (productContext edit reverted per its no-accretion rule; systemPatterns and techContext skipped).
+* Insights
+    - Explicit `return 1` for helpers used in `if` conditions (`set -e` suspended); scans need `! -L` plus depth cap; sh test watchdogs leak, python session kill does not.

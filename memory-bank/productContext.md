@@ -10,7 +10,7 @@ Git power users on Linux/macOS who work with multiple branches, identities, or t
 - **Identity management** (`git-identity`): Switch between multiple Git identities (e.g., personal vs. work) without manually editing `.gitconfig`.
 - **Alias shortcuts**: Reduce keystrokes for everyday operations (staging, diffing, status, log, remote interaction, rebase/merge).
 - **Tab completion**: Tab-completion for the custom subcommands in bash and zsh.
-- **Linked worktrees** (`git wt`): Create and tear down linked worktrees at a predictable `~/worktrees/...` layout, and bulk-remove forgotten ones (`git wt cleanup`, per repo or `--all`); optional shell wrappers auto-`cd`.
+- **Linked worktrees** (`git wt`): Create and tear down linked worktrees at a predictable `~/worktrees/...` layout; optional shell wrappers auto-`cd`.
 
 ## Key Benefits
 
