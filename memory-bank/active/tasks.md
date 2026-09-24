@@ -38,7 +38,7 @@ Add `git wt cleanup [--all] [--list] [--yes|-y] [--force]` to `subcommands/git-w
 
 ## Implementation Plan
 
-### 1. Shared removal helper and `done --yes` — executable
+### [x] 1. Shared removal helper and `done --yes` — executable
 
 - Files: `subcommands/git-wt/git-wt.bash`, `tests/test-git-wt.sh`
 
@@ -47,7 +47,7 @@ Add `git wt cleanup [--all] [--list] [--yes|-y] [--force]` to `subcommands/git-w
 3. Write tests and run red: dirty worktree + `run_with_tty n git wt done br --force --yes` succeeds and removes; `git wt done br --yes` on dirty fails mentioning force and keeps the tree.
 4. Write code and run green: parse `--yes|-y` in `cmd_done`; move the dirty/prompt/remove/prune block into `wt_remove_worktree`, the in-worktree check into `wt_cwd_inside`; `cmd_done` calls both. Existing `done` tests stay green.
 
-### 2. Worktree discovery and `cleanup --list` — executable
+### [x] 2. Worktree discovery and `cleanup --list` — executable
 
 - Files: `subcommands/git-wt/git-wt.bash`, `tests/test-git-wt.sh`
 
@@ -56,7 +56,7 @@ Add `git wt cleanup [--all] [--list] [--yes|-y] [--force]` to `subcommands/git-w
 3. Write tests and run red: as in the Behaviors list.
 4. Write code and run green: implement the functions; `--list` prints paths (per main, via a subshell `cd main && wt_created_worktrees` for `--all`), exit 0. Non-`--all` outside a repo dies.
 
-### 3. `cleanup` removal — executable
+### [x] 3. `cleanup` removal — executable
 
 - Files: `subcommands/git-wt/git-wt.bash`, `tests/test-git-wt.sh`
 
@@ -65,7 +65,7 @@ Add `git wt cleanup [--all] [--list] [--yes|-y] [--force]` to `subcommands/git-w
 3. Write tests and run red: as in the Behaviors list.
 4. Write code and run green: collect `(main, path, dirty)` rows; empty → stderr note, exit 0. Print the list to stderr, dirty rows marked (`dirty, skipped` or `dirty, changes discarded` with `--force`). Unless `--yes`, prompt `Remove N worktree(s)? [y/N]` on `/dev/tty`; anything but y/yes → `wt_die "cleanup: aborted"`. For each row: record whether cwd is inside (before removal); dirty without `--force` → stderr skip note; else `( cd main && wt_remove_worktree main path force 1 )` in a subshell so a `wt_die` fails only that row; count failures. Before removing, `cd` to that row's main so a vanished cwd cannot break later git calls. Print the main path of a removed cwd-containing worktree on stdout. Exit 1 if any row failed.
 
-### 4. `wt` wrapper forwards `cleanup` — executable
+### [x] 4. `wt` wrapper forwards `cleanup` — executable
 
 - Files: `shell/wt.bash`, `shell/wt.zsh`, `tests/test-wt-wrappers.sh`
 
@@ -74,7 +74,7 @@ Add `git wt cleanup [--all] [--list] [--yes|-y] [--force]` to `subcommands/git-w
 3. Write tests and run red.
 4. Write code and run green: if any arg is `--list`, run `git wt cleanup "${@:2}"` uncaptured; else capture stdout and `cd` if non-empty, like `done`. Update wrapper help text.
 
-### 5. Documentation — prose/policy
+### [x] 5. Documentation — prose/policy
 
 - Files: `subcommands/git-wt/README.md`, `memory-bank/productContext.md`
 - No tests: prose/policy artifact
@@ -114,6 +114,6 @@ No new technology - validation not required.
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

@@ -31,3 +31,13 @@ Add `git wt cleanup` to find and tear down worktrees that `git wt go` created (c
 * Advisories
     - Wrapper `|| return` drops the cd path when cleanup partially fails; the discovery `cd` into a missing layout path aborts under `set -e` (also `prunable` entries); the parent cwd can vanish mid-loop; `done --yes` usage/header text; locked worktrees count as failures; scan bounds; compute the layout prefix once.
     - Radical: `go` records repos in a registry file so `cleanup --all` doesn't need to scan the filesystem.
+
+## 2026-09-24 - BUILD - COMPLETE
+
+* Work completed
+    - `done --yes`; shared `wt_remove_worktree` / `wt_cwd_inside`; `cleanup` with `--all`, `--list`, `--yes`, `--force`; wrapper `cleanup` case; README and productContext.
+    - 17 new git-wt tests, 6 new wrapper tests; all git-wt, git-sync, wrapper, zsh-completion, shunit2, shellcheck-runner suites pass.
+* Decisions made
+    - Layout-prefix matching for discovery; explicit `return 1` on remove failure because `set -e` is suspended in `if` conditions.
+* Insights
+    - `test-install-completions` needs a real zsh install (modules + compinit); an extracted .deb is not enough.

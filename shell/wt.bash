@@ -1,4 +1,4 @@
-# wt.bash - bash wrapper: wt go/done auto-cd via git wt stdout
+# wt.bash - bash wrapper: wt go/done/cleanup auto-cd via git wt stdout
 #
 # Source this file from bash. It defines wt(); it is not a git subcommand
 # and must not be executed.
@@ -8,7 +8,7 @@
 # Globals:
 #   None (uses git on PATH)
 # Arguments:
-#   $1 - command: go, done, help, -h, --help
+#   $1 - command: go, done, cleanup, help, -h, --help
 #   $@ - remaining args forwarded to git wt
 # Outputs:
 #   Usage on STDOUT for help; git wt stderr is inherited
@@ -28,14 +28,34 @@ wt() {
 				cd "${dest}" || return $?
 			fi
 			;;
+		cleanup)
+			local arg
+			for arg in "${@:2}"; do
+				if [[ "${arg}" == "--list" ]]; then
+					git wt cleanup "${@:2}"
+					return $?
+				fi
+			done
+			# cd even when cleanup fails: a printed path means cwd was removed.
+			local dest rc=0
+			dest="$(git wt cleanup "${@:2}")" || rc=$?
+			if [[ -n "${dest}" ]]; then
+				cd "${dest}" || return $?
+			fi
+			return "${rc}"
+			;;
 		""|help|-h|--help)
 			cat <<'EOF'
 usage: wt <command>
   go <name>           create a git worktree and switch to it
-  done [name] [--force]
+  done [name] [--force] [--yes]
                       remove a worktree so the branch can be checked out
                       in the main tree; omit name to use the current
-                      worktree; refuse if dirty unless --force
+                      worktree; refuse if dirty unless --force; --yes
+                      skips the discard confirmation
+  cleanup [--all] [--list] [--yes] [--force]
+                      remove worktrees git wt go created; switch to main
+                      if the current one was removed
 EOF
 			;;
 		*)
