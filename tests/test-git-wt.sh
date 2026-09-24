@@ -1524,6 +1524,13 @@ test_gitwt_root_relative() {
 	if [ -e "${trel_repo}/relative/root" ]; then
 		fail "relative GITWT_ROOT created ${trel_repo}/relative/root"
 	fi
+	case "$(cat "${last_err}")" in
+		*"must be an absolute path"*) ;;
+		*) fail "relative GITWT_ROOT stderr: $(cat "${last_err}")" ;;
+	esac
+	case "$(cat "${last_err}")" in
+		*mkdir*) fail "relative GITWT_ROOT continued after the error: $(cat "${last_err}")" ;;
+	esac
 }
 
 test_gitwt_root_trailing_slash() {

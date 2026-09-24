@@ -825,6 +825,13 @@ main() {
 	local cmd="$1"
 	shift
 	case "${cmd}" in
+		go|done|cleanup)
+			# Reject a bad GITWT_ROOT in this shell. wt_die inside
+			# a command substitution would only exit that subshell.
+			wt_worktrees_root >/dev/null
+			;;
+	esac
+	case "${cmd}" in
 		go)
 			cmd_go "$@"
 			;;
