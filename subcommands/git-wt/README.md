@@ -88,6 +88,8 @@ Examples:
 
 `cleanup` finds the worktrees `git wt go` created: linked worktrees that exist on disk at the path above for the branch they have checked out. Worktrees made with plain `git worktree add`, or moved elsewhere, are not touched. By default it looks at the current repo. `--all` looks at every repo with a worktree under `~/worktrees`, and works from outside any repo. To find those repos it scans `~/worktrees` without following symlinks, for branch names of up to nine `/`-separated parts.
 
+`+cursor` may appear anywhere among the arguments. It adds linked worktrees of those repos whose path is under `~/.cursor/worktrees`, including a detached HEAD. With `--all`, cleanup also scans `~/.cursor/worktrees` without following symlinks to discover repos that have no `git wt go` worktree. An empty session directory is ignored. After a worktree is removed, `~/.cursor/worktrees/<name>/` is removed when that directory is empty. Any other `+source` is an error. Without `+cursor`, Cursor worktrees are left alone.
+
 - `--list` prints their paths, one per line, and removes nothing.
 - Otherwise it lists them on stderr and asks once on `/dev/tty`. `--yes` skips the question.
 - Each worktree is then removed as `done` would remove it. Branches are left in place.
@@ -137,10 +139,13 @@ flowchart TD
 flowchart TD
     A["git wt cleanup"] --> B{"--all?"}
     B -->|no| C["this repo"]
-    B -->|yes| D["every repo under ~/worktrees"]
-    C --> E["worktrees at the go path for their branch"]
+    B -->|yes| D["repos under ~/worktrees"]
+    C --> E["go-layout worktrees"]
     D --> E
-    E --> F{"--list?"}
+    E --> Ec{"+cursor?"}
+    Ec -->|no| F{"--list?"}
+    Ec -->|yes| Ed["also paths under ~/.cursor/worktrees"]
+    Ed --> F
     F -->|yes| G["print paths on stdout"]
     F -->|no| H{"--yes?"}
     H -->|no| I{"confirm on /dev/tty?"}

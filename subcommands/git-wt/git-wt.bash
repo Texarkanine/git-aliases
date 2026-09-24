@@ -13,11 +13,12 @@
 #                       in the main tree; omit name to use the current
 #                       worktree; refuse if dirty unless --force; --yes
 #                       skips the discard confirmation
-#   cleanup [--all] [--list] [--yes] [--force]
+#   cleanup [--all] [--list] [--yes] [--force] [+cursor]
 #                       remove the worktrees go created in this repo (every
-#                       repo with --all) after one confirmation; --list
-#                       prints their paths; dirty ones are skipped unless
-#                       --force
+#                       repo with --all) after one confirmation; +cursor also
+#                       includes linked worktrees under ~/.cursor/worktrees;
+#                       --list prints their paths; dirty ones are skipped
+#                       unless --force
 
 set -euo pipefail
 
@@ -40,11 +41,12 @@ usage: git wt <command>
                       in the main tree; omit name to use the current
                       worktree; refuse if dirty unless --force; --yes
                       skips the discard confirmation
-  cleanup [--all] [--list] [--yes] [--force]
+  cleanup [--all] [--list] [--yes] [--force] [+cursor]
                       remove the worktrees go created in this repo (every
-                      repo with --all) after one confirmation; --list
-                      prints their paths; dirty ones are skipped unless
-                      --force
+                      repo with --all) after one confirmation; +cursor also
+                      includes linked worktrees under ~/.cursor/worktrees;
+                      --list prints their paths; dirty ones are skipped
+                      unless --force
 EOF
 }
 
@@ -193,6 +195,60 @@ wt_created_worktrees() {
 	')
 }
 
+# Linked worktrees of the current repository under ~/.cursor/worktrees.
+#
+# Includes a detached HEAD. Prints the HOME-logical path. The main
+# checkout is not included.
+#
+# Globals:
+#   HOME - cursor worktrees root
+# Arguments:
+#   None
+# Outputs:
+#   Paths on STDOUT, one per line
+# Returns:
+#   0
+wt_cursor_worktrees() {
+	local prefix="${HOME}/.cursor/worktrees"
+	local prefix_phys main
+	prefix_phys="$(CDPATH= cd "${prefix}" 2>/dev/null && pwd -P)" || prefix_phys=""
+	main="$(wt_main_worktree)"
+	git worktree list --porcelain | awk \
+		-v logical="${prefix}" \
+		-v physical="${prefix_phys}" \
+		-v main="${main}" '
+		function under(path, root) {
+			return root != "" && index(path, root "/") == 1
+		}
+		function emit() {
+			if (path == "" || path == main) {
+				return
+			}
+			if (under(path, physical)) {
+				path = logical "/" substr(path, length(physical) + 2)
+			}
+			if (under(path, logical)) {
+				print path
+			}
+		}
+		$1 == "worktree" {
+			if (path != "") {
+				emit()
+			}
+			path = substr($0, 10)
+		}
+		NF == 0 {
+			emit()
+			path = ""
+		}
+		END {
+			if (path != "") {
+				emit()
+			}
+		}
+	'
+}
+
 # Worktree roots at or below a directory.
 #
 # Stops at the first directory holding .git, so it never walks worktree
@@ -261,6 +317,36 @@ wt_all_mains() {
 			done < <(wt_scan_worktree_roots "${entry%/}")
 		done
 	done | awk '!seen[$0]++'
+}
+
+# Main checkouts of every repository with a worktree under
+# ~/.cursor/worktrees.
+#
+# Scanned roots are resolved to the main checkout. Roots git cannot
+# open are skipped with a warning. Each main is printed once.
+#
+# Globals:
+#   HOME - cursor worktrees root
+# Arguments:
+#   None
+# Outputs:
+#   Unique main checkout paths on STDOUT; warnings on STDERR
+# Returns:
+#   0
+wt_all_cursor_mains() {
+	local root main
+	[[ -d "${HOME}/.cursor/worktrees" ]] || return 0
+	while IFS= read -r root; do
+		[[ -n "${root}" ]] || continue
+		main="$(cd "${root}" 2>/dev/null && wt_main_worktree 2>/dev/null)" \
+			|| main=""
+		if [[ -z "${main}" ]]; then
+			echo "wt: cleanup: skipping ${root}: not a usable worktree" >&2
+			continue
+		fi
+		printf '%s\n' "${main}"
+	done < <(wt_scan_worktree_roots "${HOME}/.cursor/worktrees") \
+		| awk '!seen[$0]++'
 }
 
 # Path of the linked worktree that contains cwd, or empty.
@@ -336,6 +422,33 @@ wt_cwd_inside() {
 	wt_phys="$(CDPATH= cd "${1}" 2>/dev/null && pwd -P)" || return 1
 	cwd_phys="$(pwd -P 2>/dev/null)" || return 1
 	[[ "${cwd_phys}" == "${wt_phys}" || "${cwd_phys}" == "${wt_phys}"/* ]]
+}
+
+# Remove ~/.cursor/worktrees/<name> when a removal left it empty.
+#
+# The session directory must be a direct child of ~/.cursor/worktrees.
+# Logical and physical paths both match. A non-empty directory is left
+# alone, as is anything outside that layout.
+#
+# Globals:
+#   HOME - cursor worktrees root
+# Arguments:
+#   $1 - worktree path that was removed
+# Outputs:
+#   None
+# Returns:
+#   0
+wt_remove_empty_cursor_session() {
+	local wt_path="${1}"
+	local session root logical physical
+	session="$(dirname "${wt_path}")"
+	root="$(dirname "${session}")"
+	logical="${HOME}/.cursor/worktrees"
+	physical="$(CDPATH= cd "${logical}" 2>/dev/null && pwd -P)" || physical=""
+	if [[ "${root}" != "${logical}" && "${root}" != "${physical}" ]]; then
+		return 0
+	fi
+	rmdir "${session}" 2>/dev/null || return 0
 }
 
 # Remove one linked worktree, then prune.
@@ -516,6 +629,7 @@ cmd_cleanup() {
 	local list=0
 	local yes=0
 	local force=0
+	local cursor=0
 	local arg
 	for arg in "$@"; do
 		case "${arg}" in
@@ -531,6 +645,12 @@ cmd_cleanup() {
 			--force)
 				force=1
 				;;
+			+cursor)
+				cursor=1
+				;;
+			+*)
+				wt_die "cleanup: unknown source: ${arg}"
+				;;
 			*)
 				wt_die "cleanup: unknown option: ${arg}"
 				;;
@@ -541,8 +661,16 @@ cmd_cleanup() {
 	local main
 	if (( all == 1 )); then
 		while IFS= read -r main; do
+			[[ -n "${main}" ]] || continue
 			mains+=( "${main}" )
-		done < <(wt_all_mains)
+		done < <(
+			{
+				wt_all_mains
+				if (( cursor == 1 )); then
+					wt_all_cursor_mains
+				fi
+			} | awk 'NF && !seen[$0]++'
+		)
 	else
 		git rev-parse --git-dir >/dev/null 2>&1 \
 			|| wt_die "cleanup: not inside a git repository"
@@ -558,6 +686,12 @@ cmd_cleanup() {
 			row_mains+=( "${main}" )
 			row_paths+=( "${wt_path}" )
 		done < <(cd "${main}" && wt_created_worktrees)
+		if (( cursor == 1 )); then
+			while IFS= read -r wt_path; do
+				row_mains+=( "${main}" )
+				row_paths+=( "${wt_path}" )
+			done < <(cd "${main}" && wt_cursor_worktrees)
+		fi
 	done
 
 	if (( list == 1 )); then
@@ -619,6 +753,7 @@ cmd_cleanup() {
 			continue
 		fi
 		if ( cd "${main}" && wt_remove_worktree "${main}" "${wt_path}" "${force}" 1 ); then
+			wt_remove_empty_cursor_session "${wt_path}"
 			if (( row_inside[i] == 1 )); then
 				cwd_main="${main}"
 			fi

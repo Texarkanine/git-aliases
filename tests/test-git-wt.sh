@@ -1113,6 +1113,278 @@ test_cleanup_not_a_repo() {
 	fi
 }
 
+# --list +cursor prints go worktrees and this repo's Cursor worktrees,
+# including a detached HEAD, and not a foreign worktree, another
+# repo's Cursor worktree, or the main checkout. It removes nothing.
+test_cleanup_list_cursor_current_repo() {
+	tcc_repo=$(make_repo)
+	cd "${tcc_repo}"
+	invoke git wt go go-a
+	tcc_go="${last_out}"
+	tcc_detached="${HOME}/.cursor/worktrees/sess/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/sess"
+	git worktree add --detach "${tcc_detached}" >/dev/null 2>&1
+	tcc_branched="${HOME}/.cursor/worktrees/sess/repoish-b"
+	git worktree add -q -b cursor-b "${tcc_branched}" >/dev/null 2>&1
+	tcc_foreign="$(mktemp -d)/foreign"
+	git worktree add -q -b foreign-c "${tcc_foreign}" >/dev/null 2>&1
+	tcc_other=$(make_repo)
+	tcc_other_wt="${HOME}/.cursor/worktrees/other-sess/other"
+	mkdir -p "${HOME}/.cursor/worktrees/other-sess"
+	git -C "${tcc_other}" worktree add --detach "${tcc_other_wt}" >/dev/null 2>&1
+	cd "${tcc_repo}"
+	invoke git wt cleanup --list +cursor
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --list +cursor failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	tcc_want=$(sorted_lines "${tcc_go}
+${tcc_detached}
+${tcc_branched}")
+	tcc_got=$(sorted_lines "${last_out}")
+	if [ "${tcc_got}" != "${tcc_want}" ]; then
+		fail "cleanup --list +cursor: expected [${tcc_want}], got [${tcc_got}]"
+	fi
+	for tcc_dir in "${tcc_go}" "${tcc_detached}" "${tcc_branched}" \
+		"${tcc_foreign}" "${tcc_other_wt}"; do
+		if [ ! -d "${tcc_dir}" ]; then
+			fail "cleanup --list +cursor must not remove ${tcc_dir}"
+		fi
+	done
+}
+
+# +cursor may appear before the flags.
+test_cleanup_list_cursor_token_position() {
+	tcp_repo=$(make_repo)
+	cd "${tcp_repo}"
+	invoke git wt go pos-a
+	tcp_go="${last_out}"
+	tcp_wt="${HOME}/.cursor/worktrees/pos/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/pos"
+	git worktree add --detach "${tcp_wt}" >/dev/null 2>&1
+	invoke git wt cleanup +cursor --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup +cursor --list failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	tcp_want=$(sorted_lines "${tcp_go}
+${tcp_wt}")
+	tcp_got=$(sorted_lines "${last_out}")
+	if [ "${tcp_got}" != "${tcp_want}" ]; then
+		fail "cleanup +cursor --list: expected [${tcp_want}], got [${tcp_got}]"
+	fi
+}
+
+# Without +cursor, a Cursor worktree is not listed.
+test_cleanup_list_without_cursor_excludes_cursor() {
+	tcw_repo=$(make_repo)
+	cd "${tcw_repo}"
+	invoke git wt go plain-a
+	tcw_go="${last_out}"
+	tcw_wt="${HOME}/.cursor/worktrees/plain/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/plain"
+	git worktree add --detach "${tcw_wt}" >/dev/null 2>&1
+	invoke git wt cleanup --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --list failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tcw_go}" ]; then
+		fail "cleanup --list should print only ${tcw_go}, got: ${last_out}"
+	fi
+}
+
+test_cleanup_cursor_unknown_source() {
+	tcu_repo=$(make_repo)
+	cd "${tcu_repo}"
+	invoke git wt go keep-a
+	tcu_go="${last_out}"
+	invoke git wt cleanup --list +foo
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "cleanup +foo should be non-zero"
+	fi
+	if [ ! -d "${tcu_go}" ]; then
+		fail "cleanup +foo must not remove ${tcu_go}"
+	fi
+}
+
+test_cleanup_cursor_outside_repo() {
+	cd "$(mktemp -d)"
+	invoke git wt cleanup +cursor --list
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "cleanup +cursor outside a repo should be non-zero"
+	fi
+}
+
+# --all +cursor from outside a repo lists go worktrees and Cursor
+# worktrees for every repo that has either.
+test_cleanup_list_all_cursor() {
+	tcal_one=$(make_repo)
+	tcal_two=$(make_repo)
+	cd "${tcal_one}"
+	invoke git wt go all-c
+	tcal_go="${last_out}"
+	tcal_c1="${HOME}/.cursor/worktrees/all-one/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/all-one"
+	git worktree add --detach "${tcal_c1}" >/dev/null 2>&1
+	tcal_c2="${HOME}/.cursor/worktrees/all-two/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/all-two"
+	git -C "${tcal_two}" worktree add --detach "${tcal_c2}" >/dev/null 2>&1
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all --list +cursor
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all --list +cursor failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	tcal_want=$(sorted_lines "${tcal_go}
+${tcal_c1}
+${tcal_c2}")
+	tcal_got=$(sorted_lines "${last_out}")
+	if [ "${tcal_got}" != "${tcal_want}" ]; then
+		fail "cleanup --all --list +cursor: expected [${tcal_want}], got [${tcal_got}]"
+	fi
+}
+
+# An empty session directory is not a worktree and is not listed.
+test_cleanup_list_all_cursor_ignores_empty() {
+	tcie_repo=$(make_repo)
+	cd "${tcie_repo}"
+	tcie_wt="${HOME}/.cursor/worktrees/keep/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/keep"
+	git worktree add --detach "${tcie_wt}" >/dev/null 2>&1
+	mkdir -p "${HOME}/.cursor/worktrees/empty-sess"
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all --list +cursor
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all --list +cursor failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tcie_wt}" ]; then
+		fail "empty session should be ignored, got: ${last_out}"
+	fi
+}
+
+# A symlink loop under ~/.cursor/worktrees must not hang --all +cursor.
+test_cleanup_list_all_cursor_symlink_loop() {
+	tcss_repo=$(make_repo)
+	cd "${tcss_repo}"
+	tcss_wt="${HOME}/.cursor/worktrees/real/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/real"
+	git worktree add --detach "${tcss_wt}" >/dev/null 2>&1
+	tcss_stray="${HOME}/.cursor/worktrees/stray"
+	mkdir -p "${tcss_stray}/sub"
+	ln -s . "${tcss_stray}/self"
+	ln -s .. "${tcss_stray}/sub/up"
+	cd "$(mktemp -d)"
+	tcss_rc=0
+	run_with_timeout 20 git wt cleanup --all --list +cursor \
+		>"${HOME}/out" 2>"${HOME}/err" || tcss_rc=$?
+	if [ "${tcss_rc}" -ne 0 ]; then
+		fail "cleanup --all --list +cursor hung or failed (${tcss_rc}): $(cat "${HOME}/err")"
+	fi
+	if [ "$(cat "${HOME}/out")" != "${tcss_wt}" ]; then
+		fail "cleanup --all --list +cursor should print ${tcss_wt}, got: $(cat "${HOME}/out")"
+	fi
+}
+
+# +cursor --yes removes a clean Cursor worktree and its go worktree,
+# leaves a foreign worktree, and removes the empty session directory.
+test_cleanup_cursor_yes_removes_and_rmdir() {
+	tcyr_repo=$(make_repo)
+	cd "${tcyr_repo}"
+	invoke git wt go yr-go
+	tcyr_go="${last_out}"
+	tcyr_session="${HOME}/.cursor/worktrees/yr"
+	tcyr_wt="${tcyr_session}/repoish"
+	mkdir -p "${tcyr_session}"
+	git worktree add --detach "${tcyr_wt}" >/dev/null 2>&1
+	tcyr_foreign="$(mktemp -d)/foreign"
+	git worktree add -q -b yr-foreign "${tcyr_foreign}" >/dev/null 2>&1
+	invoke git wt cleanup +cursor --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup +cursor --yes failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tcyr_go}" ] || [ -d "${tcyr_wt}" ]; then
+		fail "cleanup +cursor --yes should remove go and cursor worktrees"
+	fi
+	if [ -d "${tcyr_session}" ]; then
+		fail "cleanup +cursor --yes should remove empty session ${tcyr_session}"
+	fi
+	if [ ! -d "${tcyr_foreign}" ]; then
+		fail "cleanup +cursor --yes must leave ${tcyr_foreign}"
+	fi
+}
+
+# A dirty Cursor worktree is skipped without --force, and that is not
+# an error.
+test_cleanup_cursor_dirty_skipped() {
+	tcds_repo=$(make_repo)
+	cd "${tcds_repo}"
+	tcds_wt="${HOME}/.cursor/worktrees/dirty/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/dirty"
+	git worktree add --detach "${tcds_wt}" >/dev/null 2>&1
+	printf 'y\n' >> "${tcds_wt}/file.txt"
+	invoke git wt cleanup +cursor --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup +cursor --yes on dirty should exit 0 (got ${last_rc})"
+	fi
+	if [ ! -d "${tcds_wt}" ]; then
+		fail "dirty cursor worktree should be left without --force"
+	fi
+}
+
+# --force removes a dirty Cursor worktree.
+test_cleanup_cursor_dirty_force() {
+	tcdf_repo=$(make_repo)
+	cd "${tcdf_repo}"
+	tcdf_wt="${HOME}/.cursor/worktrees/force/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/force"
+	git worktree add --detach "${tcdf_wt}" >/dev/null 2>&1
+	printf 'y\n' >> "${tcdf_wt}/file.txt"
+	invoke git wt cleanup +cursor --yes --force
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup +cursor --yes --force failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tcdf_wt}" ]; then
+		fail "cleanup +cursor --yes --force should remove ${tcdf_wt}"
+	fi
+}
+
+# A session directory that still has another entry is left in place.
+test_cleanup_cursor_keeps_nonempty_session() {
+	tckn_repo=$(make_repo)
+	cd "${tckn_repo}"
+	tckn_session="${HOME}/.cursor/worktrees/keep"
+	tckn_wt="${tckn_session}/repoish"
+	mkdir -p "${tckn_session}/other"
+	git worktree add --detach "${tckn_wt}" >/dev/null 2>&1
+	invoke git wt cleanup +cursor --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup +cursor --yes failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tckn_wt}" ]; then
+		fail "cleanup +cursor --yes should remove ${tckn_wt}"
+	fi
+	if [ ! -d "${tckn_session}/other" ]; then
+		fail "non-empty session directory should remain"
+	fi
+}
+
+# A repo with both a go worktree and a Cursor worktree is removed once
+# under --all +cursor --yes.
+test_cleanup_all_cursor_yes_once() {
+	tcao_repo=$(make_repo)
+	cd "${tcao_repo}"
+	invoke git wt go once-go
+	tcao_go="${last_out}"
+	tcao_wt="${HOME}/.cursor/worktrees/once/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/once"
+	git worktree add --detach "${tcao_wt}" >/dev/null 2>&1
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all +cursor --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all +cursor --yes failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tcao_go}" ] || [ -d "${tcao_wt}" ]; then
+		fail "cleanup --all +cursor --yes should remove both worktrees once"
+	fi
+}
+
 test_cleanup_unknown_option() {
 	tcuo_repo=$(make_repo)
 	cd "${tcuo_repo}"
@@ -1222,6 +1494,19 @@ main() {
 	run_one test_cleanup_continues_after_failure
 	run_one test_cleanup_not_a_repo
 	run_one test_cleanup_unknown_option
+	run_one test_cleanup_list_cursor_current_repo
+	run_one test_cleanup_list_cursor_token_position
+	run_one test_cleanup_list_without_cursor_excludes_cursor
+	run_one test_cleanup_cursor_unknown_source
+	run_one test_cleanup_cursor_outside_repo
+	run_one test_cleanup_list_all_cursor
+	run_one test_cleanup_list_all_cursor_ignores_empty
+	run_one test_cleanup_list_all_cursor_symlink_loop
+	run_one test_cleanup_cursor_yes_removes_and_rmdir
+	run_one test_cleanup_cursor_dirty_skipped
+	run_one test_cleanup_cursor_dirty_force
+	run_one test_cleanup_cursor_keeps_nonempty_session
+	run_one test_cleanup_all_cursor_yes_once
 
 	rm -rf "${TEST_BIN}"
 

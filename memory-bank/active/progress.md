@@ -68,3 +68,16 @@ Add a positional `+cursor` token to `git wt cleanup` so it can also assess Curso
     - Advisories only: exclusion assertions belong on the current-repo list test, wrapper help / README mermaid are still silent, source-descriptor redesign stays out of scope
 * Insights
     - `wt cleanup +cursor --list` already works at the wrapper: leftover args are forwarded and `--list` is detected anywhere in them
+
+## 2026-09-24 - BUILD - COMPLETE
+
+* Work completed
+    - Implemented `+cursor` on `git wt cleanup` with 13 new tests in `tests/test-git-wt.sh`
+    - Documented it in the README, `usage()`, and the `wt` wrapper help
+    - Opened issue #13 for `+claude` without implementing it
+* Decisions made
+    - Membership is `git worktree list`; the filesystem scan only discovers repos for `--all`
+    - Empty `~/.cursor/worktrees/<name>/` is removed only after a successful removal
+* Insights
+    - `make test` needs `zsh` on PATH. A unpacked `/tmp/zsh-local/bin/zsh` runs the wrapper tests. Completion tests still fail there because zsh modules are compiled to `/usr/lib` and this box has no system zsh
+
