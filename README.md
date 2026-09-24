@@ -58,7 +58,7 @@ Custom Git extensions that can be called as `git <subcommand>`:
 
 - **[git-identity](subcommands/git-identity/README.md)**: Manage multiple Git identities with different configuration settings
 - **[git-sync](subcommands/git-sync/README.md)**: Synchronize your current branch with another branch using rebase or merge
-- **[git-wt](subcommands/git-wt/README.md)**: Create and tear down linked worktrees at `~/worktrees/<owner>/<repo>/<repo>-<branch>`
+- **[git-wt](subcommands/git-wt/README.md)**: Create and tear down linked worktrees at `~/worktrees/<owner>/<repo>/<repo>-<branch>`, or under `GITWT_ROOT` when that variable is an absolute path
 
 `make shell` is a separate, opt-in install for bash and zsh `wt()` wrappers that `cd` for you. It is not included in default `make`. See the [git-wt README](subcommands/git-wt/README.md) for the path convention, stdout contract, and how to enable the wrappers. `wt` is a shell function, not a git subcommand.
 

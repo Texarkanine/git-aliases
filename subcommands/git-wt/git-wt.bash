@@ -2,7 +2,9 @@
 #
 # git-wt - Create and tear down linked worktrees at a fixed path layout
 #
-# Worktrees live at ~/worktrees/<owner>/<repo>/<repo>-<branch>.
+# Worktrees live at ${GITWT_ROOT:-~/worktrees}/<owner>/<repo>/<repo>-<branch>.
+# GITWT_ROOT, when set, must be an absolute path. An empty value keeps
+# ~/worktrees.
 # go prints the absolute path on stdout; done and cleanup print the main
 # checkout path only when cwd was inside a removed worktree.
 #
@@ -124,14 +126,40 @@ wt_owner_repo() {
 	printf '%s\n' "${owner}" "${repo}"
 }
 
+# Root directory where git wt go creates worktrees.
+#
+# Globals:
+#   GITWT_ROOT - absolute root when set and non-empty
+#   HOME - used when GITWT_ROOT is unset or empty
+# Arguments:
+#   None
+# Outputs:
+#   Absolute root path on STDOUT
+# Returns:
+#   0 on success; does not return on a non-absolute GITWT_ROOT
+wt_worktrees_root() {
+	local root="${GITWT_ROOT:-}"
+	if [[ -z "${root}" ]]; then
+		printf '%s\n' "${HOME}/worktrees"
+		return 0
+	fi
+	if [[ "${root}" != "/" ]]; then
+		root="${root%/}"
+	fi
+	if [[ "${root}" != /* ]]; then
+		wt_die "GITWT_ROOT must be an absolute path: ${root}"
+	fi
+	printf '%s\n' "${root}"
+}
+
 # Worktree path prefix for the current repository; append a branch name.
 #
 # Globals:
-#   HOME - used as the worktrees root
+#   GITWT_ROOT - worktrees root when set; otherwise HOME/worktrees
 # Arguments:
 #   $1 - absolute path of the main checkout
 # Outputs:
-#   ~/worktrees/<owner>/<repo>/<repo>- on STDOUT
+#   <root>/<owner>/<repo>/<repo>- on STDOUT
 # Returns:
 #   0
 wt_layout_prefix() {
@@ -139,13 +167,13 @@ wt_layout_prefix() {
 	owner_repo="$(wt_owner_repo "${1}")"
 	owner="$(printf '%s\n' "${owner_repo}" | sed -n '1p')"
 	repo="$(printf '%s\n' "${owner_repo}" | sed -n '2p')"
-	printf '%s\n' "${HOME}/worktrees/${owner}/${repo}/${repo}-"
+	printf '%s\n' "$(wt_worktrees_root)/${owner}/${repo}/${repo}-"
 }
 
 # Computed worktree path for a branch name.
 #
 # Globals:
-#   HOME - used as the worktrees root
+#   GITWT_ROOT - worktrees root when set; otherwise HOME/worktrees
 # Arguments:
 #   $1 - branch name
 # Outputs:
@@ -166,7 +194,7 @@ wt_worktree_path() {
 # path (macOS /private), so both logical and physical forms match.
 #
 # Globals:
-#   HOME - used as the worktrees root
+#   GITWT_ROOT - worktrees root when set; otherwise HOME/worktrees
 # Arguments:
 #   None
 # Outputs:
@@ -281,13 +309,13 @@ wt_scan_worktree_roots() {
 	done
 }
 
-# Main checkouts of every repository with a worktree under ~/worktrees.
+# Main checkouts of every repository with a worktree under the worktrees root.
 #
-# Only ~/worktrees/<owner>/<repo>/<repo>-* entries are scanned. Roots
+# Only <root>/<owner>/<repo>/<repo>-* entries are scanned. Roots
 # git cannot open (repository deleted) are skipped with a warning.
 #
 # Globals:
-#   HOME - used as the worktrees root
+#   GITWT_ROOT - worktrees root when set; otherwise HOME/worktrees
 # Arguments:
 #   None
 # Outputs:
@@ -299,7 +327,7 @@ wt_all_mains() {
 	# Owners and repos may start with a dot (e.g. .github).
 	local -a repo_dirs
 	shopt -s dotglob
-	repo_dirs=( "${HOME}/worktrees"/*/*/ )
+	repo_dirs=( "$(wt_worktrees_root)"/*/*/ )
 	shopt -u dotglob
 	for repo_dir in "${repo_dirs[@]}"; do
 		[[ -d "${repo_dir}" ]] || continue
@@ -511,7 +539,7 @@ wt_remove_worktree() {
 # Create or reuse a linked worktree; print its path.
 #
 # Globals:
-#   HOME - used as the worktrees root
+#   GITWT_ROOT - worktrees root when set; otherwise HOME/worktrees
 # Arguments:
 #   $1 - branch name
 # Outputs:
@@ -623,7 +651,7 @@ cmd_done() {
 # List or remove the worktrees git wt go created.
 #
 # Globals:
-#   HOME - used as the worktrees root
+#   GITWT_ROOT - worktrees root when set; otherwise HOME/worktrees
 # Arguments:
 #   optional --all, --list, --yes|-y, --force
 # Outputs:

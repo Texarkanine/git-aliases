@@ -38,3 +38,17 @@ Honor `GITWT_ROOT` as the root where `git wt` creates worktrees, falling back to
     - No plan edits required: TDD order correct, no change-detectors, no reorder needed
 * Insights
     - Wrappers only `cd` to stdout, confirmed no third root call site in `shell/wt.bash`
+
+## 2026-09-24 - BUILD - COMPLETE
+
+* Work completed
+    - Added `wt_worktrees_root` and pointed `wt_layout_prefix` and `wt_all_mains` at it
+    - Added five `GITWT_ROOT` cases; `run_isolated` unsets the variable
+    - Documented the variable in the git-wt README and the root README bullet
+    - `make test` passed through git-wt, git-sync, wt wrappers, and shell-integration install. ShellCheck on the project `*.sh` files and on `git-wt.bash` exited 0
+* Decisions made
+    - Empty `GITWT_ROOT` uses `${HOME}/worktrees`
+    - A relative value is an error whose message says the path must be absolute
+    - Do not canonicalize the configured path
+* Insights
+    - This WSL box has no system zsh. A `dpkg -x` zsh runs `zsh -f` and the wrapper tests, and cannot load `zsh/parameter`, so `test_install_fence_preserves_prior_compdefs` failed. That test does not exercise `git wt`
