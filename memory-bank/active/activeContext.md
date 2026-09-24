@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Task: GITWT_ROOT envvar support
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Confirmed intent against [issue #15](https://github.com/Texarkanine/git-aliases/issues/15): if `GITWT_ROOT` is set, use it as the worktree root instead of `~/worktrees`, and every invocation of the tool still works.
-- Complexity level determined: Level 2. This is a small enhancement contained to the `git wt` subsystem. It is not a bug fix, and it does not change system architecture.
+- Confirmed intent against [issue #15](https://github.com/Texarkanine/git-aliases/issues/15).
+- Classified the task as Level 2.
+- Planned one helper, `wt_worktrees_root`, used by `wt_layout_prefix` and `wt_all_mains`. Unset or empty keeps `${HOME}/worktrees`. A non-absolute value is an error. Cursor worktrees stay under `~/.cursor/worktrees`.
+- Mapped tests to new cases in `tests/test-git-wt.sh`, plus `run_isolated` clearing `GITWT_ROOT`. Docs: `subcommands/git-wt/README.md` and the root `README.md` bullet.
 
 ## Next Step
-- Load the Level 2 workflow
+- Preflight validation

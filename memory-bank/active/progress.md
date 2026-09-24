@@ -14,3 +14,16 @@ Honor `GITWT_ROOT` as the root where `git wt` creates worktrees, falling back to
     - Level 2: a small enhancement inside the `git wt` subsystem, with a clear default and no architectural change
 * Insights
     - The issue already states the contract: set means custom root, unset means `~/worktrees`, and every invocation must follow that
+
+## 2026-09-24 - PLAN - COMPLETE
+
+* Work completed
+    - Located the two `${HOME}/worktrees` uses in `wt_layout_prefix` and `wt_all_mains`
+    - Wrote the Level 2 plan in `tasks.md`: one `wt_worktrees_root` helper, five new cases in `tests/test-git-wt.sh`, and README updates
+* Decisions made
+    - Unset or empty `GITWT_ROOT` keeps `${HOME}/worktrees`
+    - A non-absolute value is an error
+    - Cursor worktrees stay under `~/.cursor/worktrees`
+* Insights
+    - Shell wrappers only `cd` to stdout, so the variable belongs in `git-wt.bash`
+    - `run_isolated` must unset `GITWT_ROOT` or an exported value would retarget the existing path tests
