@@ -1,0 +1,26 @@
+FAIL (fixable)
+
+Wrong-reference: progress.md Complexity is Level 2. This is the correct check file.
+
+Prerequisites: tasks.md marks plan, TDD, technology validation, and pre-mortem complete. No creative docs are required at Level 2.
+
+TDD plan encoding: Units 1–3 are executable and each numbers stub tests, stub interface, write tests (red), then write code (green). Units 4–5 are prose/policy (README, a GitHub issue) and correctly omit tests. No scheduled change-detectors. No step swap or strike.
+
+Convention: files and `wt_*` / `cmd_*` names match `subcommands/git-wt/git-wt.bash` and `tests/test-git-wt.sh`. `sorted_lines` already exists. Wrappers already forward leftover args, so `wt cleanup +cursor --list` needs no wrapper logic change. There is no `git-wt` completion script.
+
+FAIL (fixable) — `--all` mains must be real mains and unique.
+Unit 2 says `wt_all_cursor_mains` reuses `wt_scan_worktree_roots` and `cmd_cleanup --all` "adds those mains." `wt_scan_worktree_roots` prints worktree roots, not mains. `wt_all_mains` already does `cd root && wt_main_worktree` and `awk '!seen[$0]++'`. Concatenating two main lists without that pair breaks the primary union case: a repo with both a `git wt go` worktree and a Cursor worktree is discovered twice. `cmd_cleanup` then builds duplicate rows. `--list` prints duplicates. `--yes` removes the same path twice; the second call fails and cleanup exits non-zero after a successful run. Unit 3 has no `--all +cursor --yes` test, and the `--all --list` test can be satisfied with one go-only repo and one cursor-only repo, so TDD will not necessarily catch it. Fix: resolve each scanned `.cursor/worktrees` root to its main via `wt_main_worktree` (skip unusable roots the way `wt_all_mains` does), then unique the combined `wt_all_mains` + `wt_all_cursor_mains` list before the per-main walk.
+
+FAIL (fixable) — new tests are not wired into the suite runner.
+`tests/test-git-wt.sh` only runs functions listed in `main()` via `run_one`. Units 1–3 name twelve new `test_*` functions and never say to add matching `run_one` lines. An implementer who writes the functions and runs `make test` will not see red (or later green) for them. This is the same wiring class as a new test file that is never added to the Makefile `test` recipe. Fix: add a `run_one` for each new test in `main()`.
+
+Advisory — `usage()` and the file-header usage block still describe `cleanup [--all] [--list] [--yes] [--force]`. `git wt help` will stay silent on `+cursor` unless unit 1 or 4 updates them. Wrapper help in `shell/wt.bash` and `shell/wt.zsh` is the same. Not blocking; README is planned.
+
+Advisory — print logical Cursor paths. `wt_created_worktrees` matches porcelain physical and logical forms and prints the HOME-logical layout path. Unit 1 says to compare both forms but not which form to print. On macOS, porcelain can be `/private/...`. Print the HOME-logical path so tests that expect `${HOME}/.cursor/worktrees/...` hold. Apply the same pair of forms when `wt_remove_empty_cursor_session` checks that the session directory is a direct child of `${HOME}/.cursor/worktrees`.
+
+Advisory — radical innovation (does not block). Do not add a third parallel trio (`wt_claude_worktrees` / `wt_all_claude_mains` / an after-remove hook) when `+claude` lands. Collapse membership into source descriptors so `+cursor` is data, not a second function family:
+
+- `go`: root `${HOME}/worktrees`, path must be the layout path for the checked-out branch (today's `wt_created_worktrees`).
+- `cursor` (if `+cursor`): root `${HOME}/.cursor/worktrees`, any linked worktree under that root, include detached, after a successful remove `rmdir` the empty session directory.
+
+One helper lists worktrees for a source (porcelain filter). One helper scans a root, resolves mains, uniques. `cmd_cleanup` enables sources from flags, uniques mains from every enabled root, unions paths from every enabled source. `--all` is "scan each enabled root," not a Cursor-only discovery function. The `+claude` issue can then name a third descriptor (`<repo>/.claude/worktrees/`, default only) instead of another scan/list/rmdir trio. Do not make this change in the current plan.

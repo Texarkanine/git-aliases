@@ -26,3 +26,34 @@ Add a positional `+cursor` token to `git wt cleanup` so it can also assess Curso
     - Open a `+claude` issue and do not implement it; a `WorktreeCreate` hook can place worktrees elsewhere, and `--all` cannot scan one global directory for them
 * Insights
     - On this machine Cursor's layout is `~/.cursor/worktrees/<name>/<repo-ish>/.git`
+
+## 2026-09-24 - PREFLIGHT - FAIL (fixable)
+
+* Work completed
+    - Preflight reviewed the plan and returned FAIL (fixable)
+* Decisions made
+    - Re-plan the two blocking findings before build
+* Insights
+    - `--all` must resolve scanned roots to unique real mains, or a repo with both layouts is removed twice
+    - New `test_*` functions run only when `main()` calls `run_one`
+
+## 2026-09-24 - PLAN - COMPLETE
+
+* Work completed
+    - Revised the plan for unique mains, `run_one` registration, a once-only `--all +cursor --yes` test, HOME-logical Cursor paths, and `usage()`
+* Decisions made
+    - Adopted the two FAIL findings and the usage / logical-path advisories
+    - Left the source-descriptor redesign as an advisory; it is not in this plan
+* Insights
+    - None beyond the preflight findings
+
+## 2026-09-24 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the Level 2 plan against `git-wt.bash`, `tests/test-git-wt.sh`, wrappers, and issue #11
+    - Wrote `memory-bank/active/.preflight-status` with first line `FAIL (fixable)`
+* Decisions made
+    - Do not edit the plan in this phase; planner must re-plan the two fixable findings
+* Insights
+    - `--all` concatenating `wt_all_mains` and cursor-discovered roots without resolving to unique mains would double-remove on a mixed repo
+    - New `test_*` functions in `tests/test-git-wt.sh` never run unless `main()` gets `run_one` lines

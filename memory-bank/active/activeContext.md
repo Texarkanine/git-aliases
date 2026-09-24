@@ -4,6 +4,6 @@
 
 **Phase:** PLAN - COMPLETE
 
-**What Was Done:** Level 2 plan for `+cursor` on `git wt cleanup`. Membership comes from `git worktree list`; `~/.cursor/worktrees` is scanned only for `--all` repo discovery. Unknown `+source` is an error. An empty Cursor session directory is removed after a successful removal. `+claude` is an issue, not an implementation: Claude Code's default path is `<repo>/.claude/worktrees/<name>/`.
+**What Was Done:** Level 2 plan revised after preflight FAIL (fixable). `--all` resolves scanned roots to unique real mains. Every new test is registered with `run_one`. `+cursor` still unions with `git wt go` worktrees. `+claude` remains an issue, not an implementation.
 
 **Next Step:** Preflight.
