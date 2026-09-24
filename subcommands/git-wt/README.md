@@ -1,186 +1,229 @@
 # git-wt
 
-Create and tear down linked worktrees at a fixed path layout.
+Work on several branches at the same time, each in its own folder.
 
-`git wt` is a Git subcommand. It cannot `cd` your interactive shell — that is what the optional `wt` wrapper is for.
+`git wt` is a Git subcommand. It makes a Git worktree for a branch at a fixed, predictable path. When you are finished, it removes the worktree again.
 
-## Usage
+## Overview
 
-```
-usage: git wt <command>
-  go <name>           create a git worktree; print its path on stdout
-  done [name] [--force] [--yes]
-                      remove a worktree so the branch can be checked out
-                      in the main tree; omit name to use the current
-                      worktree; refuse if dirty unless --force; --yes
-                      skips the discard confirmation
-  cleanup [--all] [--list] [--yes] [--force]
-                      remove the worktrees go created in this repo (every
-                      repo with --all) after one confirmation; --list
-                      prints their paths; dirty ones are skipped unless
-                      --force
-```
+A normal repository folder has one branch checked out. To work on a different branch, you must commit or stash your changes, then switch. A worktree removes that step. It is an extra folder that shares the same repository, but has a different branch checked out. You can have many worktrees at the same time. Git supports worktrees itself; see the official [`git worktree` documentation](https://git-scm.com/docs/git-worktree).
 
-### Examples
+Plain `git worktree add` needs you to type a folder path for each worktree, and to remove a worktree you must remember where you put it. `git wt` puts every worktree at a path it can calculate from the repository and the branch, so you only need to give the branch name:
+
+- `git wt go <branch>` makes a worktree for a branch and prints its path. If the worktree already exists, it prints the path of that worktree.
+- `git wt done` removes one worktree.
+- `git wt cleanup` removes all the worktrees that `git wt go` made, after one confirmation.
+
+Removing a worktree deletes only its folder. The branch and its commits stay in the repository.
+
+In this document, the *main checkout* is the folder where you cloned the repository. The other folders are *linked worktrees*.
+
+To install `git wt`, see the [root README](../../README.md#installation).
+
+## Quick Start
+
+We recommend the optional `wt` shell function. It does the same work as `git wt`, and also changes your directory for you. To install it, see [Shell Integration](#shell-integration).
+
+With the `wt` shell function:
 
 ```bash
-# Create or reuse a worktree; print its path
-git wt go feature-x
-
-# Scripts and CI: cd yourself
-cd "$(git wt go feature-x)"
-
-# Remove the worktree (refuses if dirty)
-git wt done feature-x
-
-# From inside any linked worktree, omit the name
-git wt done
-
-# Discard uncommitted changes after a /dev/tty confirmation
-git wt done feature-x --force
-git wt done --force
-
-# Discard without asking
-git wt done feature-x --force --yes
-
-# If you ran done while inside the worktree, cd back to main
-cd "$(git wt done)"
-
-# Paths of every worktree go created in this repo (or in every repo)
-git wt cleanup --list
-git wt cleanup --all --list
-
-# Inspect each one
-git wt cleanup --list | while IFS= read -r d; do git -C "$d" status -s; done
-
-# Remove them after one confirmation; dirty ones are skipped
-git wt cleanup
-
-# Remove all clean ones without asking
-git wt cleanup --yes
-
-# Remove all of them, discarding uncommitted changes, without asking
-git wt cleanup --yes --force
-git wt cleanup --all --yes --force
+cd ~/projects/my-app
+wt go fix-login   # make a worktree for branch fix-login, and cd into it
+# edit, commit, and push as usual
+wt done           # remove the worktree, and cd back to the main checkout
 ```
 
-## Path Convention
+Without the `wt` shell function, do the `cd` yourself:
 
-Worktrees live at:
+```bash
+cd ~/projects/my-app
+cd "$(git wt go fix-login)"
+# edit, commit, and push as usual
+cd "$(git wt done)"
+```
+
+`git wt` cannot change the directory of your shell. It prints a path, and then you (or the `wt` function) `cd` to that path.
+
+After `done`, the branch `fix-login` still exists. To continue work on it, run `git wt go fix-login` again, or check it out in the main checkout.
+
+## Where Worktrees Go
+
+Each worktree goes to this path:
 
 ```
 ~/worktrees/<owner>/<repo>/<repo>-<branch>
 ```
 
-- **With a git remote** (prefer `origin`, else the first remote): `owner` and `repo` are the last two path segments of the remote URL after stripping a trailing `.git`. Both scp-style (`git@host:owner/repo.git`) and HTTPS (`https://host/owner/repo.git`) URLs work.
-- **Without a remote**: `owner=local`, `repo=<basename of the main checkout>`.
+For example:
 
-Examples:
+- Repository `git@github.com:Texarkanine/ai-rizz.git`, branch `feature-x`: `~/worktrees/Texarkanine/ai-rizz/ai-rizz-feature-x`
+- Repository with no remote at `~/projects/foo`, branch `bar`: `~/worktrees/local/foo/foo-bar`
 
-- `git@github.com:Texarkanine/ai-rizz.git`, branch `feature-x` → `~/worktrees/Texarkanine/ai-rizz/ai-rizz-feature-x`
-- Local repo at `~/projects/foo`, branch `bar` → `~/worktrees/local/foo/foo-bar`
+Because the path depends only on the repository and the branch, you always know where a worktree is. `git wt go` for the same branch always gives the same folder.
 
-`go` is idempotent: if that worktree already exists, it prints the path and exits 0.
+For how `git wt` finds `<owner>` and `<repo>`, see [Path Details](#path-details).
 
-`done` with no name removes the linked worktree that contains cwd, including worktrees `git wt go` did not create. An explicit name still selects that branch's worktree. `done` refuses to remove the main checkout. It refuses a dirty worktree unless `--force`; `--force` on a dirty tree prompts on `/dev/tty` before discarding, and `--yes` skips that prompt. The worktree directory is deleted from disk, ignored files (e.g. `node_modules`) included. The branch is left in place.
+## Commands
 
-## Cleanup
+Run `git wt help` for a short summary of the commands.
 
-`cleanup` finds the worktrees `git wt go` created: linked worktrees that exist on disk at the path above for the branch they have checked out. Worktrees made with plain `git worktree add`, or moved elsewhere, are not touched. By default it looks at the current repo. `--all` looks at every repo with a worktree under `~/worktrees`, and works from outside any repo. To find those repos it scans `~/worktrees` without following symlinks, for branch names of up to nine `/`-separated parts.
-
-`+cursor` may appear anywhere among the arguments. It adds linked worktrees of those repos whose path is under `~/.cursor/worktrees`, including a detached HEAD. With `--all`, cleanup also scans `~/.cursor/worktrees` without following symlinks to discover repos that have no `git wt go` worktree. An empty session directory is ignored. After a worktree is removed, `~/.cursor/worktrees/<name>/` is removed when that directory is empty. Any other `+source` is an error. Without `+cursor`, Cursor worktrees are left alone.
-
-- `--list` prints their paths, one per line, and removes nothing.
-- Otherwise it lists them on stderr and asks once on `/dev/tty`. `--yes` skips the question.
-- Each worktree is then removed as `done` would remove it. Branches are left in place.
-- Without `--force`, dirty worktrees are listed as skipped and left alone; that is not an error. With `--force`, they are removed and their changes discarded. The single confirmation covers them, so there is no second prompt per worktree.
-- If a removal fails (for example, a worktree locked with `git worktree lock`), cleanup reports it, carries on with the rest, and exits non-zero.
-
-Works from any linked worktree of the repo (the main checkout is the first `git worktree list --porcelain` entry).
-
-## Stdout and Stderr
-
-- **`go`**: exactly one absolute path on stdout. Progress on stderr.
-- **`done`**: if cwd was inside the removed worktree (the worktree root or a subdirectory), prints the main checkout path on stdout so a wrapper can `cd` there. Otherwise stdout is empty. Progress and errors on stderr.
-- **`cleanup --list`**: worktree paths on stdout, one per line; nothing else.
-- **`cleanup`**: like `done`, prints the main checkout path on stdout only if cwd was inside a removed worktree, even when another removal failed. The worktree list, prompt, and progress go to stderr and `/dev/tty`.
-
-## Flow
-
-```mermaid
-flowchart TD
-    A["git wt go name"] --> B{"worktree exists?"}
-    B -->|yes| C["print path on stdout"]
-    B -->|no| D{"branch exists?"}
-    D -->|yes| E["worktree add path branch"]
-    D -->|no| F["worktree add -b name path"]
-    E --> C
-    F --> C
-    C --> G["optional wrapper: cd path"]
-
-    H["git wt done [name]"] --> R{"name given?"}
-    R -->|yes| Blookup["worktree for branch"]
-    R -->|no| Cwd["worktree containing cwd"]
-    Cwd --> Main{"is main?"}
-    Main -->|yes| K["decline"]
-    Blookup --> I{"dirty?"}
-    Main -->|no| I
-    I -->|clean| J["worktree remove"]
-    I -->|dirty, no --force| K
-    I -->|"dirty, --force"| L{"confirm on /dev/tty?"}
-    L -->|no| K
-    L -->|yes| M["worktree remove --force"]
-    J --> N["print main path if cwd was inside worktree"]
-    M --> N
-    N --> O["optional wrapper: cd main"]
-```
-
-```mermaid
-flowchart TD
-    A["git wt cleanup"] --> B{"--all?"}
-    B -->|no| C["this repo"]
-    B -->|yes| D["repos under ~/worktrees"]
-    C --> E["go-layout worktrees"]
-    D --> E
-    E --> Ec{"+cursor?"}
-    Ec -->|no| F{"--list?"}
-    Ec -->|yes| Ed["also paths under ~/.cursor/worktrees"]
-    Ed --> F
-    F -->|yes| G["print paths on stdout"]
-    F -->|no| H{"--yes?"}
-    H -->|no| I{"confirm on /dev/tty?"}
-    I -->|no| J["abort"]
-    I -->|yes| K["for each worktree"]
-    H -->|yes| K
-    K --> L{"dirty?"}
-    L -->|"dirty, no --force"| M["skip"]
-    L -->|"clean, or --force"| N["remove as done would"]
-    N --> O["print main path if cwd was inside a removed worktree"]
-```
-
-## Optional Shell Integration
-
-`git wt` runs as a subprocess, so it cannot change the directory of your interactive shell. Daily use is nicer with a thin `wt()` function that `cd`s for you:
+### go
 
 ```bash
-wt go <name>   # cd to the new/existing worktree
-wt done        # cd to main if git wt done prints a path
-wt done <name> # same, for a named worktree
-wt cleanup     # cd to main if cleanup removed the current worktree
+git wt go <branch>
 ```
 
-`wt cleanup --list` passes the paths straight through without changing directory.
+Makes a linked worktree for `<branch>`, and prints its absolute path.
 
-`wt` is a shell function, not a Git subcommand. Scripts and CI should keep calling `git wt`.
+- If the branch exists, the new worktree checks it out.
+- If the branch does not exist, `go` creates it from the commit that you are on now (`HEAD`).
+- If the worktree already exists, `go` prints its path and changes nothing.
 
-Default `make` / `make subcommands` installs `git-wt` only. It does **not** edit `~/.bashrc` or `~/.zshrc`.
+You can run `go` from the main checkout or from any linked worktree of the repository.
 
-To install bash and zsh wrappers:
+To start a new branch from a different commit, create the branch first:
+
+```bash
+git fetch origin
+git branch fix-login origin/main
+git wt go fix-login
+```
+
+### done
+
+```bash
+git wt done [<branch>] [--force] [--yes]
+```
+
+Removes one linked worktree. The branch and its commits stay.
+
+- With no `<branch>`, `done` removes the worktree that you are in now.
+- With `<branch>`, `done` removes the worktree that has that branch checked out. You can run it from anywhere in the repository.
+
+`done` works on all linked worktrees, including worktrees that `git wt go` did not make. It never removes the main checkout.
+
+`done` does not remove a *dirty* worktree. A worktree is dirty when `git status` shows changes, including new untracked files. Commit or stash your changes first, or use these options to discard them:
+
+- `--force` removes a dirty worktree. Before it discards the changes, it asks you to confirm on the terminal.
+- `--yes` (or `-y`) skips that question.
+
+Ignored files, such as `node_modules`, do not make a worktree dirty. `done` deletes them with the folder.
+
+```bash
+git wt done                          # remove the worktree you are in
+git wt done feature-x                # remove the worktree for feature-x
+git wt done feature-x --force        # discard changes, after you confirm
+git wt done feature-x --force --yes  # discard changes, and do not ask
+```
+
+### cleanup
+
+```bash
+git wt cleanup [--all] [--list] [--yes] [--force] [+cursor]
+```
+
+Removes all the worktrees that `git wt go` made in this repository. First it shows the list, then it asks you one time. The branches stay.
+
+- `--list` prints the paths, one on each line, and removes nothing. Use it to look before you remove.
+- `--all` works on all repositories that have worktrees under `~/worktrees`, not only the current repository. You can run it from any folder.
+- `--yes` (or `-y`) skips the question.
+- `--force` also removes dirty worktrees, and discards their changes. Without `--force`, `cleanup` skips dirty worktrees and tells you. The one question covers all the worktrees in the list. There is no second question for each worktree.
+- `+cursor` also includes the worktrees that the Cursor editor made. See [Cursor Worktrees](#cursor-worktrees).
+
+`cleanup` removes only worktrees at the path in [Where Worktrees Go](#where-worktrees-go). It does not touch worktrees that you made with plain `git worktree add`, or that you moved. Use `git wt done` for those.
+
+```bash
+git wt cleanup --list                # what would it remove in this repository?
+git wt cleanup --all --list          # what would it remove in all repositories?
+git wt cleanup                       # remove the clean ones, after you confirm
+git wt cleanup --yes                 # remove the clean ones, and do not ask
+git wt cleanup --yes --force         # remove all of them, discard changes, and do not ask
+git wt cleanup --all --yes --force   # the same, for all repositories
+
+# Show the uncommitted changes in each worktree before you remove anything
+git wt cleanup --list | while IFS= read -r d; do git -C "$d" status -s; done
+```
+
+If one removal fails, `cleanup` reports it, continues with the other worktrees, and exits with a non-zero status. For example, a removal fails when the worktree is locked with `git worktree lock`.
+
+## Shell Integration
+
+`git wt` runs as a separate process, so it cannot change the directory of the shell that started it. The optional `wt` shell function does that step for you. It accepts the same commands and options as `git wt`:
+
+```bash
+wt go <branch>      # cd into the worktree
+wt done [<branch>]  # if you were in the removed worktree, cd to the main checkout
+wt cleanup          # if you were in a removed worktree, cd to the main checkout
+wt cleanup --list   # print the paths; do not cd
+```
+
+To install it for bash and zsh, run:
 
 ```bash
 make shell
 ```
 
-That copies snippets to `~/.local/share/git-aliases/shell/` and appends a fenced block to `~/.bashrc` and `~/.zshrc`. Re-running is idempotent. `make clean` (or `scripts/install-shell-integration.bash --uninstall`) removes the fences and snippets.
+This copies the functions to `~/.local/share/git-aliases/shell/`. It also adds a marked block to `~/.bashrc` and `~/.zshrc` that loads them. Open a new shell, or `source` the file, before you use `wt`. You can run `make shell` again safely: it replaces the block, and does not add a second one.
 
-If you already have a `wt()` in `~/.zshrc` or `wt-go` / `wt-done` on `PATH`, remove or comment those out so they do not shadow the installed wrapper.
+The default `make` does not run `make shell`, and does not change your shell startup files.
+
+To remove only the shell functions, run `scripts/install-shell-integration.bash --uninstall`. `make clean` also removes them, together with all the other things that this repository installs.
+
+If you already have your own `wt` function in `~/.bashrc` or `~/.zshrc`, or `wt-go` or `wt-done` commands on your `PATH`, remove them or comment them out. Otherwise they can hide the installed `wt` function.
+
+Use `wt` when you type commands yourself. Scripts and CI must call `git wt`, and `cd` themselves.
+
+## Troubleshooting
+
+### Branch Already Checked Out
+
+Git lets you check out a branch in only one place at a time. If the main checkout or a different worktree has the branch checked out, `git wt go` fails with a message like `fatal: 'main' is already checked out at '...'`. Switch that checkout to a different branch, then try again.
+
+The reverse is also true. To check out a branch in the main checkout, first remove its worktree with `git wt done <branch>`.
+
+### Path Exists but Is Not a Worktree
+
+`go` stops if the folder for the worktree already exists, but is not a Git worktree. Move or delete that folder, then run `go` again.
+
+### No Terminal to Confirm
+
+`cleanup`, and `done --force`, ask their question on the terminal (`/dev/tty`), not on standard input. Scripts and CI have no terminal, so the command fails. Add `--yes` to skip the question.
+
+## Reference
+
+### Path Details
+
+- If the repository has a remote, `git wt` uses `origin`. If there is no `origin`, it uses the first remote. `<owner>` and `<repo>` are the last two parts of the remote URL, without a trailing `.git`. SSH-style URLs (`git@host:owner/repo.git`) and HTTPS URLs (`https://host/owner/repo.git`) both work.
+- If the repository has no remote, `<owner>` is `local`, and `<repo>` is the name of the main checkout folder.
+- A branch name with `/` makes nested folders. For example, branch `feature/login` in `ai-rizz` goes to `~/worktrees/Texarkanine/ai-rizz/ai-rizz-feature/login`.
+
+`git wt` finds the main checkout from the first entry of `git worktree list --porcelain`. Because of this, each command gives the same result from the main checkout and from any linked worktree.
+
+### Output for Scripts
+
+`git wt` keeps standard output clean, so that scripts can capture it. Progress messages, lists, and errors go to standard error. Questions go to `/dev/tty`.
+
+- `go` prints exactly one line on standard output: the absolute path of the worktree.
+- `done` prints the path of the main checkout only if the current directory was in the removed worktree (at its root or in a subfolder). Otherwise it prints nothing.
+- `cleanup --list` prints one worktree path on each line, and nothing else.
+- `cleanup` prints the path of the main checkout only if the current directory was in a removed worktree. It prints this path even when a different removal failed.
+
+Each command exits with status 0 when it succeeds. It exits with a non-zero status when it refuses, when you answer "no" to its question, or when a removal fails.
+
+### How Cleanup Finds Worktrees
+
+A worktree is on the `cleanup` list when it exists on disk, and its path is the [layout path](#where-worktrees-go) for the branch it has checked out. A worktree with a detached HEAD has no branch, so it is not on the list (except with `+cursor`, below).
+
+With `--all`, `cleanup` searches `~/worktrees` to find repositories. It does not follow symbolic links. It finds branch names that have up to nine `/`-separated parts. If a folder there belongs to a repository that no longer exists, `cleanup` skips it and shows a warning.
+
+### Cursor Worktrees
+
+The Cursor editor can make its own worktrees under `~/.cursor/worktrees/<session>/`. `cleanup` does not touch them unless you add `+cursor`. You can put `+cursor` anywhere among the arguments.
+
+With `+cursor`:
+
+- `cleanup` also includes all linked worktrees of the repository whose path is under `~/.cursor/worktrees`, including worktrees with a detached HEAD.
+- With `--all`, `cleanup` also searches `~/.cursor/worktrees` to find repositories that have no `git wt go` worktrees. It ignores empty session folders.
+- After `cleanup` removes a Cursor worktree, it also removes the session folder `~/.cursor/worktrees/<session>/` if that folder is now empty.
+
+Any other argument that starts with `+` is an error.

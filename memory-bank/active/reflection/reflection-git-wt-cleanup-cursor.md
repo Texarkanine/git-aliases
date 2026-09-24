@@ -12,7 +12,7 @@ complexity_level: 2
 
 ## Requirements vs Outcome
 
-Issue #11 is implemented as written. `+cursor` unions with the existing set, includes detached HEAD, ignores empty session directories, and rejects an unknown `+source`. The open question about an empty parent was decided in the plan: remove `~/.cursor/worktrees/<name>/` only when a successful removal left it empty. Wrapper help and the cleanup diagram were added from preflight advisories. The source-descriptor redesign was left out.
+Issue #11 is implemented as written. `+cursor` unions with the existing set, includes detached HEAD, ignores empty session directories, and rejects an unknown `+source`. The open question about an empty parent was decided in the plan: remove `~/.cursor/worktrees/<name>/` only when a successful removal left it empty. Wrapper help was added from a preflight advisory. The cleanup flowcharts were added the same way, then removed: they restated the Cleanup and Stdout sections and did not make a new fact easier to see. The source-descriptor redesign was left out.
 
 ## Plan Accuracy
 
