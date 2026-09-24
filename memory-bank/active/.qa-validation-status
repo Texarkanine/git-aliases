@@ -1,0 +1,13 @@
+PASS
+
+Prerequisites: tasks.md marks Build complete. Level 2, so no creative docs. Reviewed the diff of 4b70e81..HEAD against the plan in tasks.md and issue #11.
+
+Completeness: all 13 planned behaviors have tests in tests/test-git-wt.sh, each registered with run_one in main(), and all pass. Plan units 1-3 are implemented as planned: wt_cursor_worktrees (porcelain membership, detached included, HOME-logical output, logical+physical matching), wt_all_cursor_mains (scan, resolve, skip-unusable, unique), the combined-and-uniqued --all main list, and wt_remove_empty_cursor_session (direct child only, empty only, after a successful removal only). Unit 4 updated the README (prose and cleanup mermaid), usage(), the file-header block, and both wrapper help heredocs. Unit 5 opened issue #13 for +claude (verified OPEN) and did not implement it. The two preflight FAIL findings (unique mains, run_one registration) and the three advisories (exclusion assertions on the current-repo list test, wrapper help, mermaid) are all addressed.
+
+KISS/DRY/YAGNI: no over-engineering, duplication, or speculative code. wt_all_cursor_mains mirrors wt_all_mains; the awk unique in cmd_cleanup closes the double-removal case; the defensive record flush in the wt_cursor_worktrees awk is harmless. No TODOs, placeholders, or debug debris in the diff.
+
+Verification: full make test run. test-git-wt.sh (including the 13 new tests), trim, git-sync, wt-wrappers, shell-integration, shunit2 smoke, and shellcheck all pass. test-install-completions.sh and test-zsh-completion.sh fail only because the unpacked /tmp/zsh-local zsh lacks its compiled modules (zsh/parameter.so etc. under /usr/lib) - the pre-existing environmental limitation recorded in progress.md during Build; the diff touches no completion or install files.
+
+Advisory - wt_cursor_worktrees does not check that a listed worktree still exists on disk, while wt_created_worktrees does ([[ -d ]] guard). A stale prunable record under ~/.cursor/worktrees is printed by --list +cursor. Verified empirically on git 2.34.1 that git worktree remove on such a path succeeds (it prunes the record, rc=0), so the run does not fail; the only symptom is --list printing a path that no longer exists. Does not block.
+
+Advisory - the cmd_cleanup doc comment still reads "Arguments: optional --all, --list, --yes|-y, --force" and omits +cursor. Every user-facing surface (usage(), file header, README, both wrappers) was updated; only this one comment was missed. Does not block.

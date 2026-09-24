@@ -81,3 +81,33 @@ Add a positional `+cursor` token to `git wt cleanup` so it can also assess Curso
 * Insights
     - `make test` needs `zsh` on PATH. A unpacked `/tmp/zsh-local/bin/zsh` runs the wrapper tests. Completion tests still fail there because zsh modules are compiled to `/usr/lib` and this box has no system zsh
 
+## 2026-09-24 - QA - COMPLETE
+
+* Work completed
+    - QA returned PASS
+* Decisions made
+    - Advisories do not require a rebuild
+* Insights
+    - `wt_cursor_worktrees` does not re-check that the directory still exists; git already drops stale records
+
+## 2026-09-24 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-git-wt-cleanup-cursor.md`
+* Decisions made
+    - Leave `productContext.md`, `systemPatterns.md`, and `techContext.md` unchanged
+* Insights
+    - A new test in `tests/test-git-wt.sh` runs only when `main()` calls `run_one`
+
+
+## 2026-09-24 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the build diff against the plan and issue #11; wrote `memory-bank/active/.qa-validation-status` with first line `PASS`
+    - Ran the full `make test`: all suites green except the known environmental zsh-module failures in the completion suites
+    - Verified issue #13 is open for `+claude`
+* Decisions made
+    - Two advisories do not block: `wt_cursor_worktrees` has no on-disk existence guard (empirically harmless on git 2.34.1), and the `cmd_cleanup` doc comment omits `+cursor`
+* Insights
+    - `git worktree remove` on an already-deleted worktree path succeeds (prunes the record) on git 2.34.1, so a stale Cursor record cannot fail a cleanup run
+

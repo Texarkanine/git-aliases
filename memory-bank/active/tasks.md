@@ -115,4 +115,8 @@ No new technology - validation not required
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA Results
+
+PASS. All 13 planned behaviors tested and green; plan units 1-5 implemented as planned; issue #13 open for `+claude`. Full `make test`: only the known environmental zsh-module failures in the completion suites (pre-existing, recorded in progress.md). Two non-blocking advisories: `wt_cursor_worktrees` lacks the on-disk existence guard `wt_created_worktrees` has (verified harmless on git 2.34.1 - `git worktree remove` prunes stale records with rc=0), and the `cmd_cleanup` doc comment omits `+cursor` from its Arguments list. Details in `memory-bank/active/.qa-validation-status`.
