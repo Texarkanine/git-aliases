@@ -240,7 +240,12 @@ wt_scan_worktree_roots() {
 #   0
 wt_all_mains() {
 	local repo_dir name entry root main
-	for repo_dir in "${HOME}/worktrees"/*/*/; do
+	# Owners and repos may start with a dot (e.g. .github).
+	local -a repo_dirs
+	shopt -s dotglob
+	repo_dirs=( "${HOME}/worktrees"/*/*/ )
+	shopt -u dotglob
+	for repo_dir in "${repo_dirs[@]}"; do
 		[[ -d "${repo_dir}" ]] || continue
 		name="$(basename "${repo_dir}")"
 		for entry in "${repo_dir}${name}"-*/; do

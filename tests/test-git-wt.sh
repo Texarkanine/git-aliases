@@ -866,6 +866,25 @@ ${tcla_b}")
 	fi
 }
 
+# Repos whose name starts with a dot (e.g. .github) live in dot-named
+# directories under ~/worktrees; --all must still find them.
+test_cleanup_list_all_dot_repo() {
+	tcld_repo=$(make_repo)
+	git -C "${tcld_repo}" remote add origin \
+		git@github.com:Texarkanine/.github.git
+	cd "${tcld_repo}"
+	invoke git wt go dot-br
+	tcld_path="${last_out}"
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all --list failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tcld_path}" ]; then
+		fail "cleanup --all --list should print ${tcld_path}, got: ${last_out}"
+	fi
+}
+
 # A stray non-worktree directory with symlink loops must not hang the
 # --all scan, and the real worktree beside it is still listed.
 test_cleanup_list_all_symlink_loop() {
@@ -1190,6 +1209,7 @@ main() {
 	run_one test_cleanup_list_excludes_other_repo
 	run_one test_cleanup_list_all
 	run_one test_cleanup_list_all_symlink_loop
+	run_one test_cleanup_list_all_dot_repo
 	run_one test_cleanup_list_empty
 	run_one test_cleanup_list_skips_missing
 	run_one test_cleanup_yes_clean_only

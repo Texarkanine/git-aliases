@@ -95,3 +95,10 @@ Add `git wt cleanup` to find and tear down worktrees that `git wt go` created (c
     - Reflection written; persistent files reconciled (productContext edit reverted per its no-accretion rule; systemPatterns and techContext skipped).
 * Insights
     - Explicit `return 1` for helpers used in `if` conditions (`set -e` suspended); scans need `! -L` plus depth cap; sh test watchdogs leak, python session kill does not.
+
+## 2026-09-24 - OPERATOR-FOUND FIX - COMPLETE
+
+* Work completed
+    - Operator noticed `cleanup --list` was empty; investigation confirmed the machine has no go worktrees, but found `--all` skipped dot-named repos (`~/worktrees/Texarkanine/.github`) because bash globs skip dotdirs. Fixed with scoped `dotglob` in `wt_all_mains`; regression test `test_cleanup_list_all_dot_repo` (red, then green). Full suite green except the known environmental completions test.
+* Insights
+    - Repo names can start with a dot; any glob over `~/worktrees/<owner>/<repo>` needs `dotglob`.
