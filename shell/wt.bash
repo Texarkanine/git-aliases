@@ -53,9 +53,10 @@ usage: wt <command>
                       in the main tree; omit name to use the current
                       worktree; refuse if dirty unless --force; --yes
                       skips the discard confirmation
-  cleanup [--all] [--list] [--yes] [--force]
-                      remove worktrees git wt go created; switch to main
-                      if the current one was removed
+  cleanup [--all] [--list] [--yes] [--force] [+cursor]
+                      remove worktrees git wt go created; +cursor also
+                      includes ~/.cursor/worktrees; switch to main if the
+                      current one was removed
 EOF
 			;;
 		*)
