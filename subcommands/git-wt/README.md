@@ -54,6 +54,8 @@ Each worktree goes to this path:
 ~/worktrees/<owner>/<repo>/<repo>-<branch>
 ```
 
+Set `GITWT_ROOT` to an absolute path to use that directory instead of `~/worktrees`. `go`, `done`, and `cleanup` all use the same root. An empty `GITWT_ROOT` keeps `~/worktrees`. A relative `GITWT_ROOT` is an error. The shell expands `~` in the value before `git wt` sees it, so write `GITWT_ROOT=~/trees` without quotes if you want your home directory.
+
 For example:
 
 - Repository `git@github.com:Texarkanine/ai-rizz.git`, branch `feature-x`: `~/worktrees/Texarkanine/ai-rizz/ai-rizz-feature-x`
@@ -214,7 +216,7 @@ Each command exits with status 0 when it succeeds. It exits with a non-zero stat
 
 A worktree is on the `cleanup` list when it exists on disk, and its path is the [layout path](#where-worktrees-go) for the branch it has checked out. A worktree with a detached HEAD has no branch, so it is not on the list (except with `+cursor`, below).
 
-With `--all`, `cleanup` searches `~/worktrees` to find repositories. It does not follow symbolic links. It finds branch names that have up to nine `/`-separated parts. If a folder there belongs to a repository that no longer exists, `cleanup` skips it and shows a warning.
+With `--all`, `cleanup` searches the worktree root (`~/worktrees`, or `GITWT_ROOT` when that variable is set) to find repositories. It does not follow symbolic links. It finds branch names that have up to nine `/`-separated parts. If a folder there belongs to a repository that no longer exists, `cleanup` skips it and shows a warning.
 
 ### Cursor Worktrees
 

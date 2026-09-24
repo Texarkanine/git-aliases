@@ -108,6 +108,7 @@ run_isolated() {
 	(
 		HOME="${ri_home}"
 		export HOME
+		unset GITWT_ROOT
 		PATH="${TEST_BIN}:${PATH}"
 		export PATH
 		GIT_CONFIG_GLOBAL=/dev/null
@@ -1439,6 +1440,146 @@ test_done_home_with_spaces() {
 	fi
 }
 
+test_gitwt_root_go_done_cleanup() {
+	tgr_repo=$(make_repo)
+	git -C "${tgr_repo}" remote add origin \
+		git@github.com:Texarkanine/ai-rizz.git
+	GITWT_ROOT="${HOME}/custom-root"
+	export GITWT_ROOT
+	cd "${tgr_repo}"
+	tgr_want="${GITWT_ROOT}/Texarkanine/ai-rizz/ai-rizz-feature-x"
+	tgr_default="${HOME}/worktrees/Texarkanine/ai-rizz/ai-rizz-feature-x"
+	invoke git wt go feature-x
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go with GITWT_ROOT failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tgr_want}" ]; then
+		fail "GITWT_ROOT path: expected ${tgr_want}, got ${last_out}"
+	fi
+	if [ ! -d "${tgr_want}" ]; then
+		fail "go did not create ${tgr_want}"
+	fi
+	if [ -d "${tgr_default}" ]; then
+		fail "go created the default path ${tgr_default}"
+	fi
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all --list
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all --list with GITWT_ROOT failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tgr_want}" ]; then
+		fail "cleanup --all --list: expected ${tgr_want}, got ${last_out}"
+	fi
+	cd "${tgr_repo}"
+	tgr_cursor="${HOME}/.cursor/worktrees/sess/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/sess"
+	git worktree add --detach "${tgr_cursor}" >/dev/null 2>&1
+	invoke git wt cleanup --list +cursor
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --list +cursor with GITWT_ROOT failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	tgr_cwant=$(sorted_lines "${tgr_want}
+${tgr_cursor}")
+	tgr_cgot=$(sorted_lines "${last_out}")
+	if [ "${tgr_cgot}" != "${tgr_cwant}" ]; then
+		fail "cleanup --list +cursor: expected [${tgr_cwant}], got [${tgr_cgot}]"
+	fi
+	invoke git wt done feature-x
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "done with GITWT_ROOT failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tgr_want}" ]; then
+		fail "done should remove ${tgr_want}"
+	fi
+}
+
+test_gitwt_root_empty() {
+	tge_repo=$(make_repo)
+	git -C "${tge_repo}" remote add origin \
+		git@github.com:Texarkanine/ai-rizz.git
+	GITWT_ROOT=
+	export GITWT_ROOT
+	cd "${tge_repo}"
+	tge_want="${HOME}/worktrees/Texarkanine/ai-rizz/ai-rizz-empty"
+	invoke git wt go empty
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go with empty GITWT_ROOT failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tge_want}" ]; then
+		fail "empty GITWT_ROOT path: expected ${tge_want}, got ${last_out}"
+	fi
+}
+
+test_gitwt_root_relative() {
+	trel_repo=$(make_repo)
+	git -C "${trel_repo}" remote add origin \
+		git@github.com:Texarkanine/ai-rizz.git
+	GITWT_ROOT=relative/root
+	export GITWT_ROOT
+	cd "${trel_repo}"
+	invoke git wt go feature-x
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "relative GITWT_ROOT should be non-zero"
+	fi
+	if [ -e "${trel_repo}/relative/root" ]; then
+		fail "relative GITWT_ROOT created ${trel_repo}/relative/root"
+	fi
+	case "$(cat "${last_err}")" in
+		*"must be an absolute path"*) ;;
+		*) fail "relative GITWT_ROOT stderr: $(cat "${last_err}")" ;;
+	esac
+	case "$(cat "${last_err}")" in
+		*mkdir*) fail "relative GITWT_ROOT continued after the error: $(cat "${last_err}")" ;;
+	esac
+}
+
+test_gitwt_root_trailing_slash() {
+	tgts_repo=$(make_repo)
+	git -C "${tgts_repo}" remote add origin \
+		git@github.com:Texarkanine/ai-rizz.git
+	GITWT_ROOT="${HOME}/custom-root/"
+	export GITWT_ROOT
+	cd "${tgts_repo}"
+	tgts_want="${HOME}/custom-root/Texarkanine/ai-rizz/ai-rizz-feature-x"
+	invoke git wt go feature-x
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go with trailing slash failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tgts_want}" ]; then
+		fail "trailing slash path: expected ${tgts_want}, got ${last_out}"
+	fi
+	case "${last_out}" in
+		*//*) fail "trailing slash path contains //: ${last_out}" ;;
+	esac
+}
+
+test_gitwt_root_spaces() {
+	tgs_repo=$(make_repo)
+	git -C "${tgs_repo}" remote add origin \
+		git@github.com:Texarkanine/ai-rizz.git
+	GITWT_ROOT="${HOME}/custom root"
+	export GITWT_ROOT
+	cd "${tgs_repo}"
+	tgs_want="${GITWT_ROOT}/Texarkanine/ai-rizz/ai-rizz-space-br"
+	invoke git wt go space-br
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "go with spaced GITWT_ROOT failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tgs_want}" ]; then
+		fail "spaced GITWT_ROOT path: expected ${tgs_want}, got ${last_out}"
+	fi
+	if [ ! -d "${tgs_want}" ]; then
+		fail "go did not create ${tgs_want}"
+	fi
+	invoke git wt done space-br
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "done with spaced GITWT_ROOT failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tgs_want}" ]; then
+		fail "done should remove ${tgs_want}"
+	fi
+}
+
 run_one() {
 	ro_name="$1"
 	if run_isolated "${ro_name}"; then
@@ -1525,6 +1666,11 @@ main() {
 	run_one test_cleanup_cursor_dirty_force
 	run_one test_cleanup_cursor_keeps_nonempty_session
 	run_one test_cleanup_all_cursor_yes_once
+	run_one test_gitwt_root_go_done_cleanup
+	run_one test_gitwt_root_empty
+	run_one test_gitwt_root_relative
+	run_one test_gitwt_root_trailing_slash
+	run_one test_gitwt_root_spaces
 
 	rm -rf "${TEST_BIN}"
 
