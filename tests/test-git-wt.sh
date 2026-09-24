@@ -1241,6 +1241,23 @@ ${tcal_c2}")
 	fi
 }
 
+# --all +cursor finds a session directory whose name starts with a dot.
+test_cleanup_list_all_cursor_dot_session() {
+	tcad_repo=$(make_repo)
+	cd "${tcad_repo}"
+	tcad_wt="${HOME}/.cursor/worktrees/.github/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/.github"
+	git worktree add --detach "${tcad_wt}" >/dev/null 2>&1
+	cd "$(mktemp -d)"
+	invoke git wt cleanup --all --list +cursor
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --all --list +cursor failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tcad_wt}" ]; then
+		fail "dot session should be listed, got: ${last_out}"
+	fi
+}
+
 # An empty session directory is not a worktree and is not listed.
 test_cleanup_list_all_cursor_ignores_empty() {
 	tcie_repo=$(make_repo)
@@ -1500,6 +1517,7 @@ main() {
 	run_one test_cleanup_cursor_unknown_source
 	run_one test_cleanup_cursor_outside_repo
 	run_one test_cleanup_list_all_cursor
+	run_one test_cleanup_list_all_cursor_dot_session
 	run_one test_cleanup_list_all_cursor_ignores_empty
 	run_one test_cleanup_list_all_cursor_symlink_loop
 	run_one test_cleanup_cursor_yes_removes_and_rmdir

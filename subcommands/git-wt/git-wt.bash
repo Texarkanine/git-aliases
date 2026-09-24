@@ -322,6 +322,7 @@ wt_all_mains() {
 # Main checkouts of every repository with a worktree under
 # ~/.cursor/worktrees.
 #
+# The first path component may start with a dot (for example .github).
 # Scanned roots are resolved to the main checkout. Roots git cannot
 # open are skipped with a warning. Each main is printed once.
 #
@@ -334,19 +335,26 @@ wt_all_mains() {
 # Returns:
 #   0
 wt_all_cursor_mains() {
-	local root main
+	local session root main
+	local -a sessions
 	[[ -d "${HOME}/.cursor/worktrees" ]] || return 0
-	while IFS= read -r root; do
-		[[ -n "${root}" ]] || continue
-		main="$(cd "${root}" 2>/dev/null && wt_main_worktree 2>/dev/null)" \
-			|| main=""
-		if [[ -z "${main}" ]]; then
-			echo "wt: cleanup: skipping ${root}: not a usable worktree" >&2
-			continue
-		fi
-		printf '%s\n' "${main}"
-	done < <(wt_scan_worktree_roots "${HOME}/.cursor/worktrees") \
-		| awk '!seen[$0]++'
+	shopt -s dotglob
+	sessions=( "${HOME}/.cursor/worktrees"/*/ )
+	shopt -u dotglob
+	for session in "${sessions[@]}"; do
+		session="${session%/}"
+		[[ -d "${session}" && ! -L "${session}" ]] || continue
+		while IFS= read -r root; do
+			[[ -n "${root}" ]] || continue
+			main="$(cd "${root}" 2>/dev/null && wt_main_worktree 2>/dev/null)" \
+				|| main=""
+			if [[ -z "${main}" ]]; then
+				echo "wt: cleanup: skipping ${root}: not a usable worktree" >&2
+				continue
+			fi
+			printf '%s\n' "${main}"
+		done < <(wt_scan_worktree_roots "${session}")
+	done | awk '!seen[$0]++'
 }
 
 # Path of the linked worktree that contains cwd, or empty.
