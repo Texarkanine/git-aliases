@@ -21,3 +21,13 @@ Add `git wt cleanup` to find and tear down worktrees that `git wt go` created (c
     - Without `--force`, dirty rows are skipped (success). With `--force`, one cleanup confirmation replaces per-tree prompts.
     - `--all` discovers repos by scanning `~/worktrees` to worktree roots (slash-branch aware), deduped by main checkout.
     - `wt` wrappers forward `cleanup`; `--list` passes through uncaptured.
+
+## 2026-09-24 - PREFLIGHT - COMPLETE
+
+* Result: `PASS WITH ADVISORY`
+* Work completed
+    - Validated TDD ordering, conventions, dependency impact, conflicts, and completeness against `git-wt.bash`, both wrappers, and both test suites.
+    - Struck the `test_help_flags` `cleanup` assertion (change-detector).
+* Advisories
+    - Wrapper `|| return` drops the cd path when cleanup partially fails; the discovery `cd` into a missing layout path aborts under `set -e` (also `prunable` entries); the parent cwd can vanish mid-loop; `done --yes` usage/header text; locked worktrees count as failures; scan bounds; compute the layout prefix once.
+    - Radical: `go` records repos in a registry file so `cleanup --all` doesn't need to scan the filesystem.

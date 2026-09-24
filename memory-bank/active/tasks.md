@@ -25,7 +25,7 @@ Add `git wt cleanup [--all] [--list] [--yes|-y] [--force]` to `subcommands/git-w
 - nothing to clean: `cleanup --yes` in a repo with none → exit 0, stdout empty.
 - inside removed worktree: cwd inside a go worktree, `cleanup --yes` → stdout is the main checkout path, worktree removed; cwd outside → stdout empty (covered by the --yes test).
 - --all --yes removes across repos: two repos → both repos' go worktrees removed.
-- help lists cleanup: `git wt -h` stdout mentions `cleanup`.
+- ~~help lists cleanup: `git wt -h` stdout mentions `cleanup`.~~ (struck by preflight: change-detector)
 - wrapper cleanup cds: bash and zsh `wt cleanup --yes` with mock git printing a main path → pwd is that path.
 - wrapper cleanup --list passes through: bash and zsh `wt cleanup --list` → mock paths on stdout, pwd unchanged.
 
@@ -51,7 +51,7 @@ Add `git wt cleanup [--all] [--list] [--yes|-y] [--force]` to `subcommands/git-w
 
 - Files: `subcommands/git-wt/git-wt.bash`, `tests/test-git-wt.sh`
 
-1. Stub tests: `test_cleanup_list_current_repo`, `test_cleanup_list_excludes_other_repo`, `test_cleanup_list_all`, `test_cleanup_list_empty`, `test_cleanup_not_a_repo`, `test_cleanup_unknown_option`, `test_help_flags` gains a `cleanup` assertion.
+1. Stub tests: `test_cleanup_list_current_repo`, `test_cleanup_list_excludes_other_repo`, `test_cleanup_list_all`, `test_cleanup_list_empty`, `test_cleanup_not_a_repo`, `test_cleanup_unknown_option`. ~~`test_help_flags` gains a `cleanup` assertion.~~ (struck by preflight: change-detector)
 2. Stub interface: `wt_created_worktrees` (current repo: parse porcelain, for each non-main `branch refs/heads/X` entry compare `pwd -P` of its path with `pwd -P` of `wt_worktree_path X`; print matches), `wt_scan_worktree_roots <dir>` (recursive: print `dir` if `dir/.git` exists, else recurse into subdirs; stops at worktree roots so it never walks worktree contents; handles slash branches), `wt_all_mains` (scan `~/worktrees/*/*/*`, map each root to its main via `git -C root worktree list --porcelain`, dedupe; warn and skip roots git rejects), `cmd_cleanup` flag parsing and dispatch in `main`, `usage` text.
 3. Write tests and run red: as in the Behaviors list.
 4. Write code and run green: implement the functions; `--list` prints paths (per main, via a subshell `cd main && wt_created_worktrees` for `--all`), exit 0. Non-`--all` outside a repo dies.
