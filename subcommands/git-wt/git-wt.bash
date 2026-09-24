@@ -196,26 +196,32 @@ wt_created_worktrees() {
 # Worktree roots at or below a directory.
 #
 # Stops at the first directory holding .git, so it never walks worktree
-# contents. Recursion covers branch names with slashes.
+# contents. Recursion covers branch names with slashes. Symlinks are not
+# followed and depth is capped, so a stray non-worktree directory (loops,
+# leftover node_modules) cannot hang the scan.
 #
 # Globals:
 #   None
 # Arguments:
 #   $1 - directory to scan
+#   $2 - remaining depth (optional, default 8)
 # Outputs:
 #   Worktree root paths on STDOUT, one per line
 # Returns:
 #   0
 wt_scan_worktree_roots() {
 	local dir="${1}"
+	local depth="${2:-8}"
 	if [[ -e "${dir}/.git" ]]; then
 		printf '%s\n' "${dir}"
 		return 0
 	fi
+	(( depth > 0 )) || return 0
 	local sub
 	for sub in "${dir}"/*/; do
-		[[ -d "${sub}" ]] || continue
-		wt_scan_worktree_roots "${sub%/}"
+		sub="${sub%/}"
+		[[ -d "${sub}" && ! -L "${sub}" ]] || continue
+		wt_scan_worktree_roots "${sub}" $(( depth - 1 ))
 	done
 }
 

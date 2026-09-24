@@ -1,7 +1,7 @@
 # Active Context
 
 - **Current Task:** git wt cleanup
-- **Phase:** BUILD - COMPLETE
+- **Phase:** QA - COMPLETE (FAIL)
 - **What Was Done:** Built all 5 plan steps, test-first.
 - **Files modified:**
     - `/home/mobaxterm/Documents/git/git-aliases/subcommands/git-wt/git-wt.bash`
@@ -18,4 +18,5 @@
     - No terminal and no `--yes`: cleanup dies with "use --yes" instead of a raw `/dev/tty` error.
 - **Deviations from plan:** Added preflight advisories: wrapper cds on printed path even on failure (+2 tests); missing-dir test; locked-worktree continue-after-failure test; `usage`/header for `done --yes`. Help `cleanup` assertion struck by preflight as a change-detector.
 - **Environment note:** zsh is not installed on this machine (no passwordless sudo). Wrapper tests ran with a zsh extracted to `/tmp/zsh-local`; `test-install-completions` fails there identically on unmodified HEAD (missing zsh modules), so it is environmental.
-- **Next Step:** QA (subagent).
+- **QA rework:** symlink-loop hang in the `--all` scan fixed (no symlink following, depth cap 8) with a regression test.
+- **Next Step:** QA (subagent), re-run.

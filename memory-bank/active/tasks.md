@@ -116,4 +116,18 @@ No new technology - validation not required.
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [ ] QA - FAIL (fixable); Build must rerun for finding B1
+
+## QA Results
+
+Result: FAIL (fixable). Reviewed `f877ec5..HEAD` against this plan. `test-git-wt.sh`, `test-wt-wrappers.sh` (with the extracted zsh on PATH), and `make shellcheck` all pass. Every brief requirement and planned behavior is implemented and tested; README, wrapper help, `usage()`, header comment, and productContext are updated.
+
+### Blocking
+
+- **B1. `cleanup --all` can hang on a stray directory under `~/worktrees` (Regression/Integrity).** `wt_scan_worktree_roots` recurses into every non-hidden subdirectory until it finds `.git`, and `"${dir}"/*/` follows symlinks. The plan's mitigation ("stops at worktree roots, never walks worktree contents") holds only for live worktrees. A leftover directory without `.git` (e.g. a partly failed removal that left `node_modules`) is walked in full, in bash. With symlink loops the walk is exponential. Repro: `mkdir -p $H/worktrees/o/r/r-x/sub; ln -s .. $H/worktrees/o/r/r-x/sub/up; ln -s . $H/worktrees/o/r/r-x/self; HOME=$H git wt cleanup --all --list` does not finish in 20 s and prints nothing. Fix: do not follow symlinked directories in the scan, and bound it (e.g. a depth cap, or stop once a repo dir yields a usable root, since one root per `~/worktrees/<owner>/<repo>/` is enough to find its main). Add a test: a stray non-worktree dir with a symlink loop next to a real go worktree; `cleanup --all --list` finishes and still lists the real one.
+
+### Advisory
+
+- **A1. Duplicated confirmation logic (DRY).** `cmd_cleanup` re-implements the `/dev/tty` prompt/read/`case` from `wt_remove_worktree`, and the two now differ: cleanup dies with "no terminal to confirm; use --yes", while `done --force` without a terminal still fails with a raw `/dev/tty` error. A small `wt_confirm <prompt>` helper would unify them.
+- **A2. Main entry not excluded explicitly.** The plan said discovery walks non-main porcelain entries; `wt_created_worktrees` relies on the main checkout never sitting at a layout path. If it did, `--list` would print it and removal would fail (git refuses to remove a main worktree), so it is not destructive.
+- **A3. `done:` prefix in shared helper.** `wt_remove_worktree` dies with `done: ...` messages. They are unreachable from `cleanup` today (dirty rows are skipped without `--force`, and cleanup passes yes=1), so this is cosmetic.

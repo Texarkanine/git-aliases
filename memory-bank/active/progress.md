@@ -41,3 +41,20 @@ Add `git wt cleanup` to find and tear down worktrees that `git wt go` created (c
     - Layout-prefix matching for discovery; explicit `return 1` on remove failure because `set -e` is suspended in `if` conditions.
 * Insights
     - `test-install-completions` needs a real zsh install (modules + compinit); an extracted .deb is not enough.
+
+## 2026-09-24 - QA - COMPLETE
+
+* Result: `FAIL (fixable)`; Build must rerun.
+* Work completed
+    - Semantic review of `f877ec5..HEAD` against the plan; git-wt, wrapper, and shellcheck suites re-run green.
+* Findings
+    - Blocking: `cleanup --all` walks stray non-worktree dirs under `~/worktrees` in full and follows symlinks; a symlink loop makes it hang (reproduced). Skip symlinks and bound the scan; add a test.
+    - Advisory: duplicated `/dev/tty` confirm logic with divergent no-terminal handling; main entry not excluded explicitly in discovery; `done:` prefix in shared removal helper.
+
+## 2026-09-24 - BUILD (QA rework) - COMPLETE
+
+* Work completed
+    - Fixed QA blocker: `wt_scan_worktree_roots` no longer follows symlinked dirs and caps depth at 8, so a stray dir with symlink loops cannot hang `cleanup --all`. Added `test_cleanup_list_all_symlink_loop` (reproduced the hang red at the 20s watchdog, then green).
+    - Full suite rerun: all green except `test-install-completions`, which fails identically on unmodified HEAD with the extracted zsh (environmental).
+* Decisions made
+    - Declined QA advisories (shared prompt helper, explicit main-checkout skip, `done:` message prefix): untestable without environment tricks or unreachable; git already refuses to remove a main worktree.

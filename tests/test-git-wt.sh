@@ -839,6 +839,34 @@ ${tcla_b}")
 	fi
 }
 
+# A stray non-worktree directory with symlink loops must not hang the
+# --all scan, and the real worktree beside it is still listed.
+test_cleanup_list_all_symlink_loop() {
+	tcsl_repo=$(make_repo)
+	tcsl_base=$(basename "${tcsl_repo}")
+	cd "${tcsl_repo}"
+	invoke git wt go real
+	tcsl_real="${last_out}"
+	tcsl_stray="${HOME}/worktrees/local/${tcsl_base}/${tcsl_base}-stray"
+	mkdir -p "${tcsl_stray}/sub"
+	ln -s . "${tcsl_stray}/self"
+	ln -s .. "${tcsl_stray}/sub/up"
+	cd "$(mktemp -d)"
+	git wt cleanup --all --list >"${HOME}/out" 2>"${HOME}/err" &
+	tcsl_pid=$!
+	( sleep 20; kill "${tcsl_pid}" 2>/dev/null ) &
+	tcsl_dog=$!
+	tcsl_rc=0
+	wait "${tcsl_pid}" || tcsl_rc=$?
+	kill "${tcsl_dog}" 2>/dev/null || true
+	if [ "${tcsl_rc}" -ne 0 ]; then
+		fail "cleanup --all --list hung or failed (${tcsl_rc}): $(cat "${HOME}/err")"
+	fi
+	if [ "$(cat "${HOME}/out")" != "${tcsl_real}" ]; then
+		fail "cleanup --all --list should print ${tcsl_real}, got: $(cat "${HOME}/out")"
+	fi
+}
+
 test_cleanup_list_empty() {
 	tcle_repo=$(make_repo)
 	cd "${tcle_repo}"
@@ -1138,6 +1166,7 @@ main() {
 	run_one test_cleanup_list_current_repo
 	run_one test_cleanup_list_excludes_other_repo
 	run_one test_cleanup_list_all
+	run_one test_cleanup_list_all_symlink_loop
 	run_one test_cleanup_list_empty
 	run_one test_cleanup_list_skips_missing
 	run_one test_cleanup_yes_clean_only
