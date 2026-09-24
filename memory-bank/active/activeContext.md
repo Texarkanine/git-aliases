@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: GITWT_ROOT envvar support
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (PASS)
 
 ## What Was Done
 - `wt_worktrees_root` in `subcommands/git-wt/git-wt.bash` is the single root. Unset or empty keeps `${HOME}/worktrees`. A non-absolute value calls `wt_die` with a message that the path must be absolute. One trailing slash is stripped, except for `/`.

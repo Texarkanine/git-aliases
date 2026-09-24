@@ -52,3 +52,14 @@ Honor `GITWT_ROOT` as the root where `git wt` creates worktrees, falling back to
     - Do not canonicalize the configured path
 * Insights
     - This WSL box has no system zsh. A `dpkg -x` zsh runs `zsh -f` and the wrapper tests, and cannot load `zsh/parameter`, so `test_install_fence_preserves_prior_compdefs` failed. That test does not exercise `git wt`
+
+## 2026-09-24 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Semantic review of the build diff against the plan: KISS, DRY, YAGNI, completeness, regression, integrity, documentation
+    - Re-ran `sh tests/test-git-wt.sh`: all git-wt tests passed, including the five new `GITWT_ROOT` cases
+    - Wrote `memory-bank/active/.qa-validation-status` with first line `PASS` and recorded QA results in `tasks.md`
+* Decisions made
+    - PASS with two non-blocking advisories: `GITWT_ROOT=/` yields a doubled slash in printed paths (plan-accepted), and the relative-root error names the post-strip value
+* Insights
+    - The preflight advisories were honored in the build: `dotglob` structure in `wt_all_mains` is intact and the relative-root error message names the absolute-path requirement
