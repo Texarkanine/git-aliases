@@ -104,7 +104,9 @@ Removes one linked worktree. The branch and its commits stay.
 
 `done` works on all linked worktrees, including worktrees that `git wt go` did not make. It never removes the main checkout.
 
-`done` does not remove a *dirty* worktree. A worktree is dirty when `git status` shows changes, including new untracked files. Commit or stash your changes first, or use these options to discard them:
+`done` does not remove a *dirty* worktree. A worktree is dirty when a commit would record changes in it, including new untracked files. Files that your `pre-commit` hook removes from every commit do not count. `done` also does not remove a worktree whose detached HEAD is a commit that no branch, tag, or remote branch contains, because that commit would be lost. See [What Counts as Dirty](#what-counts-as-dirty).
+
+Commit or stash your changes (or create a branch for the commit) first, or use these options to discard them:
 
 - `--force` removes a dirty worktree. Before it discards the changes, it asks you to confirm on the terminal.
 - `--yes` (or `-y`) skips that question.
@@ -129,7 +131,9 @@ Removes all the worktrees that `git wt go` made in this repository. First it sho
 - `--list` prints the paths, one on each line, and removes nothing. Use it to look before you remove.
 - `--all` works on all repositories that have worktrees under `~/worktrees`, not only the current repository. You can run it from any folder.
 - `--yes` (or `-y`) skips the question.
-- `--force` also removes dirty worktrees, and discards their changes. Without `--force`, `cleanup` skips dirty worktrees and tells you. The one question covers all the worktrees in the list. There is no second question for each worktree.
+- `--force` also removes dirty worktrees, and discards their changes. Without `--force`, `cleanup` skips dirty worktrees, and shows up to five of the files that make each one dirty. The one question covers all the worktrees in the list. There is no second question for each worktree.
+
+A worktree that has only files your `pre-commit` hook strips is not dirty. `cleanup` removes it without `--force`, and its list shows up to five of the files it will discard. See [What Counts as Dirty](#what-counts-as-dirty).
 - `+cursor` also includes the worktrees that the Cursor editor made. See [Cursor Worktrees](#cursor-worktrees).
 
 `cleanup` removes only worktrees at the path in [Where Worktrees Go](#where-worktrees-go). It does not touch worktrees that you made with plain `git worktree add`, or that you moved. Use `git wt done` for those.
@@ -211,6 +215,25 @@ The reverse is also true. To check out a branch in the main checkout, first remo
 - `cleanup` prints the path of the main checkout only if the current directory was in a removed worktree. It prints this path even when a different removal failed.
 
 Each command exits with status 0 when it succeeds. It exits with a non-zero status when it refuses, when you answer "no" to its question, or when a removal fails.
+
+### What Counts as Dirty
+
+Before `done` or `cleanup` removes a worktree, `git wt` checks whether anything would be lost.
+
+- If `git status` shows nothing, nothing is lost. There is one exception: a detached HEAD at a commit that no branch, tag, or remote branch contains. Removing the worktree would lose that commit, so `git wt` keeps the worktree unless you use `--force`.
+- If `git status` shows changes, `git wt` makes a *dry-run commit*. It stages every file into a temporary index, runs your `pre-commit` hook on that index, and compares the result with `HEAD`. If they are the same, every change is a file that the hook removes from every commit, and the worktree is not dirty.
+
+Some tools keep files out of the repository with a `pre-commit` hook that unstages them, instead of with `.gitignore`. For example, [ai-rizz](https://github.com/Texarkanine/ai-rizz) does this for local agent rules, because the Cursor editor hides git-ignored files from its agents. These files always show in `git status`, but they are not part of the repository, so `git wt` discards them.
+
+The dry run does not make a commit. It does not change your real index, your branches, or your files:
+
+- It finds the hook the same way `git commit` does, including `core.hooksPath`.
+- The hook gets no input. If the `timeout` command is installed, a hook that runs longer than 120 seconds is stopped.
+- If the hook fails, `git wt` cannot tell what a commit would contain, so the worktree is dirty.
+- If the hook changes files in the worktree (a formatter, for example), `git wt` puts them back, and the worktree is dirty.
+- A file with both staged and unstaged changes is dirty. The dry run stages the whole file, which would hide the staged version.
+
+The dry run takes as long as your hook takes. Worktrees where `git status` shows nothing skip it. `cleanup` runs it once to make the list, and again just before it removes each worktree.
 
 ### How Cleanup Finds Worktrees
 
