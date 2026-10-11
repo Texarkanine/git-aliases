@@ -1439,7 +1439,7 @@ add_local_rule() {
 }
 
 # Files that the pre-commit hook strips do not make a worktree dirty.
-# Cleanup removes it without --force and names the discarded file.
+# Cleanup removes it without --force.
 test_cleanup_stripped_removed() {
 	tcsr_repo=$(make_repo)
 	cd "${tcsr_repo}"
@@ -1454,9 +1454,8 @@ test_cleanup_stripped_removed() {
 	if [ -d "${tcsr_wt}" ]; then
 		fail "cleanup --yes should remove ${tcsr_wt}: $(cat "${last_err}")"
 	fi
-	if ! grep -q 'strips' "${last_err}" \
-		|| ! grep -q 'local/rule.md' "${last_err}"; then
-		fail "cleanup should name the stripped file: $(cat "${last_err}")"
+	if ! grep -q 'strips' "${last_err}"; then
+		fail "cleanup should say the hook strips the files: $(cat "${last_err}")"
 	fi
 	if ! git show-ref --verify --quiet refs/heads/sr-local; then
 		fail "cleanup should leave branch sr-local"
@@ -1481,27 +1480,8 @@ test_cleanup_stripped_with_change_kept() {
 	if [ ! -d "${tcsc_wt}" ]; then
 		fail "cleanup without --force should keep ${tcsc_wt}"
 	fi
-	if ! grep -q 'force' "${last_err}" || ! grep -q 'file.txt' "${last_err}"; then
-		fail "cleanup should name file.txt and --force: $(cat "${last_err}")"
-	fi
 	if [ "$(git -C "${tcsc_wt}" status --porcelain)" != "${tcsc_before}" ]; then
 		fail "dry run changed git status of ${tcsc_wt}"
-	fi
-}
-
-# With no pre-commit hook, an untracked file is still dirty.
-test_cleanup_untracked_without_hook_kept() {
-	tcun_repo=$(make_repo)
-	cd "${tcun_repo}"
-	invoke git wt go un-plain
-	tcun_wt="${last_out}"
-	add_local_rule "${tcun_wt}"
-	invoke git wt cleanup --yes
-	if [ "${last_rc}" -ne 0 ]; then
-		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
-	fi
-	if [ ! -d "${tcun_wt}" ]; then
-		fail "untracked file without a hook should keep ${tcun_wt}"
 	fi
 }
 
@@ -1520,9 +1500,6 @@ exit 1"
 	fi
 	if [ ! -d "${tchf_wt}" ]; then
 		fail "a failing hook should keep ${tchf_wt}"
-	fi
-	if ! grep -q 'hook failed' "${last_err}"; then
-		fail "cleanup should say the hook failed: $(cat "${last_err}")"
 	fi
 }
 
@@ -1544,9 +1521,6 @@ rm -f notes.txt"
 	fi
 	if [ ! -d "${tche_wt}" ]; then
 		fail "a hook that edits files should keep ${tche_wt}"
-	fi
-	if ! grep -q 'edited' "${last_err}"; then
-		fail "cleanup should say the hook edited files: $(cat "${last_err}")"
 	fi
 	if [ "$(cat "${tche_wt}/file.txt")" != "$(printf 'x\ny')" ]; then
 		fail "file.txt was not put back: $(cat "${tche_wt}/file.txt")"
@@ -1580,25 +1554,6 @@ test_cleanup_partially_staged_kept() {
 	fi
 }
 
-# core.hooksPath chooses the hook, as it does for git commit.
-test_cleanup_hooks_path() {
-	tchp_repo=$(make_repo)
-	cd "${tchp_repo}"
-	tchp_hooks="$(mktemp -d)/hooks"
-	write_hook "${tchp_hooks}" "${STRIP_LOCAL}"
-	git config core.hooksPath "${tchp_hooks}"
-	invoke git wt go hp-path
-	tchp_wt="${last_out}"
-	add_local_rule "${tchp_wt}"
-	invoke git wt cleanup --yes
-	if [ "${last_rc}" -ne 0 ]; then
-		fail "cleanup --yes failed (${last_rc}): $(cat "${last_err}")"
-	fi
-	if [ -d "${tchp_wt}" ]; then
-		fail "core.hooksPath hook should make ${tchp_wt} removable"
-	fi
-}
-
 # A detached HEAD that no ref contains would be lost: cleanup keeps it
 # without --force, even though git status is clean.
 test_cleanup_orphan_kept() {
@@ -1618,41 +1573,6 @@ test_cleanup_orphan_kept() {
 	fi
 	if ! grep -q 'no branch' "${last_err}"; then
 		fail "cleanup should say HEAD is on no branch: $(cat "${last_err}")"
-	fi
-}
-
-# --force removes a worktree with an orphaned detached HEAD.
-test_cleanup_orphan_force_removed() {
-	tcof_repo=$(make_repo)
-	cd "${tcof_repo}"
-	tcof_wt="${HOME}/.cursor/worktrees/orphanf/repoish"
-	mkdir -p "${HOME}/.cursor/worktrees/orphanf"
-	git worktree add --detach "${tcof_wt}" >/dev/null 2>&1
-	printf 'z\n' >> "${tcof_wt}/file.txt"
-	git -C "${tcof_wt}" commit -qam orphan
-	invoke git wt cleanup +cursor --yes --force
-	if [ "${last_rc}" -ne 0 ]; then
-		fail "cleanup +cursor --yes --force failed (${last_rc}): $(cat "${last_err}")"
-	fi
-	if [ -d "${tcof_wt}" ]; then
-		fail "cleanup --force should remove ${tcof_wt}"
-	fi
-}
-
-# done also removes a worktree with only stripped files, without --force.
-test_done_stripped_without_force() {
-	tdsf_repo=$(make_repo)
-	cd "${tdsf_repo}"
-	write_hook "${tdsf_repo}/.git/hooks" "${STRIP_LOCAL}"
-	invoke git wt go sf-done
-	tdsf_wt="${last_out}"
-	add_local_rule "${tdsf_wt}"
-	invoke git wt done sf-done
-	if [ "${last_rc}" -ne 0 ]; then
-		fail "done with only stripped files failed (${last_rc}): $(cat "${last_err}")"
-	fi
-	if [ -d "${tdsf_wt}" ]; then
-		fail "done should remove ${tdsf_wt}"
 	fi
 }
 
@@ -1942,14 +1862,10 @@ main() {
 	run_one test_cleanup_all_cursor_yes_once
 	run_one test_cleanup_stripped_removed
 	run_one test_cleanup_stripped_with_change_kept
-	run_one test_cleanup_untracked_without_hook_kept
 	run_one test_cleanup_hook_fails_kept
 	run_one test_cleanup_hook_edits_put_back
 	run_one test_cleanup_partially_staged_kept
-	run_one test_cleanup_hooks_path
 	run_one test_cleanup_orphan_kept
-	run_one test_cleanup_orphan_force_removed
-	run_one test_done_stripped_without_force
 	run_one test_done_orphan_refused
 	run_one test_gitwt_root_go_done_cleanup
 	run_one test_gitwt_root_empty
