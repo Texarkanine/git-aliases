@@ -24,3 +24,14 @@ Correct `git wt` so a worktree is `stripped` only when every status path is in t
 * Insights
     - `protocol.file.allow` is ignored in local config; the submodule fixture passes `-c protocol.file.allow=always`
     - `make test` stops at `test-wt-wrappers.sh` on this machine because `zsh` is not installed. That failure is unchanged. `git wt` tests passed.
+
+## 2026-10-11 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the 079f569..HEAD diff against projectbrief.md requirements and acceptance criteria
+    - Ran the full `git-wt` suite: all tests passed, including the 6 new classification tests
+    - Ran ShellCheck and `bash -n` on `git-wt.bash`: syntax OK, only pre-existing SC1007 warnings on untouched lines
+* Decisions made
+    - PASS: no blocking findings; advisories only (porcelain rename/quote paths fail safe to `dirty`, `after=""` init redundant but harmless)
+* Insights
+    - `wt_status_covered` errs toward `dirty` on anything it cannot match, which is the safe direction for a removal gate
