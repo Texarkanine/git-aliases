@@ -65,3 +65,15 @@ Compare status and the pre-hook diff as NUL-separated paths, so a hook-stripped 
 * Insights
     - Bash variables cannot hold NUL, so the two streams are temp files
     - `make test` still stops at `test-wt-wrappers.sh` because `zsh` is not installed. `git wt` tests passed. ShellCheck on `git-wt.bash` reports only the pre-existing SC1007 warnings
+
+## 2026-10-12 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the 492cd2d..31d7b12 rework diff against the quoted-path requirements
+    - Ran the full `git-wt` suite: all tests passed, including the new file-and-directory paths containing spaces
+    - Ran `make test`: trim, git-wt, and git-sync passed before the unchanged missing-zsh environment blocker
+    - Ran `bash -n` and ShellCheck on `git-wt.bash`: syntax passed; ShellCheck reported only pre-existing SC1007 warnings on untouched lines
+* Decisions made
+    - PASS: no blocking findings
+* Insights
+    - The NUL-delimited parser preserves path bytes and safely classifies malformed or rename/copy records as dirty
