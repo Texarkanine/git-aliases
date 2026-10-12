@@ -1403,6 +1403,407 @@ test_cleanup_all_cursor_yes_once() {
 	fi
 }
 
+# Install an executable pre-commit hook.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - hooks directory
+#   $2 - hook body (sh)
+# Outputs:
+#   None
+# Returns:
+#   0
+write_hook() {
+	mkdir -p "$1"
+	printf '#!/bin/sh\n%s\n' "$2" > "$1/pre-commit"
+	chmod +x "$1/pre-commit"
+}
+
+# A hook body that unstages local/, like ai-rizz local mode.
+STRIP_LOCAL='git reset -q HEAD -- local/ 2>/dev/null || true'
+
+# Make local/rule.md in a worktree: an untracked file the hook strips.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - worktree path
+# Outputs:
+#   None
+# Returns:
+#   0
+add_local_rule() {
+	mkdir -p "$1/local"
+	printf 'rule\n' > "$1/local/rule.md"
+}
+
+# Commit a submodule named sub at $1, with one file the caller can dirty.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - parent repository path
+# Outputs:
+#   None
+# Returns:
+#   0
+plant_submodule() {
+	ps_sub=$(mktemp -d)
+	git init -b main "${ps_sub}" >/dev/null
+	git -C "${ps_sub}" config user.name test
+	git -C "${ps_sub}" config user.email test@example.com
+	printf 'base\n' > "${ps_sub}/f"
+	git -C "${ps_sub}" add f
+	git -C "${ps_sub}" commit -q -m base
+	git -C "$1" config diff.ignoreSubmodules none
+	git -C "$1" -c protocol.file.allow=always submodule add "${ps_sub}" sub >/dev/null
+	git -C "$1" commit -q -m 'add sub'
+}
+
+# Check out the submodule in a worktree and append a line to its file.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - worktree path
+# Outputs:
+#   None
+# Returns:
+#   0
+dirty_submodule() {
+	git -C "$1" -c protocol.file.allow=always submodule update --init >/dev/null
+	printf 'dirty\n' >> "$1/sub/f"
+}
+
+# Files that the pre-commit hook strips do not make a worktree dirty.
+# Cleanup removes it without --force.
+test_cleanup_stripped_removed() {
+	tcsr_repo=$(make_repo)
+	cd "${tcsr_repo}"
+	write_hook "${tcsr_repo}/.git/hooks" "${STRIP_LOCAL}"
+	invoke git wt go sr-local
+	tcsr_wt="${last_out}"
+	add_local_rule "${tcsr_wt}"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tcsr_wt}" ]; then
+		fail "cleanup --yes should remove ${tcsr_wt}: $(cat "${last_err}")"
+	fi
+	if ! grep -q 'strips' "${last_err}"; then
+		fail "cleanup should say the hook strips the files: $(cat "${last_err}")"
+	fi
+	if ! git show-ref --verify --quiet refs/heads/sr-local; then
+		fail "cleanup should leave branch sr-local"
+	fi
+}
+
+# A hook-stripped file and directory whose paths contain a space are removed.
+# Porcelain quotes those paths. Cleanup still removes the worktree.
+test_cleanup_stripped_quoted_paths_removed() {
+	tcsq_repo=$(make_repo)
+	cd "${tcsq_repo}"
+	write_hook "${tcsq_repo}/.git/hooks" 'git reset -q HEAD -- "my rule.md" "local rules" 2>/dev/null || true'
+	invoke git wt go sq-quoted
+	tcsq_wt="${last_out}"
+	printf 'rule\n' > "${tcsq_wt}/my rule.md"
+	mkdir -p "${tcsq_wt}/local rules"
+	printf 'rule\n' > "${tcsq_wt}/local rules/rule.md"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tcsq_wt}" ]; then
+		fail "cleanup --yes should remove ${tcsq_wt}: $(cat "${last_err}")"
+	fi
+	if ! grep -q 'strips' "${last_err}"; then
+		fail "cleanup should say the hook strips the files: $(cat "${last_err}")"
+	fi
+}
+
+# A real change next to stripped files keeps the worktree. The dry run
+# writes neither the real index nor the files.
+test_cleanup_stripped_with_change_kept() {
+	tcsc_repo=$(make_repo)
+	cd "${tcsc_repo}"
+	write_hook "${tcsc_repo}/.git/hooks" "${STRIP_LOCAL}"
+	invoke git wt go sc-mixed
+	tcsc_wt="${last_out}"
+	add_local_rule "${tcsc_wt}"
+	printf 'y\n' >> "${tcsc_wt}/file.txt"
+	tcsc_before=$(git -C "${tcsc_wt}" status --porcelain)
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tcsc_wt}" ]; then
+		fail "cleanup without --force should keep ${tcsc_wt}"
+	fi
+	if [ "$(git -C "${tcsc_wt}" status --porcelain)" != "${tcsc_before}" ]; then
+		fail "dry run changed git status of ${tcsc_wt}"
+	fi
+}
+
+# A failing hook proves nothing, so the worktree is kept.
+test_cleanup_hook_fails_kept() {
+	tchf_repo=$(make_repo)
+	cd "${tchf_repo}"
+	write_hook "${tchf_repo}/.git/hooks" "${STRIP_LOCAL}
+exit 1"
+	invoke git wt go hf-fail
+	tchf_wt="${last_out}"
+	add_local_rule "${tchf_wt}"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tchf_wt}" ]; then
+		fail "a failing hook should keep ${tchf_wt}"
+	fi
+}
+
+# A hook that edits, creates, and deletes files is undone, and the
+# worktree is kept.
+test_cleanup_hook_edits_put_back() {
+	tche_repo=$(make_repo)
+	cd "${tche_repo}"
+	write_hook "${tche_repo}/.git/hooks" "printf 'formatted\\n' > file.txt
+printf 'new\\n' > created.txt
+rm -f notes.txt"
+	invoke git wt go he-edit
+	tche_wt="${last_out}"
+	printf 'y\n' >> "${tche_wt}/file.txt"
+	printf 'mine\n' > "${tche_wt}/notes.txt"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tche_wt}" ]; then
+		fail "a hook that edits files should keep ${tche_wt}"
+	fi
+	if [ "$(cat "${tche_wt}/file.txt")" != "$(printf 'x\ny')" ]; then
+		fail "file.txt was not put back: $(cat "${tche_wt}/file.txt")"
+	fi
+	if [ -e "${tche_wt}/created.txt" ]; then
+		fail "created.txt should be deleted again"
+	fi
+	if [ "$(cat "${tche_wt}/notes.txt" 2>/dev/null)" != "mine" ]; then
+		fail "notes.txt was not put back"
+	fi
+}
+
+# A file with staged and unstaged changes is dirty: staging everything
+# would hide the staged version.
+test_cleanup_partially_staged_kept() {
+	tcps_repo=$(make_repo)
+	cd "${tcps_repo}"
+	write_hook "${tcps_repo}/.git/hooks" "${STRIP_LOCAL}"
+	invoke git wt go ps-partial
+	tcps_wt="${last_out}"
+	add_local_rule "${tcps_wt}"
+	printf 'y\n' >> "${tcps_wt}/file.txt"
+	git -C "${tcps_wt}" add file.txt
+	printf 'x\n' > "${tcps_wt}/file.txt"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tcps_wt}" ]; then
+		fail "a partially staged file should keep ${tcps_wt}"
+	fi
+}
+
+# A detached HEAD that no ref contains would be lost: cleanup keeps it
+# without --force, even though git status is clean.
+test_cleanup_orphan_kept() {
+	tcok_repo=$(make_repo)
+	cd "${tcok_repo}"
+	tcok_wt="${HOME}/.cursor/worktrees/orphan/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/orphan"
+	git worktree add --detach "${tcok_wt}" >/dev/null 2>&1
+	printf 'z\n' >> "${tcok_wt}/file.txt"
+	git -C "${tcok_wt}" commit -qam orphan
+	invoke git wt cleanup +cursor --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup +cursor --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tcok_wt}" ]; then
+		fail "orphaned detached HEAD should keep ${tcok_wt}"
+	fi
+	if ! grep -q 'no branch' "${last_err}"; then
+		fail "cleanup should say HEAD is on no branch: $(cat "${last_err}")"
+	fi
+}
+
+# A dirty submodule is uncommitted work git add does not record.
+# Cleanup keeps the worktree without --force.
+test_cleanup_submodule_dirty_kept() {
+	tcsd_repo=$(make_repo)
+	plant_submodule "${tcsd_repo}"
+	cd "${tcsd_repo}"
+	invoke git wt go sd-sub
+	tcsd_wt="${last_out}"
+	dirty_submodule "${tcsd_wt}"
+	if ! git -C "${tcsd_wt}" status --porcelain | grep -q ' sub$'; then
+		fail "dirty submodule should show in status: $(git -C "${tcsd_wt}" status --porcelain)"
+	fi
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tcsd_wt}" ]; then
+		fail "a dirty submodule should keep ${tcsd_wt}: $(cat "${last_err}")"
+	fi
+}
+
+# A dirty submodule beside a hook-stripped untracked file stays dirty.
+# The pre-hook tree differs from HEAD only because of the stripped file.
+test_cleanup_submodule_beside_stripped_kept() {
+	tcss_repo=$(make_repo)
+	plant_submodule "${tcss_repo}"
+	cd "${tcss_repo}"
+	write_hook "${tcss_repo}/.git/hooks" "${STRIP_LOCAL}"
+	invoke git wt go ss-mix
+	tcss_wt="${last_out}"
+	dirty_submodule "${tcss_wt}"
+	add_local_rule "${tcss_wt}"
+	if ! git -C "${tcss_wt}" status --porcelain | grep -q ' sub$'; then
+		fail "dirty submodule should show in status: $(git -C "${tcss_wt}" status --porcelain)"
+	fi
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tcss_wt}" ]; then
+		fail "a submodule edit beside stripped files should keep ${tcss_wt}: $(cat "${last_err}")"
+	fi
+}
+
+# A CRLF-only edit under core.autocrlf=input matches HEAD after git add.
+# That is not a hook stripping the file. Cleanup keeps the worktree.
+test_cleanup_crlf_input_kept() {
+	tcci_repo=$(make_repo)
+	git -C "${tcci_repo}" config core.autocrlf input
+	cd "${tcci_repo}"
+	invoke git wt go ci-crlf
+	tcci_wt="${last_out}"
+	printf 'x\r\n' > "${tcci_wt}/file.txt"
+	if [ -z "$(git -C "${tcci_wt}" status --porcelain)" ]; then
+		fail "CRLF file under autocrlf=input should show in status"
+	fi
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tcci_wt}" ]; then
+		fail "a CRLF-only file under autocrlf=input should keep ${tcci_wt}: $(cat "${last_err}")"
+	fi
+}
+
+# Same classification for a CRLF-only file under * text=auto.
+test_cleanup_text_auto_kept() {
+	tcta_repo=$(make_repo)
+	printf '* text=auto\n' > "${tcta_repo}/.gitattributes"
+	git -C "${tcta_repo}" add .gitattributes
+	git -C "${tcta_repo}" commit -q -m attrs
+	cd "${tcta_repo}"
+	invoke git wt go ta-crlf
+	tcta_wt="${last_out}"
+	printf 'x\r\n' > "${tcta_wt}/file.txt"
+	if [ -z "$(git -C "${tcta_wt}" status --porcelain)" ]; then
+		fail "CRLF file under text=auto should show in status"
+	fi
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tcta_wt}" ]; then
+		fail "a CRLF-only file under text=auto should keep ${tcta_wt}: $(cat "${last_err}")"
+	fi
+}
+
+# An orphaned detached HEAD with an unstaged edit is dirty. The refusal
+# names the edit. --force asks to discard uncommitted changes.
+test_done_orphan_with_edit_is_dirty() {
+	tdoe_repo=$(make_repo)
+	cd "${tdoe_repo}"
+	tdoe_wt="$(mktemp -d)/detached"
+	git worktree add --detach "${tdoe_wt}" >/dev/null 2>&1
+	printf 'z\n' >> "${tdoe_wt}/file.txt"
+	git -C "${tdoe_wt}" commit -qam orphan
+	printf 'more\n' >> "${tdoe_wt}/file.txt"
+	cd "${tdoe_wt}"
+	invoke git wt done
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "done on an orphaned HEAD with an edit should fail"
+	fi
+	if ! grep -q 'dirty' "${last_err}"; then
+		fail "refusal should say the worktree is dirty: $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tdoe_wt}" ]; then
+		fail "done should keep ${tdoe_wt}"
+	fi
+	tdoe_rc=0
+	tdoe_out=$(run_with_tty n git wt done --force) || tdoe_rc=$?
+	if [ "${tdoe_rc}" -eq 0 ]; then
+		fail "answering n to done --force should abort"
+	fi
+	case "${tdoe_out}" in
+		*uncommitted*) ;;
+		*) fail "force prompt should name uncommitted changes: ${tdoe_out}" ;;
+	esac
+	if [ ! -d "${tdoe_wt}" ]; then
+		fail "answering n should keep ${tdoe_wt}"
+	fi
+}
+
+# Hook-stripped files on an orphaned detached HEAD stay orphan: cleanup
+# keeps the worktree without --force and says the HEAD is on no branch.
+test_cleanup_orphan_stripped_kept() {
+	tcos_repo=$(make_repo)
+	cd "${tcos_repo}"
+	write_hook "${tcos_repo}/.git/hooks" "${STRIP_LOCAL}"
+	tcos_wt="${HOME}/.cursor/worktrees/orphan-strip/repoish"
+	mkdir -p "${HOME}/.cursor/worktrees/orphan-strip"
+	git worktree add --detach "${tcos_wt}" >/dev/null 2>&1
+	printf 'z\n' >> "${tcos_wt}/file.txt"
+	git -C "${tcos_wt}" commit -qam orphan
+	add_local_rule "${tcos_wt}"
+	invoke git wt cleanup +cursor --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup +cursor --yes should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tcos_wt}" ]; then
+		fail "orphaned HEAD with only hook-stripped files should keep ${tcos_wt}: $(cat "${last_err}")"
+	fi
+	if ! grep -q 'no branch' "${last_err}"; then
+		fail "cleanup should say HEAD is on no branch: $(cat "${last_err}")"
+	fi
+}
+
+# done refuses an orphaned detached HEAD without --force.
+test_done_orphan_refused() {
+	tdor_repo=$(make_repo)
+	cd "${tdor_repo}"
+	tdor_wt="$(mktemp -d)/detached"
+	git worktree add --detach "${tdor_wt}" >/dev/null 2>&1
+	printf 'z\n' >> "${tdor_wt}/file.txt"
+	git -C "${tdor_wt}" commit -qam orphan
+	cd "${tdor_wt}"
+	invoke git wt done
+	if [ "${last_rc}" -eq 0 ]; then
+		fail "done on an orphaned HEAD without --force should fail"
+	fi
+	if ! grep -q 'no branch' "${last_err}" || ! grep -q 'force' "${last_err}"; then
+		fail "done refusal should name the branchless HEAD and --force: $(cat "${last_err}")"
+	fi
+	if [ ! -d "${tdor_wt}" ]; then
+		fail "done should keep ${tdor_wt}"
+	fi
+}
+
 test_cleanup_unknown_option() {
 	tcuo_repo=$(make_repo)
 	cd "${tcuo_repo}"
@@ -1666,6 +2067,20 @@ main() {
 	run_one test_cleanup_cursor_dirty_force
 	run_one test_cleanup_cursor_keeps_nonempty_session
 	run_one test_cleanup_all_cursor_yes_once
+	run_one test_cleanup_stripped_removed
+	run_one test_cleanup_stripped_quoted_paths_removed
+	run_one test_cleanup_stripped_with_change_kept
+	run_one test_cleanup_hook_fails_kept
+	run_one test_cleanup_hook_edits_put_back
+	run_one test_cleanup_partially_staged_kept
+	run_one test_cleanup_orphan_kept
+	run_one test_cleanup_submodule_dirty_kept
+	run_one test_cleanup_submodule_beside_stripped_kept
+	run_one test_cleanup_crlf_input_kept
+	run_one test_cleanup_text_auto_kept
+	run_one test_done_orphan_with_edit_is_dirty
+	run_one test_cleanup_orphan_stripped_kept
+	run_one test_done_orphan_refused
 	run_one test_gitwt_root_go_done_cleanup
 	run_one test_gitwt_root_empty
 	run_one test_gitwt_root_relative

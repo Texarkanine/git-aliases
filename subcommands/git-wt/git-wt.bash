@@ -428,19 +428,186 @@ wt_worktree_for_branch() {
 	'
 }
 
-# Whether a worktree has uncommitted changes.
+# Tree of the current worktree: the real index, plus every file that git
+# does not ignore, staged into a scratch index. Run from the worktree root.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - real index path
+#   $2 - scratch index path to create
+# Outputs:
+#   Tree id on STDOUT
+# Returns:
+#   0 on success, non-zero if git cannot stage the files
+wt_snapshot_tree() {
+	cp "${1}" "${2}" 2>/dev/null || true
+	GIT_INDEX_FILE="${2}" git add -A >/dev/null 2>&1 \
+		&& GIT_INDEX_FILE="${2}" git write-tree
+}
+
+# Whether HEAD is detached at a commit no branch, tag, or remote contains.
+#
+# Removing that worktree would lose the commit.
+#
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   None
+# Returns:
+#   0 if HEAD would be lost, 1 otherwise
+wt_head_orphaned() {
+	if git symbolic-ref -q HEAD >/dev/null; then
+		return 1
+	fi
+	[[ -z "$(git for-each-ref --contains HEAD refs/heads refs/remotes refs/tags 2>/dev/null)" ]]
+}
+
+# Whether every status path shows up in the diff between two trees.
+#
+# Paths come from git status -z and git diff-tree -z, so a space in a
+# path is not quoted. A trailing slash marks a directory (local/, or
+# local rules/). It is covered when a diff path is inside it. A path
+# git add does not record, such as a dirty submodule, is not covered.
+# A rename or copy is not covered. Run from the worktree root.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - HEAD tree
+#   $2 - pre-hook tree
+# Outputs:
+#   None
+# Returns:
+#   0 when every status path is covered, 1 otherwise
+wt_status_covered() {
+	local head="${1}"
+	local before="${2}"
+	local tmp record path name xy covered rc
+	rc=0
+	tmp="$(mktemp -d)" || return 1
+	if ! git diff-tree -z -r --name-only --no-renames "${head}" "${before}" >"${tmp}/diff" \
+		|| ! git status --porcelain -z >"${tmp}/status" \
+		|| [ ! -s "${tmp}/status" ]; then
+		rm -rf "${tmp}"
+		return 1
+	fi
+	while IFS= read -r -d '' record || [ -n "${record}" ]; do
+		xy="${record:0:2}"
+		path="${record:3}"
+		path="${path%/}"
+		if [ "${#record}" -lt 4 ] || [ -z "${path}" ] || [[ "${xy}" == [RC]* ]]; then
+			rc=1
+			break
+		fi
+		covered=0
+		while IFS= read -r -d '' name || [ -n "${name}" ]; do
+			[ -n "${name}" ] || continue
+			if [[ "${name}" == "${path}" || "${name}" == "${path}/"* ]]; then
+				covered=1
+				break
+			fi
+		done < "${tmp}/diff"
+		if [ "${covered}" -eq 0 ]; then
+			rc=1
+			break
+		fi
+	done < "${tmp}/status"
+	rm -rf "${tmp}"
+	return "${rc}"
+}
+
+# What removing a worktree would lose.
+#
+# A worktree with changes gets a dry-run commit: everything is staged
+# into a scratch index. A status path missing from that tree's diff
+# against HEAD keeps the worktree dirty, because git add did not record
+# it. Otherwise the pre-commit hook runs, and the result is compared
+# with HEAD. If they match, every change is a file the hook strips from
+# commits, and such files are not part of the repository.
+# If the hook edits files, they are put back and the worktree is dirty.
+# A file with staged and unstaged changes is dirty, because staging the
+# whole file would hide its staged version. The real index is not written.
+# An orphaned detached HEAD is reported only when the worktree would
+# otherwise be clean or stripped.
+#
+# Run it in a subshell (command substitution): it changes directory.
 #
 # Globals:
 #   None
 # Arguments:
 #   $1 - worktree path
 # Outputs:
-#   None
+#   On STDOUT, one of:
+#     clean     nothing would be lost
+#     stripped  only files that the pre-commit hook strips
+#     orphan    HEAD is detached at a commit no branch, tag, or remote
+#               branch contains
+#     dirty     anything else
 # Returns:
-#   0 if dirty, 1 if clean
-wt_is_dirty() {
+#   0
+wt_worktree_state() {
 	local wt_path="${1}"
-	[[ -n "$(git -C "${wt_path}" status --porcelain)" ]]
+	local status
+	if ! cd "${wt_path}" 2>/dev/null \
+		|| ! status="$(git status --porcelain 2>/dev/null)"; then
+		echo dirty
+		return 0
+	fi
+	if [[ -z "${status}" ]]; then
+		if wt_head_orphaned; then
+			echo orphan
+		else
+			echo clean
+		fi
+		return 0
+	fi
+	if grep -q '^[^ ?!][^ ?!]' <<< "${status}"; then
+		echo dirty
+		return 0
+	fi
+
+	local head_tree real_index hook scratch before after="" now rc=0
+	real_index="$(git rev-parse --git-path index)"
+	hook="$(git rev-parse --git-path hooks/pre-commit)"
+	if ! head_tree="$(git rev-parse -q --verify 'HEAD^{tree}')" \
+		|| ! scratch="$(mktemp -d)"; then
+		echo dirty
+		return 0
+	fi
+	if before="$(wt_snapshot_tree "${real_index}" "${scratch}/staged")"; then
+		if ! wt_status_covered "${head_tree}" "${before}"; then
+			rc=1
+		else
+			if [[ -x "${hook}" ]]; then
+				GIT_INDEX_FILE="${scratch}/staged" "${hook}" </dev/null >/dev/null 2>&1 \
+					|| rc=1
+			fi
+			after="$(GIT_INDEX_FILE="${scratch}/staged" git write-tree 2>/dev/null)" \
+				|| rc=1
+			now="$(wt_snapshot_tree "${real_index}" "${scratch}/now")" || rc=1
+			if [[ -n "${now}" && "${now}" != "${before}" ]]; then
+				rc=1
+				GIT_INDEX_FILE="${scratch}/now" git read-tree -m -u "${now}" "${before}" \
+					|| echo "wt: could not put back files the pre-commit hook changed in ${wt_path}" >&2
+			fi
+		fi
+	else
+		rc=1
+	fi
+	rm -rf "${scratch}"
+
+	if (( rc == 0 )) && [[ "${after}" == "${head_tree}" ]]; then
+		if wt_head_orphaned; then
+			echo orphan
+		else
+			echo stripped
+		fi
+	else
+		echo dirty
+	fi
 }
 
 # Whether cwd is a worktree or one of its subdirectories.
@@ -489,8 +656,10 @@ wt_remove_empty_cursor_session() {
 
 # Remove one linked worktree, then prune.
 #
-# A dirty worktree is refused unless force is 1. With force, the discard
-# is confirmed on /dev/tty unless yes is 1.
+# A worktree with only files the pre-commit hook strips is removed like
+# a clean one. A dirty worktree, or one whose HEAD is on no branch, is
+# refused unless force is 1. With force, the discard is confirmed on
+# /dev/tty unless yes is 1.
 #
 # Globals:
 #   None
@@ -510,14 +679,26 @@ wt_remove_worktree() {
 	local force="${3}"
 	local yes="${4}"
 
-	if wt_is_dirty "${wt_path}"; then
+	local state
+	state="$(wt_worktree_state "${wt_path}")"
+
+	if [[ "${state}" == stripped ]]; then
+		echo "Removing worktree (discarding files the pre-commit hook strips): ${wt_path}" >&2
+		git -C "${main}" worktree remove --force "${wt_path}" || return 1
+	elif [[ "${state}" != clean ]]; then
+		local what="uncommitted changes"
+		if [[ "${state}" == orphan ]]; then
+			what="commits on no branch"
+		fi
 		if (( force == 0 )); then
+			if [[ "${state}" == orphan ]]; then
+				wt_die "done: HEAD is on no branch; create a branch, or use --force"
+			fi
 			wt_die "done: worktree is dirty; commit, stash, or use --force"
 		fi
 
 		if (( yes == 0 )); then
-			printf 'Discard uncommitted changes in %s? [y/N] ' \
-				"${wt_path}" >/dev/tty
+			printf 'Discard %s in %s? [y/N] ' "${what}" "${wt_path}" >/dev/tty
 			local reply
 			IFS= read -r reply </dev/tty
 			case "${reply}" in
@@ -742,24 +923,24 @@ cmd_cleanup() {
 		return 0
 	fi
 
-	# Dirty and cwd state are taken before any removal: removing the
+	# Worktree and cwd state are taken before any removal: removing the
 	# worktree that holds cwd would break later checks.
-	local -a row_dirty=()
+	local -a row_states=()
 	local -a row_inside=()
-	local note
+	local state note fate="skipped without --force"
+	if (( force == 1 )); then
+		fate="changes will be discarded"
+	fi
 	for (( i = 0; i < ${#row_paths[@]}; i++ )); do
 		wt_path="${row_paths[i]}"
-		note=""
-		if wt_is_dirty "${wt_path}"; then
-			row_dirty+=( 1 )
-			if (( force == 1 )); then
-				note=" (dirty; changes will be discarded)"
-			else
-				note=" (dirty; skipped without --force)"
-			fi
-		else
-			row_dirty+=( 0 )
-		fi
+		state="$(wt_worktree_state "${wt_path}")"
+		row_states+=( "${state}" )
+		case "${state}" in
+			clean) note="" ;;
+			stripped) note=" (only files the pre-commit hook strips; they will be discarded)" ;;
+			orphan) note=" (HEAD is on no branch; ${fate})" ;;
+			*) note=" (dirty; ${fate})" ;;
+		esac
 		if wt_cwd_inside "${wt_path}"; then
 			row_inside+=( 1 )
 		else
@@ -784,8 +965,8 @@ cmd_cleanup() {
 	for (( i = 0; i < ${#row_paths[@]}; i++ )); do
 		main="${row_mains[i]}"
 		wt_path="${row_paths[i]}"
-		if (( row_dirty[i] == 1 && force == 0 )); then
-			echo "Skipping dirty worktree (use --force): ${wt_path}" >&2
+		if (( force == 0 )) && [[ "${row_states[i]}" != clean && "${row_states[i]}" != stripped ]]; then
+			echo "Skipping worktree (use --force): ${wt_path}" >&2
 			continue
 		fi
 		if ( cd "${main}" && wt_remove_worktree "${main}" "${wt_path}" "${force}" 1 ); then
