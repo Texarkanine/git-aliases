@@ -1,10 +1,12 @@
 # Active Context
 
 ## Current Task: Fix stripped and orphan classification
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Determined Level 1. The three review findings are one bug fix in `wt_worktree_state`.
+- A status path missing from the pre-hook diff keeps the worktree dirty. That covers a dirty submodule, including one beside a hook-stripped file, and a CRLF-only file.
+- `orphan` is returned only when the result would have been `clean` or `stripped`.
+- Tests cover those cases. `git wt` tests passed. ShellCheck on `git-wt.bash` reported no errors.
 
 ## Next Step
-- Load the Level 1 workflow and enter Build.
+- Level 1 QA

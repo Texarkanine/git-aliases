@@ -12,3 +12,15 @@ Correct `git wt` so a worktree is `stripped` only when every status path is in t
     - Level 1: one component, and the review already states the classification rule
 * Insights
     - Findings 1 and 2 are one predicate. Finding 3 is the orphan check running before the dry run.
+
+## 2026-10-11 - BUILD - COMPLETE
+
+* Work completed
+    - `stripped` requires every status path to be in the pre-hook diff, and the hook's tree to match `HEAD`
+    - `orphan` is returned only for a result that would have been `clean` or `stripped`
+    - Tests cover a dirty submodule, that case beside a hook-stripped file, CRLF under `autocrlf=input` and `text=auto`, an edited orphaned HEAD, and hook-stripped files on an orphaned HEAD
+* Decisions made
+    - An untracked directory in status is covered when a diff path is inside it, so `?? local/` still counts as hook-stripped
+* Insights
+    - `protocol.file.allow` is ignored in local config; the submodule fixture passes `-c protocol.file.allow=always`
+    - `make test` stops at `test-wt-wrappers.sh` on this machine because `zsh` is not installed. That failure is unchanged. `git wt` tests passed.

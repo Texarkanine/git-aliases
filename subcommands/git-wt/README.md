@@ -219,7 +219,7 @@ Each command exits with status 0 when it succeeds. It exits with a non-zero stat
 Before `done` or `cleanup` removes a worktree, `git wt` checks whether anything would be lost.
 
 - If `git status` shows nothing, nothing is lost. There is one exception: a detached HEAD at a commit that no branch, tag, or remote branch contains. Removing the worktree would lose that commit, so `git wt` keeps the worktree unless you use `--force`.
-- If `git status` shows changes, `git wt` makes a *dry-run commit*. It stages every file into a temporary index, runs your `pre-commit` hook on that index, and compares the result with `HEAD`. If they are the same, every change is a file that the hook removes from every commit, and the worktree is not dirty.
+- If `git status` shows changes, `git wt` makes a *dry-run commit*. It stages every file into a temporary index and compares that tree with `HEAD`. A path that `git status` shows and the staged diff does not is still dirty. When every such path is in the diff, `git wt` runs your `pre-commit` hook on that index. If the hook's result matches `HEAD`, every change is a file that the hook removes from every commit, and the worktree is not dirty. A detached HEAD that no branch contains is kept without `--force` in that case too, the same as when `git status` shows nothing.
 
 Some tools keep files out of the repository with a `pre-commit` hook that unstages them, instead of with `.gitignore`. For example, [ai-rizz](https://github.com/Texarkanine/ai-rizz) does this for local agent rules, because the Cursor editor hides git-ignored files from its agents. These files always show in `git status`, but they are not part of the repository, so `git wt` discards them.
 
@@ -228,6 +228,7 @@ The dry run does not change your real index, your branches, or your files. The w
 - the hook fails, because then `git wt` cannot tell what a commit would contain;
 - the hook changes files in the worktree (a formatter, for example); `git wt` puts them back;
 - a file has both staged and unstaged changes, because staging the whole file would hide the staged version.
+- a status path is missing from the staged diff, because `git add` did not record it. A dirty submodule and a line-ending-only edit are this kind of change.
 
 The hook gets no input, and the dry run takes as long as your hook takes. `cleanup` runs it once to make the list, and again just before it removes each worktree.
 

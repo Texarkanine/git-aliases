@@ -446,15 +446,79 @@ wt_snapshot_tree() {
 		&& GIT_INDEX_FILE="${2}" git write-tree
 }
 
+# Whether HEAD is detached at a commit no branch, tag, or remote contains.
+#
+# Removing that worktree would lose the commit.
+#
+# Globals:
+#   None
+# Arguments:
+#   None
+# Outputs:
+#   None
+# Returns:
+#   0 if HEAD would be lost, 1 otherwise
+wt_head_orphaned() {
+	if git symbolic-ref -q HEAD >/dev/null; then
+		return 1
+	fi
+	[[ -z "$(git for-each-ref --contains HEAD refs/heads refs/remotes refs/tags 2>/dev/null)" ]]
+}
+
+# Whether every status path shows up in the diff between two trees.
+#
+# A directory reported by status (local/) is covered when a diff path is
+# inside it. A path git add does not record, such as a dirty submodule,
+# is not covered. Run from the worktree root.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - git status --porcelain output
+#   $2 - HEAD tree
+#   $3 - pre-hook tree
+# Outputs:
+#   None
+# Returns:
+#   0 when every status path is covered, 1 otherwise
+wt_status_covered() {
+	local status="${1}"
+	local head="${2}"
+	local before="${3}"
+	local diff_names line path name covered
+	diff_names="$(git diff-tree -r --name-only --no-renames "${head}" "${before}")" || return 1
+	while IFS= read -r line; do
+		[[ -n "${line}" ]] || continue
+		path="${line:3}"
+		path="${path%/}"
+		covered=0
+		while IFS= read -r name; do
+			[[ -n "${name}" ]] || continue
+			if [[ "${name}" == "${path}" || "${name}" == "${path}/"* ]]; then
+				covered=1
+				break
+			fi
+		done <<< "${diff_names}"
+		if (( covered == 0 )); then
+			return 1
+		fi
+	done <<< "${status}"
+	return 0
+}
+
 # What removing a worktree would lose.
 #
 # A worktree with changes gets a dry-run commit: everything is staged
-# into a scratch index, the pre-commit hook runs on it, and the result is
-# compared with HEAD. If they match, every change is a file the hook
-# strips from commits, and such files are not part of the repository.
+# into a scratch index. A status path missing from that tree's diff
+# against HEAD keeps the worktree dirty, because git add did not record
+# it. Otherwise the pre-commit hook runs, and the result is compared
+# with HEAD. If they match, every change is a file the hook strips from
+# commits, and such files are not part of the repository.
 # If the hook edits files, they are put back and the worktree is dirty.
 # A file with staged and unstaged changes is dirty, because staging the
 # whole file would hide its staged version. The real index is not written.
+# An orphaned detached HEAD is reported only when the worktree would
+# otherwise be clean or stripped.
 #
 # Run it in a subshell (command substitution): it changes directory.
 #
@@ -479,13 +543,12 @@ wt_worktree_state() {
 		echo dirty
 		return 0
 	fi
-	if ! git symbolic-ref -q HEAD >/dev/null \
-		&& [[ -z "$(git for-each-ref --contains HEAD refs/heads refs/remotes refs/tags 2>/dev/null)" ]]; then
-		echo orphan
-		return 0
-	fi
 	if [[ -z "${status}" ]]; then
-		echo clean
+		if wt_head_orphaned; then
+			echo orphan
+		else
+			echo clean
+		fi
 		return 0
 	fi
 	if grep -q '^[^ ?!][^ ?!]' <<< "${status}"; then
@@ -493,7 +556,7 @@ wt_worktree_state() {
 		return 0
 	fi
 
-	local head_tree real_index hook scratch before after now rc=0
+	local head_tree real_index hook scratch before after="" now rc=0
 	real_index="$(git rev-parse --git-path index)"
 	hook="$(git rev-parse --git-path hooks/pre-commit)"
 	if ! head_tree="$(git rev-parse -q --verify 'HEAD^{tree}')" \
@@ -502,17 +565,21 @@ wt_worktree_state() {
 		return 0
 	fi
 	if before="$(wt_snapshot_tree "${real_index}" "${scratch}/staged")"; then
-		if [[ -x "${hook}" ]]; then
-			GIT_INDEX_FILE="${scratch}/staged" "${hook}" </dev/null >/dev/null 2>&1 \
-				|| rc=1
-		fi
-		after="$(GIT_INDEX_FILE="${scratch}/staged" git write-tree 2>/dev/null)" \
-			|| rc=1
-		now="$(wt_snapshot_tree "${real_index}" "${scratch}/now")" || rc=1
-		if [[ -n "${now}" && "${now}" != "${before}" ]]; then
+		if ! wt_status_covered "${status}" "${head_tree}" "${before}"; then
 			rc=1
-			GIT_INDEX_FILE="${scratch}/now" git read-tree -m -u "${now}" "${before}" \
-				|| echo "wt: could not put back files the pre-commit hook changed in ${wt_path}" >&2
+		else
+			if [[ -x "${hook}" ]]; then
+				GIT_INDEX_FILE="${scratch}/staged" "${hook}" </dev/null >/dev/null 2>&1 \
+					|| rc=1
+			fi
+			after="$(GIT_INDEX_FILE="${scratch}/staged" git write-tree 2>/dev/null)" \
+				|| rc=1
+			now="$(wt_snapshot_tree "${real_index}" "${scratch}/now")" || rc=1
+			if [[ -n "${now}" && "${now}" != "${before}" ]]; then
+				rc=1
+				GIT_INDEX_FILE="${scratch}/now" git read-tree -m -u "${now}" "${before}" \
+					|| echo "wt: could not put back files the pre-commit hook changed in ${wt_path}" >&2
+			fi
 		fi
 	else
 		rc=1
@@ -520,7 +587,11 @@ wt_worktree_state() {
 	rm -rf "${scratch}"
 
 	if (( rc == 0 )) && [[ "${after}" == "${head_tree}" ]]; then
-		echo stripped
+		if wt_head_orphaned; then
+			echo orphan
+		else
+			echo stripped
+		fi
 	else
 		echo dirty
 	fi
