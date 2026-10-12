@@ -1,6 +1,6 @@
 # Progress
 
-Correct `git wt` so a worktree is `stripped` only when every status path is in the pre-hook diff against `HEAD` and the hook then matches `HEAD`, and `orphan` only when that result would have been `clean` or `stripped`.
+Compare status and the pre-hook diff as NUL-separated paths, so a hook-stripped file or directory whose path contains a space is `stripped`. Keep the classifications already in the brief.
 
 **Complexity:** Level 1
 
@@ -44,3 +44,12 @@ Correct `git wt` so a worktree is `stripped` only when every status path is in t
     - Fix the quoted-path hole in `wt_status_covered`, then push the branch
 * Insights
     - [PR review](https://github.com/Texarkanine/git-aliases/pull/17#discussion_r4243891806): porcelain quotes `?? "my rule.md"` and `?? "local rules/"`, `git diff-tree --name-only` does not, and a slash inside the quotes is never stripped. Tests only plant `local/rule.md`. The worktree stays dirty.
+
+## 2026-10-12 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Classified the quoted-path rework as a Level 1 bug fix in `git wt`
+* Decisions made
+    - Level 1: one function, and the review already states the comparison
+* Insights
+    - Keeping the worktree is the bug. Hook-stripped paths with a space are never removed.
