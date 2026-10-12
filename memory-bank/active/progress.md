@@ -35,3 +35,12 @@ Correct `git wt` so a worktree is `stripped` only when every status path is in t
     - PASS: no blocking findings; advisories only (porcelain rename/quote paths fail safe to `dirty`, `after=""` init redundant but harmless)
 * Insights
     - `wt_status_covered` errs toward `dirty` on anything it cannot match, which is the safe direction for a removal gate
+
+## 2026-10-12 - REWORK - INITIATED
+
+* Work completed
+    - Operator chose rework over archive
+* Decisions made
+    - Fix the quoted-path hole in `wt_status_covered`, then push the branch
+* Insights
+    - [PR review](https://github.com/Texarkanine/git-aliases/pull/17#discussion_r4243891806): porcelain quotes `?? "my rule.md"` and `?? "local rules/"`, `git diff-tree --name-only` does not, and a slash inside the quotes is never stripped. Tests only plant `local/rule.md`. The worktree stays dirty.

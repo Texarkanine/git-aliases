@@ -38,3 +38,17 @@ An orphaned detached HEAD is `orphan` only when the worktree would otherwise be 
 3. An orphaned detached HEAD with an unstaged edit is `dirty`. Without `--force` it is kept. With `--force` the confirmation names uncommitted changes.
 4. An orphaned detached HEAD with an empty status, or with only hook-stripped files, stays `orphan`.
 5. Existing hook-stripped removal, partial-staging, and clean-orphan behavior still hold.
+
+## Rework
+
+A hook-stripped path that `git status` quotes is still classified dirty, so `git wt cleanup` keeps the worktree. Porcelain prints `?? "my rule.md"` and `?? "local rules/"`. `git diff-tree --name-only` prints those paths without quotes. The trailing slash sits inside the quotes, so stripping a final `/` does nothing. The tests only plant `local/rule.md`, which is not quoted.
+
+Operator asked to fix this and push the branch.
+
+### Requirements
+
+1. Compare `git status -z` paths with `git diff-tree -z --name-only`.
+2. Treat a trailing slash as a directory. `local rules/` is covered when a diff path is inside it.
+3. A worktree whose only changes are hook-stripped paths that contain a space (`my rule.md`, `local rules/rule.md`) is `stripped` and removed without `--force`.
+4. The classifications already required above still hold.
+5. Push the branch when the fix is done.
