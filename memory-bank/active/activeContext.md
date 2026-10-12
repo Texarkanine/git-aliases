@@ -1,10 +1,12 @@
 # Active Context
 
 ## Current Task: Quote-safe status path coverage
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
-- Classified the quoted-path rework as Level 1. The bug is in one function, and the review states the comparison to use.
+- `wt_status_covered` compares NUL-separated status paths with the pre-hook diff. A trailing slash is a directory.
+- A worktree whose only changes are hook-stripped `my rule.md` and `local rules/rule.md` is removed without `--force`.
+- The git-wt suite passed. ShellCheck on `git-wt.bash` shows only the pre-existing SC1007 warnings.
 
 ## Next Step
-- Load the Level 1 workflow and build.
+- Level 1 QA.

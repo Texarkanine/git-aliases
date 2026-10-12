@@ -467,43 +467,56 @@ wt_head_orphaned() {
 
 # Whether every status path shows up in the diff between two trees.
 #
-# A directory reported by status (local/) is covered when a diff path is
-# inside it. A path git add does not record, such as a dirty submodule,
-# is not covered. Run from the worktree root.
+# Paths come from git status -z and git diff-tree -z, so a space in a
+# path is not quoted. A trailing slash marks a directory (local/, or
+# local rules/). It is covered when a diff path is inside it. A path
+# git add does not record, such as a dirty submodule, is not covered.
+# A rename or copy is not covered. Run from the worktree root.
 #
 # Globals:
 #   None
 # Arguments:
-#   $1 - git status --porcelain output
-#   $2 - HEAD tree
-#   $3 - pre-hook tree
+#   $1 - HEAD tree
+#   $2 - pre-hook tree
 # Outputs:
 #   None
 # Returns:
 #   0 when every status path is covered, 1 otherwise
 wt_status_covered() {
-	local status="${1}"
-	local head="${2}"
-	local before="${3}"
-	local diff_names line path name covered
-	diff_names="$(git diff-tree -r --name-only --no-renames "${head}" "${before}")" || return 1
-	while IFS= read -r line; do
-		[[ -n "${line}" ]] || continue
-		path="${line:3}"
+	local head="${1}"
+	local before="${2}"
+	local tmp record path name xy covered rc
+	rc=0
+	tmp="$(mktemp -d)" || return 1
+	if ! git diff-tree -z -r --name-only --no-renames "${head}" "${before}" >"${tmp}/diff" \
+		|| ! git status --porcelain -z >"${tmp}/status" \
+		|| [ ! -s "${tmp}/status" ]; then
+		rm -rf "${tmp}"
+		return 1
+	fi
+	while IFS= read -r -d '' record || [ -n "${record}" ]; do
+		xy="${record:0:2}"
+		path="${record:3}"
 		path="${path%/}"
+		if [ "${#record}" -lt 4 ] || [ -z "${path}" ] || [[ "${xy}" == [RC]* ]]; then
+			rc=1
+			break
+		fi
 		covered=0
-		while IFS= read -r name; do
-			[[ -n "${name}" ]] || continue
+		while IFS= read -r -d '' name || [ -n "${name}" ]; do
+			[ -n "${name}" ] || continue
 			if [[ "${name}" == "${path}" || "${name}" == "${path}/"* ]]; then
 				covered=1
 				break
 			fi
-		done <<< "${diff_names}"
-		if (( covered == 0 )); then
-			return 1
+		done < "${tmp}/diff"
+		if [ "${covered}" -eq 0 ]; then
+			rc=1
+			break
 		fi
-	done <<< "${status}"
-	return 0
+	done < "${tmp}/status"
+	rm -rf "${tmp}"
+	return "${rc}"
 }
 
 # What removing a worktree would lose.
@@ -565,7 +578,7 @@ wt_worktree_state() {
 		return 0
 	fi
 	if before="$(wt_snapshot_tree "${real_index}" "${scratch}/staged")"; then
-		if ! wt_status_covered "${status}" "${head_tree}" "${before}"; then
+		if ! wt_status_covered "${head_tree}" "${before}"; then
 			rc=1
 		else
 			if [[ -x "${hook}" ]]; then

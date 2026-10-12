@@ -1500,6 +1500,29 @@ test_cleanup_stripped_removed() {
 	fi
 }
 
+# A hook-stripped file and directory whose paths contain a space are removed.
+# Porcelain quotes those paths. Cleanup still removes the worktree.
+test_cleanup_stripped_quoted_paths_removed() {
+	tcsq_repo=$(make_repo)
+	cd "${tcsq_repo}"
+	write_hook "${tcsq_repo}/.git/hooks" 'git reset -q HEAD -- "my rule.md" "local rules" 2>/dev/null || true'
+	invoke git wt go sq-quoted
+	tcsq_wt="${last_out}"
+	printf 'rule\n' > "${tcsq_wt}/my rule.md"
+	mkdir -p "${tcsq_wt}/local rules"
+	printf 'rule\n' > "${tcsq_wt}/local rules/rule.md"
+	invoke git wt cleanup --yes
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "cleanup --yes failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ -d "${tcsq_wt}" ]; then
+		fail "cleanup --yes should remove ${tcsq_wt}: $(cat "${last_err}")"
+	fi
+	if ! grep -q 'strips' "${last_err}"; then
+		fail "cleanup should say the hook strips the files: $(cat "${last_err}")"
+	fi
+}
+
 # A real change next to stripped files keeps the worktree. The dry run
 # writes neither the real index nor the files.
 test_cleanup_stripped_with_change_kept() {
@@ -2045,6 +2068,7 @@ main() {
 	run_one test_cleanup_cursor_keeps_nonempty_session
 	run_one test_cleanup_all_cursor_yes_once
 	run_one test_cleanup_stripped_removed
+	run_one test_cleanup_stripped_quoted_paths_removed
 	run_one test_cleanup_stripped_with_change_kept
 	run_one test_cleanup_hook_fails_kept
 	run_one test_cleanup_hook_edits_put_back

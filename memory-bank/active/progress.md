@@ -53,3 +53,15 @@ Compare status and the pre-hook diff as NUL-separated paths, so a hook-stripped 
     - Level 1: one function, and the review already states the comparison
 * Insights
     - Keeping the worktree is the bug. Hook-stripped paths with a space are never removed.
+
+## 2026-10-12 - BUILD - COMPLETE
+
+* Work completed
+    - `wt_status_covered` reads `git status -z` and `git diff-tree -z --name-only`
+    - A trailing slash marks a directory, including `local rules/`
+    - A new test plants `my rule.md` and `local rules/rule.md` and expects cleanup to remove the worktree
+* Decisions made
+    - A rename or copy is not covered, so the NUL parser cannot treat the second path as a new status record
+* Insights
+    - Bash variables cannot hold NUL, so the two streams are temp files
+    - `make test` still stops at `test-wt-wrappers.sh` because `zsh` is not installed. `git wt` tests passed. ShellCheck on `git-wt.bash` reports only the pre-existing SC1007 warnings
