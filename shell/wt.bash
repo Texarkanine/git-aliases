@@ -3,6 +3,28 @@
 # Source this file from bash. It defines wt(); it is not a git subcommand
 # and must not be executed.
 
+# Return 0 when any argument asks for help.
+#
+# Globals:
+#   None
+# Arguments:
+#   $@ - arguments to scan
+# Outputs:
+#   None
+# Returns:
+#   0 if an argument is -h or --help, 1 otherwise
+wt_help_requested() {
+	local arg
+	for arg in "$@"; do
+		case "${arg}" in
+			-h|--help)
+				return 0
+				;;
+		esac
+	done
+	return 1
+}
+
 # Interactive wrapper around git wt that cds on a printed path.
 #
 # Globals:
@@ -17,11 +39,19 @@
 wt() {
 	case "${1:-}" in
 		go)
+			if wt_help_requested "${@:2}"; then
+				wt --help
+				return $?
+			fi
 			local wt_path
 			wt_path="$(git wt go "${@:2}")" || return $?
 			cd "${wt_path}" || return $?
 			;;
 		done)
+			if wt_help_requested "${@:2}"; then
+				wt --help
+				return $?
+			fi
 			local dest
 			dest="$(git wt done "${@:2}")" || return $?
 			if [[ -n "${dest}" ]]; then
@@ -29,6 +59,10 @@ wt() {
 			fi
 			;;
 		cleanup)
+			if wt_help_requested "${@:2}"; then
+				wt --help
+				return $?
+			fi
 			local arg
 			for arg in "${@:2}"; do
 				if [[ "${arg}" == "--list" ]]; then

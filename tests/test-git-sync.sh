@@ -315,6 +315,34 @@ test_stash_safety() {
 }
 
 # Not a git repository.
+test_help_flags() {
+	thf_dir=$(mktemp -d)
+	cd "${thf_dir}"
+	invoke git-sync -h
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "git-sync -h should exit 0 (got ${last_rc})"
+	fi
+	thf_usage="${last_out}"
+	case "${thf_usage}" in
+		*"Usage: git sync"*) ;;
+		*) fail "git-sync -h should include Usage: git sync: ${thf_usage}" ;;
+	esac
+	invoke git-sync --help
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "git-sync --help should exit 0 (got ${last_rc})"
+	fi
+	if [ "${last_out}" != "${thf_usage}" ]; then
+		fail "git-sync --help should match -h: ${last_out}"
+	fi
+	invoke git sync -h
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "git sync -h should exit 0 (got ${last_rc})"
+	fi
+	if [ "${last_out}" != "${thf_usage}" ]; then
+		fail "git sync -h should match git-sync -h: ${last_out}"
+	fi
+}
+
 test_not_a_repo() {
 	tnar_dir=$(mktemp -d)
 	last_err="${HOME}/.git-sync-test-err"
@@ -373,6 +401,7 @@ main() {
 	run_one test_cancel
 	run_one test_already_on_source
 	run_one test_stash_safety
+	run_one test_help_flags
 	run_one test_not_a_repo
 	run_one test_detached_head
 

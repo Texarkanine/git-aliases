@@ -16,12 +16,21 @@ Usage: git sync [options] [source-branch]
 
 Options:
   -m, --merge           Use merge instead of rebase
-  -h                    Show this help message
+  -h, --help            Show this help message
 
 Arguments:
   source-branch         Specify source branch to sync with (default: main)
 EOF
 }
+
+for arg in "$@"; do
+	case "${arg}" in
+		-h|--help)
+			show_usage
+			exit 0
+			;;
+	esac
+done
 
 # Verify we're in a git repository
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
@@ -41,10 +50,6 @@ while [[ $# -gt 0 ]]; do
     	-h)
     		HELP=true
     		shift
-    		;;
-    	--help)
-    		# Pass --help along to git's help system
-    		exit 1
     		;;
     	--*)
     		echo "Unknown option: $1"

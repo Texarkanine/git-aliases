@@ -17,7 +17,7 @@ Commands:
   list                 List available identities
   use <identity>       Switch to specified identity
   create <identity>    Create a new identity
-  -h                   Show this help message
+  -h, --help           Show this help message
 EOF
 }
 
@@ -151,16 +151,14 @@ if [[ $# -eq 0 ]]; then
     exit 0
 fi
 
-# Check for help option
-if [[ "$1" == "-h" ]]; then
-    show_usage
-    exit 0
-fi
-
-# Handle --help (exit with error code to let git's help system take over)
-if [[ "$1" == "--help" ]]; then
-    exit 1
-fi
+for arg in "$@"; do
+    case "${arg}" in
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+    esac
+done
 
 # Verify we're in a git repository
 if ! git rev-parse --git-dir >/dev/null 2>&1; then

@@ -217,6 +217,47 @@ test_help_flags() {
 	esac
 }
 
+test_nested_help() {
+	tnh_dir=$(mktemp -d)
+	cd "${tnh_dir}"
+	invoke git-wt -h
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "git-wt -h should exit 0 (got ${last_rc})"
+	fi
+	tnh_usage="${last_out}"
+	for tnh_cmd in go done cleanup; do
+		for tnh_flag in -h --help; do
+			invoke git wt "${tnh_cmd}" "${tnh_flag}"
+			if [ "${last_rc}" -ne 0 ]; then
+				fail "git wt ${tnh_cmd} ${tnh_flag} should exit 0 (got ${last_rc})"
+			fi
+			if [ "${last_out}" != "${tnh_usage}" ]; then
+				fail "git wt ${tnh_cmd} ${tnh_flag} stdout should match git-wt -h: ${last_out}"
+			fi
+			if [ -s "${last_err}" ]; then
+				fail "git wt ${tnh_cmd} ${tnh_flag} stderr should be empty: $(cat "${last_err}")"
+			fi
+		done
+	done
+}
+
+test_go_help_is_branch_name() {
+	tgh_repo=$(make_repo)
+	tgh_base=$(basename "${tgh_repo}")
+	cd "${tgh_repo}"
+	tgh_want="${HOME}/worktrees/local/${tgh_base}/${tgh_base}-help"
+	invoke git wt go help
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "git wt go help failed (${last_rc}): $(cat "${last_err}")"
+	fi
+	if [ "${last_out}" != "${tgh_want}" ]; then
+		fail "git wt go help path: expected ${tgh_want}, got ${last_out}"
+	fi
+	case "${last_out}" in
+		*usage:*) fail "git wt go help should not print usage: ${last_out}" ;;
+	esac
+}
+
 test_no_args_usage() {
 	invoke git wt
 	if [ "${last_rc}" -eq 0 ]; then
@@ -2001,6 +2042,8 @@ main() {
 	ln -s "${GIT_WT_SRC}" "${TEST_BIN}/git-wt"
 
 	run_one test_help_flags
+	run_one test_nested_help
+	run_one test_go_help_is_branch_name
 	run_one test_no_args_usage
 	run_one test_unknown_command
 	run_one test_not_a_repo

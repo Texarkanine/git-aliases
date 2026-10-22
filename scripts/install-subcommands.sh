@@ -37,8 +37,8 @@ if [[ "$MODE" == "install" ]]; then
     # Create installation directory if it doesn't exist
     mkdir -p "$INSTALL_DIR"
     
-    # Find all bash scripts (not completion scripts) and install them
-    find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" -print0 | 
+    # Find all bash scripts (not completion scripts) and install them.
+    # The loop stays in this shell so a failing -h aborts the install.
     while IFS= read -r -d '' file; do
     	cmd_name=$(basename "$file" .bash)
     	cmd_base=$(basename "$cmd_name" | sed 's/^git-//')
@@ -47,15 +47,26 @@ if [[ "$MODE" == "install" ]]; then
     	echo "	git-$cmd_base"
     	cp "$file" "$target"
     	chmod +x "$target"
-    done
+
+    	help_empty=$(mktemp -d)
+    	help_file=$(mktemp)
+    	(
+    		cd "${help_empty}" && "${target}" -h </dev/null > "${help_file}"
+    	)
+    	rm -rf "${help_empty}"
+    	for help_dir in "${HOME}/.local/man/cat1" "${HOME}/.local/share/man/cat1"; do
+    		mkdir -p "${help_dir}"
+    		cp "${help_file}" "${help_dir}/git-${cmd_base}.1"
+    	done
+    	rm -f "${help_file}"
+    done < <(find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" -print0)
     
     echo "✅ Git subcommands installed successfully!"
     echo "Make sure ${HOME}/.local/bin is in your PATH."
 else
     echo "📤 Uninstalling Git subcommands..."
     
-    # Find all subcommand files in the repo and remove their installed versions
-    find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" -print0 | 
+    # Find all subcommand files in the repo and remove their installed versions.
     while IFS= read -r -d '' file; do
     	cmd_name=$(basename "$file" .bash)
     	cmd_base=$(basename "$cmd_name" | sed 's/^git-//')
@@ -65,7 +76,9 @@ else
     		echo "	Removing git-$cmd_base"
     		rm -f "$target"
     	fi
-    done
+    	rm -f "${HOME}/.local/man/cat1/git-${cmd_base}.1"
+    	rm -f "${HOME}/.local/share/man/cat1/git-${cmd_base}.1"
+    done < <(find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" -print0)
     
     echo "✅ Git subcommands uninstalled successfully!"
 fi 

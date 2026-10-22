@@ -73,3 +73,17 @@ Make `-h` and `--help` print the same help for `git wt`, `git sync`, and `git id
 * Insights
     - With `PATH` starting at an isolated `$HOME/.local/bin` and `MANPATH` unset, `man` searches both `$HOME/.local/man` and `$HOME/.local/share/man`, and `git <command> --help` prints a `cat1` page from either directory, or from both at once, byte-for-byte equal to the page body
     - Outside a repository, nested `git wt` flags still fail in three different ways (`go` as not a repository, `done` and `cleanup` as unknown options), which is the red state unit 1 describes
+
+## 2026-10-22 - BUILD - COMPLETE
+
+* Work completed
+    - Nested and top-level `-h` / `--help` for `git wt`, `git sync`, and `git identity`
+    - Cat pages installed and removed by the subcommand installer
+    - Wrapper help does not change directory
+    - README and memory-bank install notes
+* Decisions made
+    - Usage lines name both `-h` and `--help`
+    - Left `scripts/install-subcommands.sh` on its current name
+* Insights
+    - `git <command> --help` matched `-h` byte for byte in the installer test
+    - zsh is not installed here, so the zsh wrapper suite did not run

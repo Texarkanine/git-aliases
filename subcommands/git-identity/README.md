@@ -12,6 +12,8 @@ A Git subcommand to manage multiple Git identities with different configuration 
 git identity <command> [<args>]
 ```
 
+`-h` or `--help`, including after `list`, `use`, or `create`, prints this summary.
+
 ### list
 
 List all available identities

@@ -36,7 +36,7 @@
 
 ## Implementation Plan
 
-### 1. git-wt nested help — executable
+### 1. git-wt nested help — executable ✓
 
 - Files: `tests/test-git-wt.sh`, `subcommands/git-wt/git-wt.bash`
 
@@ -45,7 +45,7 @@
 3. Write tests and run red: `test_nested_help` `cd`s to a fresh temp directory, then invokes `git wt go`, `git wt done`, and `git wt cleanup` with `-h` and with `--help`. Each exits 0, stdout equals `git-wt -h`, and stderr is empty. `test_go_help_is_branch_name` uses `make_repo`, invokes `git wt go help`, and requires a worktree path on stdout and no `usage:` line. Run `tests/test-git-wt.sh`. `test_nested_help` fails. `test_go_help_is_branch_name` already passes; it stays so the word `help` remains a branch name.
 4. Write code and run green: at the start of `main`, after the no-argument check and before `wt_worktrees_root`, scan every argument. On `-h` or `--help`, call `usage` and return 0. Leave the bare word `help` on the existing command branch. Run `tests/test-git-wt.sh` until it passes.
 
-### 2. wt wrappers — executable
+### 2. wt wrappers — executable ✓
 
 - Files: `tests/test-wt-wrappers.sh`, `shell/wt.bash`, `shell/wt.zsh`
 
@@ -54,7 +54,7 @@
 3. Write tests and run red: for each shell, for `go`, `done`, and `cleanup`, and for `-h` and `--help`, source the wrapper, `cd` to `START_DIR`, run `wt <command> <flag>`, and require exit 0, help text that mentions `go`, and `pwd` still `START_DIR`. Run `tests/test-wt-wrappers.sh` and confirm the new tests fail.
 4. Write code and run green: `wt_help_requested` returns 0 when any argument is `-h` or `--help`. In the `go`, `done`, and `cleanup` branches, call it on the remaining arguments first; when it matches, run `wt --help` and return. Run `tests/test-wt-wrappers.sh` until it passes.
 
-### 3. git-sync help flags — executable
+### 3. git-sync help flags — executable ✓
 
 - Files: `tests/test-git-sync.sh`, `subcommands/git-sync/git-sync.bash`
 
@@ -63,7 +63,7 @@
 3. Write tests and run red: `cd` to a fresh temp directory first. From this checkout, `git-sync -h` already exits 0. Outside a repository, `git-sync -h`, `git-sync --help`, and `git sync -h` each exit 0 with identical stdout containing `Usage: git sync`. Run `tests/test-git-sync.sh` and confirm `test_help_flags` fails.
 4. Write code and run green: before the repository check, scan every argument and on `-h` or `--help` call `show_usage` and exit 0. Remove the `--help` branch that exits 1. Run `tests/test-git-sync.sh` until it passes.
 
-### 4. git-identity help flags — executable
+### 4. git-identity help flags — executable ✓
 
 - Files: `tests/test-git-identity.sh`, `Makefile`, `subcommands/git-identity/git-identity.bash`
 
@@ -72,7 +72,7 @@
 3. Write tests and run red: `cd` to a fresh temp directory before each outside-repository command. Once the copy is executable, top-level `-h` already prints usage. `git-identity --help` still exits 1 with no usage, and `list`, `use`, and `create` with `-h` or `--help` do not print usage. Require all of those to exit 0 with stdout equal to top-level `-h`. `create -h` leaves `${HOME}/.git-identities` absent. `test_list_outside_repo_fails` (`git identity list` exits non-zero outside a repository) already passes once it has `cd`ed out; keep it as a regression lock. Run the new file and confirm the help comparisons fail.
 4. Write code and run green: replace the `$1` checks for `-h` and `--help` with one scan of every argument, before the repository check. On a match, `show_usage` and exit 0. Keep the no-argument usage and the repository check for real commands. Run `tests/test-git-identity.sh` until it passes.
 
-### 5. Help pages installed by make — executable
+### 5. Help pages installed by make — executable ✓
 
 - Files: `tests/test-install-subcommands.sh`, `Makefile`, `scripts/install-subcommands.sh`
 
@@ -81,7 +81,7 @@
 3. Write tests and run red: under the isolated home, run the installer, put `${HOME}/.local/bin` first on `PATH`, unset `MANPATH`, and set `PAGER`, `MANPAGER`, and `GIT_PAGER` to `cat`. For `wt`, `sync`, and `identity`, `git <name> --help` exits 0 and stdout equals `"${HOME}/.local/bin/git-<name>" -h`. The cat pages exist at both `${HOME}/.local/man/cat1/git-<name>.1` and `${HOME}/.local/share/man/cat1/git-<name>.1`. Run the installer again and require the same stdout. `--uninstall` removes those six files. Run the new file and confirm it fails.
 4. Write code and run green: the install loop is `find | while`, so its body runs in a subshell. Replace it with a `while` loop in the current shell, fed by process substitution (`done < <(find ...)`). This script is bash. After each executable is copied, run `"$target" -h` with stdin from `/dev/null` and the working directory an empty temp directory, and write that one stdout to both cat-page paths (create the directories). Do the same current-shell loop for uninstall, and `rm -f` those two files for each command. A help handler that still needs a repository, or still waits on a prompt, then fails `make` in the parent shell. Run `tests/test-install-subcommands.sh` until it passes, then `make test`.
 
-### 6. Docs — prose/policy
+### 6. Docs — prose/policy ✓
 
 - Files: `subcommands/git-wt/README.md`, `subcommands/git-identity/README.md`, `memory-bank/techContext.md`, `memory-bank/systemPatterns.md`
 - No tests: prose/policy artifact
@@ -134,5 +134,5 @@ Other approaches that were checked: handling `--help` only inside the script (Gi
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
 - [x] Preflight
-- [ ] Build
+- [x] Build
 - [ ] QA
