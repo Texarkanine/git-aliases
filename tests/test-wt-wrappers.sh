@@ -344,6 +344,60 @@ test_zsh_help() {
 	esac
 }
 
+test_bash_nested_help() {
+	for tbnh_cmd in go done cleanup; do
+		for tbnh_flag in -h --help; do
+			tbnh_out=$(run_bash "
+				. \"${WRAPPER_BASH}\"
+				cd \"${START_DIR}\"
+				set +e
+				wt ${tbnh_cmd} ${tbnh_flag}
+				echo RC:\$?
+				pwd
+			")
+			case "${tbnh_out}" in
+				*go*) ;;
+				*) fail "bash wt ${tbnh_cmd} ${tbnh_flag} should mention go: ${tbnh_out}" ;;
+			esac
+			case "${tbnh_out}" in
+				*RC:0*) ;;
+				*) fail "bash wt ${tbnh_cmd} ${tbnh_flag} should exit 0: ${tbnh_out}" ;;
+			esac
+			case "${tbnh_out}" in
+				*"${START_DIR}"*) ;;
+				*) fail "bash wt ${tbnh_cmd} ${tbnh_flag} should stay: ${tbnh_out}" ;;
+			esac
+		done
+	done
+}
+
+test_zsh_nested_help() {
+	for tznh_cmd in go done cleanup; do
+		for tznh_flag in -h --help; do
+			tznh_out=$(run_zsh "
+				. \"${WRAPPER_ZSH}\"
+				cd \"${START_DIR}\"
+				set +e
+				wt ${tznh_cmd} ${tznh_flag}
+				echo RC:\$?
+				pwd
+			")
+			case "${tznh_out}" in
+				*go*) ;;
+				*) fail "zsh wt ${tznh_cmd} ${tznh_flag} should mention go: ${tznh_out}" ;;
+			esac
+			case "${tznh_out}" in
+				*RC:0*) ;;
+				*) fail "zsh wt ${tznh_cmd} ${tznh_flag} should exit 0: ${tznh_out}" ;;
+			esac
+			case "${tznh_out}" in
+				*"${START_DIR}"*) ;;
+				*) fail "zsh wt ${tznh_cmd} ${tznh_flag} should stay: ${tznh_out}" ;;
+			esac
+		done
+	done
+}
+
 test_bash_unknown() {
 	tbu_out=$(run_bash "
 		. \"${WRAPPER_BASH}\"
@@ -419,6 +473,8 @@ main() {
 	run_one test_zsh_cleanup_list_stays
 	run_one test_bash_help
 	run_one test_zsh_help
+	run_one test_bash_nested_help
+	run_one test_zsh_nested_help
 	run_one test_bash_unknown
 	run_one test_zsh_unknown
 

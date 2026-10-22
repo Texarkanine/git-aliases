@@ -67,7 +67,7 @@ For how `git wt` finds `<owner>` and `<repo>`, see [Path Details](#path-details)
 
 ## Commands
 
-Run `git wt help` for a short summary of the commands.
+Run `git wt help`, `git wt -h`, or `git wt --help` for the same short summary. `-h` or `--help` after `go`, `done`, or `cleanup` shows that summary too.
 
 ### go
 

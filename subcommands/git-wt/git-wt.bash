@@ -1003,6 +1003,16 @@ main() {
 		exit 1
 	fi
 
+	local arg
+	for arg in "$@"; do
+		case "${arg}" in
+			-h|--help)
+				usage
+				return 0
+				;;
+		esac
+	done
+
 	local cmd="$1"
 	shift
 	case "${cmd}" in
