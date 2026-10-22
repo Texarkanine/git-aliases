@@ -61,3 +61,15 @@ Make `-h` and `--help` print the same help for `git wt`, `git sync`, and `git id
 * Insights
     - On this machine, a plain `cat1` page is what `git <command> --help` prints unchanged; a plain `man1` file gains a trailing blank line
     - `run_isolated` swaps `HOME` and leaves the working directory inside this repository
+
+## 2026-10-22 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-validated the revised Level 2 subcommand-help plan against the scripts, the test harness, the installer, and a fresh isolated cat-page lookup
+    - Wrote `memory-bank/active/.preflight-status` with first line `PASS WITH ADVISORY`
+* Decisions made
+    - The plan is acceptable to build as written
+    - Advisories stay out of the plan
+* Insights
+    - With `PATH` starting at an isolated `$HOME/.local/bin` and `MANPATH` unset, `man` searches both `$HOME/.local/man` and `$HOME/.local/share/man`, and `git <command> --help` prints a `cat1` page from either directory, or from both at once, byte-for-byte equal to the page body
+    - Outside a repository, nested `git wt` flags still fail in three different ways (`go` as not a repository, `done` and `cleanup` as unknown options), which is the red state unit 1 describes

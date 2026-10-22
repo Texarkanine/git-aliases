@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: subcommand-help
-**Phase:** PLAN - COMPLETE
+**Phase:** BUILD - IN-PROGRESS
 
 ## What Was Done
 - Classified the task as Level 2.
@@ -10,4 +10,4 @@
 - Preflight returned `FAIL (fixable)`. The plan now copies `git-identity.bash` and chmods the copy (the tracked file is mode 644), `cd`s outside this repository before outside-repository cases, and runs the install loop in the current shell.
 
 ## Next Step
-- Preflight the revised plan.
+- Build the plan in order, starting with git-wt nested help.
