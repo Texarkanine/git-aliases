@@ -31,7 +31,7 @@
 
 - Framework: the homemade POSIX runner used by `tests/test-git-wt.sh`, `tests/test-git-sync.sh`, `tests/test-wt-wrappers.sh`, and `tests/test-install-completions.sh` (`fail`, `invoke` or an installer runner, `run_isolated`, `run_one`). shunit2 stays the smoke test only.
 - Test location: `tests/`
-- Conventions: `#!/bin/sh`, `set -eu`, isolated `HOME`, the command under test first on `PATH`, assertions through `fail` and `case` or string compare. Register each test with `run_one` from `main`.
+- Conventions: `#!/bin/sh`, `set -eu`, isolated `HOME`, the command under test first on `PATH`, assertions through `fail` and `case` or string compare. Register each test with `run_one` from `main`. `run_isolated` does not change the working directory, and this checkout is a repository. Any case that must run outside a repository `cd`s into a fresh temp directory first, as `test_not_a_repo` does in `tests/test-git-sync.sh`.
 - New test files: `tests/test-git-identity.sh`, `tests/test-install-subcommands.sh`
 
 ## Implementation Plan
@@ -42,7 +42,7 @@
 
 1. Stub tests: add `test_nested_help` and `test_go_help_is_branch_name` with empty bodies, and `run_one` lines in `main`.
 2. Stub interface: no new function. `main` in `git-wt.bash` keeps its signature.
-3. Write tests and run red: `test_nested_help` invokes `git wt go`, `git wt done`, and `git wt cleanup` with `-h` and with `--help` with no repository. Each exits 0, stdout equals `git-wt -h`, and stderr is empty. `test_go_help_is_branch_name` uses `make_repo`, invokes `git wt go help`, and requires a worktree path on stdout and no `usage:` line. Run `tests/test-git-wt.sh` and confirm these two fail.
+3. Write tests and run red: `test_nested_help` `cd`s to a fresh temp directory, then invokes `git wt go`, `git wt done`, and `git wt cleanup` with `-h` and with `--help`. Each exits 0, stdout equals `git-wt -h`, and stderr is empty. `test_go_help_is_branch_name` uses `make_repo`, invokes `git wt go help`, and requires a worktree path on stdout and no `usage:` line. Run `tests/test-git-wt.sh`. `test_nested_help` fails. `test_go_help_is_branch_name` already passes; it stays so the word `help` remains a branch name.
 4. Write code and run green: at the start of `main`, after the no-argument check and before `wt_worktrees_root`, scan every argument. On `-h` or `--help`, call `usage` and return 0. Leave the bare word `help` on the existing command branch. Run `tests/test-git-wt.sh` until it passes.
 
 ### 2. wt wrappers — executable
@@ -60,16 +60,16 @@
 
 1. Stub tests: add `test_help_flags` with an empty body and a `run_one` line in `main`.
 2. Stub interface: no new function. `show_usage` stays the help text.
-3. Write tests and run red: from the isolated home (not a repository), `git-sync -h`, `git-sync --help`, and `git sync -h` each exit 0 with identical stdout containing `Usage: git sync`. Run `tests/test-git-sync.sh` and confirm `test_help_flags` fails.
+3. Write tests and run red: `cd` to a fresh temp directory first. From this checkout, `git-sync -h` already exits 0. Outside a repository, `git-sync -h`, `git-sync --help`, and `git sync -h` each exit 0 with identical stdout containing `Usage: git sync`. Run `tests/test-git-sync.sh` and confirm `test_help_flags` fails.
 4. Write code and run green: before the repository check, scan every argument and on `-h` or `--help` call `show_usage` and exit 0. Remove the `--help` branch that exits 1. Run `tests/test-git-sync.sh` until it passes.
 
 ### 4. git-identity help flags — executable
 
 - Files: `tests/test-git-identity.sh`, `Makefile`, `subcommands/git-identity/git-identity.bash`
 
-1. Stub tests: create `tests/test-git-identity.sh` on the `test-git-sync.sh` isolation pattern (`OPERATOR_HOME`, `fail`, `invoke`, `run_isolated`, symlink of `git-identity.bash` to `TEST_BIN/git-identity`). Empty bodies for `test_help_flags`, `test_nested_help_does_not_create`, and `test_list_outside_repo_fails`. Register them from `main`. Add the file to the `test` target's `chmod` line and run list in `Makefile`.
+1. Stub tests: create `tests/test-git-identity.sh` on the `test-git-sync.sh` isolation pattern (`OPERATOR_HOME`, `fail`, `invoke`, `run_isolated`). Copy `git-identity.bash` into `TEST_BIN/git-identity` and `chmod +x` that copy. The tracked file is mode 644; leave it 644. A symlink would exit 126. Empty bodies for `test_help_flags`, `test_nested_help_does_not_create`, and `test_list_outside_repo_fails`. Register them from `main`. Add the file to the `test` target's `chmod` line and run list in `Makefile`.
 2. Stub interface: no new function.
-3. Write tests and run red: `git-identity -h`, `git-identity --help`, and `git identity -h` exit 0 with identical usage. `list`, `use`, and `create` with `-h` and with `--help` do the same outside a repository. `create -h` leaves `${HOME}/.git-identities` absent. `git identity list` outside a repository exits non-zero. Run the new file and confirm the help tests fail.
+3. Write tests and run red: `cd` to a fresh temp directory before each outside-repository command. Once the copy is executable, top-level `-h` already prints usage. `git-identity --help` still exits 1 with no usage, and `list`, `use`, and `create` with `-h` or `--help` do not print usage. Require all of those to exit 0 with stdout equal to top-level `-h`. `create -h` leaves `${HOME}/.git-identities` absent. `test_list_outside_repo_fails` (`git identity list` exits non-zero outside a repository) already passes once it has `cd`ed out; keep it as a regression lock. Run the new file and confirm the help comparisons fail.
 4. Write code and run green: replace the `$1` checks for `-h` and `--help` with one scan of every argument, before the repository check. On a match, `show_usage` and exit 0. Keep the no-argument usage and the repository check for real commands. Run `tests/test-git-identity.sh` until it passes.
 
 ### 5. Help pages installed by make — executable
@@ -79,7 +79,7 @@
 1. Stub tests: create `tests/test-install-subcommands.sh` on the `test-install-completions.sh` pattern (isolated `HOME`, run `scripts/install-subcommands.sh`). Empty bodies for `test_help_pages_match_dash_h` and `test_uninstall_removes_help_pages`. Add the file to the `Makefile` `test` target.
 2. Stub interface: no new function. The existing install and uninstall loops keep their structure.
 3. Write tests and run red: under the isolated home, run the installer, put `${HOME}/.local/bin` first on `PATH`, unset `MANPATH`, and set `PAGER`, `MANPAGER`, and `GIT_PAGER` to `cat`. For `wt`, `sync`, and `identity`, `git <name> --help` exits 0 and stdout equals `"${HOME}/.local/bin/git-<name>" -h`. The cat pages exist at both `${HOME}/.local/man/cat1/git-<name>.1` and `${HOME}/.local/share/man/cat1/git-<name>.1`. Run the installer again and require the same stdout. `--uninstall` removes those six files. Run the new file and confirm it fails.
-4. Write code and run green: in the install loop, after the executable is copied, run it with `-h` and write that stdout to both cat-page paths (create the directories). In the uninstall loop, `rm -f` those two files for each command. Run `tests/test-install-subcommands.sh` until it passes, then `make test`.
+4. Write code and run green: the install loop is `find | while`, so its body runs in a subshell. Replace it with a `while` loop in the current shell, fed by process substitution (`done < <(find ...)`). This script is bash. After each executable is copied, run `"$target" -h` with stdin from `/dev/null` and the working directory an empty temp directory, and write that one stdout to both cat-page paths (create the directories). Do the same current-shell loop for uninstall, and `rm -f` those two files for each command. A help handler that still needs a repository, or still waits on a prompt, then fails `make` in the parent shell. Run `tests/test-install-subcommands.sh` until it passes, then `make test`.
 
 ### 6. Docs — prose/policy
 
@@ -98,7 +98,7 @@ Goal: `git wt --help`, `git sync --help`, and `git identity --help` print the sa
 
 Evidence, on this machine (git 2.34.1, man 2.10.2, `MANPATH` unset): Git turns `git <command> --help` into a manual lookup and does not run the executable. A roff page in `man1` rendered with a `GIT-WTSPIKE(1)` header. A preformatted page in `cat1` was printed unchanged, exit 0, for both `~/.local/man/cat1` and `~/.local/share/man/cat1`, via `git help wtspike` and `git wtspike --help`, once `git-wtspike` was on `PATH`. `git wt go --help` reached the script (`wt: go: invalid branch name: --help`).
 
-macOS manual lookup uses the same idea: an empty `MANPATH` entry, which Git appends, restores the default search, and that search includes a nearby `man` directory for a `bin` directory on `PATH` (`~/.local/man` when the executable is in `~/.local/bin`). Apple `man` treats `catN` as already formatted. The `../share/man` directory is also part of the published search, so the installer writes both copies.
+macOS manual lookup uses the same idea: an empty `MANPATH` entry, which Git appends, restores the default search. Apple's `man.sh` (man-46) adds both `<bindir>/../share/man` and `<bindir>/../man` when a `PATH` entry ends in `/bin`, and displays an uncompressed cat page through `zcat -f`. The installer writes both copies.
 
 Other approaches that were checked: handling `--help` only inside the script (Git never gets there for the top-level flag); a `git` wrapper ahead of the real `git` on `PATH` (it would wrap every Git command); exporting `MANPATH` from a shell rc file (misses any Git that did not source that file); installing into `/usr/local/share/man` (needs privileges `make` does not have).
 
@@ -116,6 +116,8 @@ Other approaches that were checked: handling `--help` only inside the script (Gi
 - `git wt --help go` is Git's lookup for `wt`. The page is the top-level usage, which already documents `go`.
 - On a terminal, `man` may page. The bytes are the `-h` text. Tests set `PAGER=cat`.
 - The word `help` remains a legal branch name for `git wt go`.
+- `git-identity.bash` is mode 644. Tests copy it and `chmod +x` the copy. The installer already marks the installed file executable.
+- The install `find | while` loop runs in a subshell, so a failing `-h` would not fail `make`. The loop moves into the current shell before it runs any subcommand.
 
 ## Pre-Mortem
 
