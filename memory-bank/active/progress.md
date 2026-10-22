@@ -87,3 +87,25 @@ Make `-h` and `--help` print the same help for `git wt`, `git sync`, and `git id
 * Insights
     - `git <command> --help` matched `-h` byte for byte in the installer test
     - zsh is not installed here, so the zsh wrapper suite did not run
+
+## 2026-10-22 - QA - COMPLETE
+
+* Work completed
+    - Reviewed the subcommand-help build against the Level 2 plan
+    - Wrote `memory-bank/active/.qa-validation-status` with first line `PASS`
+* Decisions made
+    - PASS. The advisories do not require a build rerun
+* Insights
+    - The new `git-sync` help scan exits before the old `HELP` arm, so that arm cannot run
+    - `shell/wt.zsh` matches `shell/wt.bash` except the header comment
+
+## 2026-10-22 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-subcommand-help.md`
+    - Reconciled persistent memory-bank files and left them as the build updated them
+* Decisions made
+    - The cat-page install contract already in `systemPatterns.md` is the standing record
+* Insights
+    - `git <command> --help` never runs the script. A cat page is the text `-h` prints
+    - Outside-repository tests have to leave this checkout or they pass for the wrong reason
