@@ -9,4 +9,4 @@
 - Reflection is in `memory-bank/active/reflection/reflection-subcommand-help.md`.
 
 ## Next Step
-- Run `/niko-archive` to archive this task.
+- Run `/niko-archive` to archive this task. Draft PR is https://github.com/Texarkanine/git-aliases/pull/18.
