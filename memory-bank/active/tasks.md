@@ -135,4 +135,13 @@ Other approaches that were checked: handling `--help` only inside the script (Gi
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
+
+## QA
+
+PASS. Advisories do not block, and Build does not need to rerun.
+
+- `git-sync.bash` still has `HELP` and a later `-h` arm. The new scan exits 0 on `-h` or `--help` before that arm can run.
+- `memory-bank/techContext.md` names the cat-page directories. `memory-bank/systemPatterns.md` is the file that says `make clean` removes them. `make clean` runs the uninstaller, which deletes both pages per command.
+- `shell/wt.zsh` matches `shell/wt.bash` except the header comment. zsh is not installed here, so that suite did not run.
+- Nested `wt` help prints the wrapper blurb, because the plan calls `wt --help`. `git wt go -h` prints `usage()` from `git-wt.bash`.
