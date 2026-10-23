@@ -57,3 +57,27 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
     - Advisories (PATH resolution, `GH_HOST`, empty directive syntax, unset exit status) do not by themselves require a redesign
 * Insights
     - `git config --replace-all` inside a repository is local. `git config --get` is not. The planned suites null the global file, so they stay green either way
+
+## 2026-10-23 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-checked the revised Level 3 plan against `git-identity`, the installer, the test layout, and `gh help environment`
+    - Wrote `memory-bank/active/.preflight-status` with first line `FAIL (fixable)`
+* Decisions made
+    - Build stays blocked. A successful token lookup has to export the same token as both `GH_TOKEN` and `GH_ENTERPRISE_TOKEN`, with `GITHUB_TOKEN` and `GITHUB_ENTERPRISE_TOKEN` cleared
+    - `--hostname` still comes only from local `github.host`, and `GH_HOST` stays ambient
+* Insights
+    - `GH_TOKEN` applies to `github.com` and `*.ghe.com`. A GitHub Enterprise Server host reads `GH_ENTERPRISE_TOKEN`. The other variable being empty is what makes gh use the active account
+    - Choosing that variable from local `github.host` misses a command whose target host came from the remote or from ambient `GH_HOST`
+
+## 2026-10-23 - PLAN - COMPLETE
+
+* Work completed
+    - Re-planned token export, the empty-directive scan, the silent repo probe, and the install mode check
+* Decisions made
+    - Export the looked-up token as both `GH_TOKEN` and `GH_ENTERPRISE_TOKEN`
+    - Leave `GH_HOST` ambient
+    - Reject a bare or empty `@gh-account` or `@gh-host` before any config write
+* Insights
+    - The command's host and the token lookup's host are not the same fact. Setting one variable from `github.host` cannot cover both
+
