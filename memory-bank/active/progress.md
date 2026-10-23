@@ -107,3 +107,14 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
     - A commented `@gh-account` in the create template would fail `use` if the empty-directive scan did not skip comments
     - On this machine `make test` stops at the zsh wrapper suite because `zsh` is not on PATH. The suites for this change pass
 
+## 2026-10-23 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the git-identity directives, the gh shim, the installer, and the planned docs against the Level 3 plan
+    - Recorded PASS in `memory-bank/active/.qa-validation-status`
+* Decisions made
+    - No build or plan rerun. The advisories stay advisories
+* Insights
+    - On git 2.34.1, `git config --unset` without `--local` edits the local file and does not remove a global `github.account`
+    - The token lookup still inherits `GH_HOST`, which preflight accepted
+

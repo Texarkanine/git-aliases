@@ -184,6 +184,20 @@ No new technology - validation not required. Runtime already has git and `gh`. T
 - Development ran the installer in the real home and parked the operator's `gh`. Already covered by the "fake HOME only" challenge. The pre-mortem addition is that `shims/gh.sh` resolves libexec under `HOME`, so a shim test that forgets the existing "refused to run without isolated HOME" guard would talk to the real home. The new suite uses that same guard.
 - The feature shipped in this repository and the operator wanted it only as a design note. Placement is recorded in the brief and in Open Questions. Build waits for `/niko-build`.
 
+## QA
+
+PASS. The build matches the numbered plan. Nothing here requires another build or a new plan.
+
+- Local pin only. `git config --unset` clears the local key and leaves a global key in place.
+- A failed or empty token lookup exits before the requested command. Both `GH_TOKEN` and `GH_ENTERPRISE_TOKEN` come from that lookup. `GH_HOST` stays ambient, including during the lookup.
+- Install parks, refreshes, refuses a second foreign file, and restores. A foreign `~/.local/bin/gh` with nothing parked is left alone.
+- Advisory: `gh auth token` stderr is not captured, so a refresh warning is visible. Preflight already accepted that.
+- Advisory: the creative note still describes a single `GH_TOKEN`. The code follows the numbered steps.
+- Advisory: `use_identity` prints the switching line before it rejects a bare or empty pin directive. No config is written.
+- Advisory: the root README install section does not mention the shim. The three planned doc edits are in place.
+
+Next command: `/niko-reflect`.
+
 ## Status
 
 - [x] Component analysis complete
@@ -194,4 +208,4 @@ No new technology - validation not required. Runtime already has git and `gh`. T
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA
