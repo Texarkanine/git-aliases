@@ -83,6 +83,129 @@ test_help_pages_match_dash_h() {
 	done
 }
 
+test_install_places_shim() {
+	if ! "${INSTALLER}"; then
+		fail "install should succeed"
+	fi
+	tis_bin="${HOME}/.local/bin/gh"
+	if [ ! -f "${tis_bin}" ]; then
+		fail "install should place ${tis_bin}"
+	fi
+	if [ ! -x "${tis_bin}" ]; then
+		fail "installed shim should be executable"
+	fi
+	if ! grep -q 'git-aliases-gh-shim' "${tis_bin}"; then
+		fail "installed gh should be the shim"
+	fi
+	if ! cmp -s "${REPO_DIR}/shims/gh.sh" "${tis_bin}"; then
+		fail "installed gh should match shims/gh.sh"
+	fi
+}
+
+test_install_parks_foreign_gh() {
+	tip_bin="${HOME}/.local/bin/gh"
+	tip_parked="${HOME}/.local/libexec/git-aliases/gh"
+	tip_bytes="${HOME}/foreign-gh-bytes"
+	mkdir -p "${HOME}/.local/bin"
+	printf 'foreign-gh-bytes\n' > "${tip_bytes}"
+	cp "${tip_bytes}" "${tip_bin}"
+	if ! "${INSTALLER}"; then
+		fail "install should park a foreign gh"
+	fi
+	if ! cmp -s "${tip_bytes}" "${tip_parked}"; then
+		fail "parked gh should keep the foreign bytes"
+	fi
+	if ! cmp -s "${REPO_DIR}/shims/gh.sh" "${tip_bin}"; then
+		fail "${tip_bin} should be the shim after parking"
+	fi
+	if [ ! -x "${tip_bin}" ]; then
+		fail "installed shim should be executable"
+	fi
+}
+
+test_reinstall_preserves_parked_gh() {
+	tir_bin="${HOME}/.local/bin/gh"
+	tir_parked="${HOME}/.local/libexec/git-aliases/gh"
+	tir_bytes="${HOME}/foreign-gh-bytes"
+	mkdir -p "${HOME}/.local/bin"
+	printf 'foreign-gh-bytes\n' > "${tir_bytes}"
+	cp "${tir_bytes}" "${tir_bin}"
+	if ! "${INSTALLER}"; then
+		fail "first install should park a foreign gh"
+	fi
+	if ! "${INSTALLER}"; then
+		fail "reinstall should succeed"
+	fi
+	if ! cmp -s "${tir_bytes}" "${tir_parked}"; then
+		fail "reinstall should leave the parked bytes unchanged"
+	fi
+	if ! cmp -s "${REPO_DIR}/shims/gh.sh" "${tir_bin}"; then
+		fail "reinstall should refresh the shim"
+	fi
+}
+
+test_install_refuses_second_foreign_gh() {
+	tif_bin="${HOME}/.local/bin/gh"
+	tif_parked="${HOME}/.local/libexec/git-aliases/gh"
+	tif_bin_bytes="${HOME}/foreign-bin-bytes"
+	tif_parked_bytes="${HOME}/parked-bytes"
+	mkdir -p "${HOME}/.local/bin" "${HOME}/.local/libexec/git-aliases"
+	printf 'foreign-bin\n' > "${tif_bin_bytes}"
+	printf 'parked-bytes\n' > "${tif_parked_bytes}"
+	cp "${tif_bin_bytes}" "${tif_bin}"
+	cp "${tif_parked_bytes}" "${tif_parked}"
+	if "${INSTALLER}"; then
+		fail "install should refuse when a foreign gh and a parked gh both exist"
+	fi
+	if ! cmp -s "${tif_bin_bytes}" "${tif_bin}"; then
+		fail "refused install should leave the foreign gh in place"
+	fi
+	if ! cmp -s "${tif_parked_bytes}" "${tif_parked}"; then
+		fail "refused install should leave the parked gh unchanged"
+	fi
+}
+
+test_uninstall_restores_parked_gh() {
+	tur_bin="${HOME}/.local/bin/gh"
+	tur_parked="${HOME}/.local/libexec/git-aliases/gh"
+	tur_bytes="${HOME}/foreign-gh-bytes"
+	mkdir -p "${HOME}/.local/bin"
+	printf 'foreign-gh-bytes\n' > "${tur_bytes}"
+	cp "${tur_bytes}" "${tur_bin}"
+	if ! "${INSTALLER}"; then
+		fail "install before uninstall should park the foreign gh"
+	fi
+	if ! cmp -s "${tur_bytes}" "${tur_parked}"; then
+		fail "install should park the foreign gh before uninstall"
+	fi
+	if ! "${INSTALLER}" --uninstall; then
+		fail "uninstall should succeed"
+	fi
+	if [ ! -f "${tur_bin}" ]; then
+		fail "uninstall should put the parked gh back"
+	fi
+	if ! cmp -s "${tur_bytes}" "${tur_bin}"; then
+		fail "restored gh should be the parked bytes"
+	fi
+	if [ -e "${tur_parked}" ]; then
+		fail "uninstall should move the parked gh back, not leave it"
+	fi
+}
+
+test_uninstall_leaves_foreign_gh() {
+	tul_bin="${HOME}/.local/bin/gh"
+	tul_bytes="${HOME}/foreign-gh-bytes"
+	mkdir -p "${HOME}/.local/bin"
+	printf 'foreign-gh-bytes\n' > "${tul_bytes}"
+	cp "${tul_bytes}" "${tul_bin}"
+	if ! "${INSTALLER}" --uninstall; then
+		fail "uninstall should succeed when gh is foreign"
+	fi
+	if ! cmp -s "${tul_bytes}" "${tul_bin}"; then
+		fail "uninstall should leave a foreign gh in place"
+	fi
+}
+
 test_uninstall_removes_help_pages() {
 	if ! "${INSTALLER}"; then
 		fail "install before uninstall should succeed"
@@ -118,6 +241,12 @@ main() {
 
 	run_one test_help_pages_match_dash_h
 	run_one test_uninstall_removes_help_pages
+	run_one test_install_places_shim
+	run_one test_install_parks_foreign_gh
+	run_one test_reinstall_preserves_parked_gh
+	run_one test_install_refuses_second_foreign_gh
+	run_one test_uninstall_restores_parked_gh
+	run_one test_uninstall_leaves_foreign_gh
 
 	if [ "${failures}" -ne 0 ]; then
 		echo "${failures} test(s) failed" >&2

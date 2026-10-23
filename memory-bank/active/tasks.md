@@ -131,7 +131,7 @@ None unresolved.
 3. Write tests and run red: drive `git identity use` against identity files created inside the isolated home. Assert the `github.account` and `github.host` outcomes above, including the worktree read, all four empty forms, a file whose `user.email` line sits above a bare directive and must not be applied, and a use that unsets nothing and still exits 0. Run `tests/test-git-identity.sh` and see the new cases fail.
 4. Write code and run green: scan the identity file first. A bare or empty `@gh-account` or `@gh-host` exits non-zero and leaves the checkout untouched. Then apply the file. `gh-account` runs `git config --replace-all github.account` with the login. `gh-host` does the same for `github.host`. After that, a missing `@gh-account` runs `git config --unset github.account || true`, and a missing `@gh-host` unsets `github.host` the same way, before the success message. Update the `create` template with commented placeholder directives. Do not assert on the template text. Run `tests/test-git-identity.sh` until the new cases and the existing ones pass.
 
-### 2. gh shim — executable
+### 2. gh shim — executable (done)
 
 - Files: `tests/test-gh-shim.sh`, `shims/gh.sh`, `Makefile`
 - Creative ref: `memory-bank/active/creative/creative-gh-account-per-checkout.md`
@@ -141,7 +141,7 @@ None unresolved.
 3. Write tests and run red: the stub `gh` on `PATH` records arguments and `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`, and `GH_HOST` under the fake home. `auth token --user example-login` prints `test-token`. `auth token --user missing-login` exits 1. Any `auth switch` exits 1. For the global account case, point `GIT_CONFIG_GLOBAL` at a file that sets `github.account`, and do not set the local key. For the global host case, set local `github.account` and put `github.host` only in that global file. One case invokes the shim as bare `gh` on a `PATH` of shim directory then stub directory. A libexec file that contains the marker must not be the binary that runs. One passthrough case asserts stdout equals the stub's stdout and does not contain `true`. Run `tests/test-gh-shim.sh` and see the new cases fail. The suite must refuse to run when `HOME` is the operator's home.
 4. Write code and run green. `resolve_real_gh` uses `~/.local/libexec/git-aliases/gh` only when that file is executable and does not contain the marker. Otherwise it walks `PATH` with `IFS=:` so entries that contain spaces stay intact, and takes the first executable `gh` whose file does not contain the marker. Do not treat `dirname $0` as the shim directory. If `GIT_ALIASES_GH_SHIM` is already set, exit non-zero before any lookup so a bad resolve cannot loop. Export that variable for the `auth token` exec and for the final exec. No real binary: exit non-zero. Confirm a repository with `git rev-parse --git-dir` and discard both streams. Outside a repo, or when `git config --local --get github.account` fails, exec the real binary with the environment unchanged. When the local account is set, unset `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, and `GITHUB_ENTERPRISE_TOKEN`, then run `auth token --user` on the real binary, adding `--hostname` only from a local `github.host`. A global `github.host` is not a hostname. Leave `GH_HOST` as it was. A failed or empty lookup exits non-zero and names the login. On success, export that same token as both `GH_TOKEN` and `GH_ENTERPRISE_TOKEN`. Leave the `GITHUB_*` variables empty. There is no suffix branch. Exec the real binary. Do not print the token. Do not call `auth switch`. Run `tests/test-gh-shim.sh` and `shellcheck --severity=error shims/gh.sh`.
 
-### 3. Install and uninstall — executable
+### 3. Install and uninstall — executable (done)
 
 - Files: `tests/test-install-subcommands.sh`, `scripts/install-subcommands.sh`
 - Creative ref: `memory-bank/active/creative/creative-gh-account-per-checkout.md`
@@ -151,7 +151,7 @@ None unresolved.
 3. Write tests and run red: under the suite's fake home, a foreign `~/.local/bin/gh` is a small text file with known bytes. Assert park, restore, reinstall, and the refusal when both a foreign `gh` and a parked file exist. Run `tests/test-install-subcommands.sh` and see the new cases fail.
 4. Write code and run green. The shim marker is the comment `git-aliases-gh-shim`. `mkdir -p` the libexec directory before any `mv`. Install over an existing shim refreshes `~/.local/bin/gh` from `shims/gh.sh` and does not touch the parked file. Install over a foreign file moves it to `~/.local/libexec/git-aliases/gh` when that path is absent, then copies the shim and `chmod +x` it. A content check is not enough. The install test asserts the executable bit. When the parked path already exists, exit non-zero and leave both files. Uninstall removes `~/.local/bin/gh` only when it contains the marker, then moves the parked file back only when that file exists. A foreign `~/.local/bin/gh` with nothing parked is left in place. `test_uninstall_removes_help_pages` stays green. Do not route the shim through the subcommand `-h` / cat-page loop. Run `tests/test-install-subcommands.sh` until the new cases and the existing ones pass.
 
-### 4. Docs — prose/policy
+### 4. Docs — prose/policy (done)
 
 - Files: `subcommands/git-identity/README.md`, `memory-bank/productContext.md`, `memory-bank/systemPatterns.md`
 - No tests: prose/policy artifact
@@ -192,6 +192,6 @@ No new technology - validation not required. Runtime already has git and `gh`. T
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

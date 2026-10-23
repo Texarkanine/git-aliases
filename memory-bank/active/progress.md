@@ -93,3 +93,17 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
     - `gh auth token` with no `--hostname` uses `DefaultHost()`: `GH_HOST`, else the sole host in `hosts.yml`, else `github.com`. The git remote is separate, and the command after exec reads that remote
     - A non-empty `GH_TOKEN` or `GH_ENTERPRISE_TOKEN` is the credential for that host class, so the dual export keeps the active account out of the request
 
+## 2026-10-23 - BUILD - COMPLETE
+
+* Work completed
+    - `git identity` records `@gh-account` and `@gh-host`, and clears each key when the identity omits it
+    - The `gh` shim forces that login's token for one command and refuses a pin with no token
+    - Install parks a foreign `~/.local/bin/gh` and uninstall puts it back
+    - Identity README, product context, and system patterns name the pin and the shim
+* Decisions made
+    - Export the looked-up token as both `GH_TOKEN` and `GH_ENTERPRISE_TOKEN`, and leave `GH_HOST` ambient
+    - Restore a parked `gh` only when `~/.local/bin/gh` is already gone
+* Insights
+    - A commented `@gh-account` in the create template would fail `use` if the empty-directive scan did not skip comments
+    - On this machine `make test` stops at the zsh wrapper suite because `zsh` is not on PATH. The suites for this change pass
+

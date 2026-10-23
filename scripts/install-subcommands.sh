@@ -31,11 +31,76 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Install the gh shim and park a foreign binary aside.
+#
+# Globals:
+#   HOME - install paths live under HOME
+#   REPO_DIR - repository root, source of shims/gh.sh
+# Arguments:
+#   None
+# Outputs:
+#   An error to STDERR when a foreign gh and a parked gh both exist
+# Returns:
+#   0 when the shim is installed
+#   1 when installing would destroy a parked binary
+install_gh_shim() {
+	local shim_src="${REPO_DIR}/shims/gh.sh"
+	local target="${HOME}/.local/bin/gh"
+	local parked="${HOME}/.local/libexec/git-aliases/gh"
+	local libexec_dir="${HOME}/.local/libexec/git-aliases"
+
+	mkdir -p "${libexec_dir}"
+	mkdir -p "${HOME}/.local/bin"
+
+	if [[ -f "${target}" ]] && grep -q 'git-aliases-gh-shim' "${target}"; then
+		cp "${shim_src}" "${target}"
+		chmod +x "${target}"
+		echo "	gh"
+		return 0
+	fi
+
+	if [[ -e "${target}" ]]; then
+		if [[ -e "${parked}" ]]; then
+			echo "Error: ${target} is not the gh shim and ${parked} already exists" >&2
+			return 1
+		fi
+		mv "${target}" "${parked}"
+	fi
+
+	cp "${shim_src}" "${target}"
+	chmod +x "${target}"
+	echo "	gh"
+}
+
+# Remove the gh shim and restore a parked binary.
+#
+# Globals:
+#   HOME - install paths live under HOME
+# Arguments:
+#   None
+# Outputs:
+#   None
+# Returns:
+#   0
+uninstall_gh_shim() {
+	local target="${HOME}/.local/bin/gh"
+	local parked="${HOME}/.local/libexec/git-aliases/gh"
+
+	if [[ -f "${target}" ]] && grep -q 'git-aliases-gh-shim' "${target}"; then
+		echo "	Removing gh"
+		rm -f "${target}"
+	fi
+	if [[ -e "${parked}" && ! -e "${target}" ]]; then
+		mv "${parked}" "${target}"
+	fi
+}
+
 if [[ "$MODE" == "install" ]]; then
     echo "📥 Installing Git subcommands..."
     
     # Create installation directory if it doesn't exist
     mkdir -p "$INSTALL_DIR"
+    install_gh_shim
     
     # Find all bash scripts (not completion scripts) and install them.
     # The loop stays in this shell so a failing -h aborts the install.
@@ -79,6 +144,8 @@ else
     	rm -f "${HOME}/.local/man/cat1/git-${cmd_base}.1"
     	rm -f "${HOME}/.local/share/man/cat1/git-${cmd_base}.1"
     done < <(find "$SUBCOMMANDS_DIR" -name "*.bash" -type f ! -name "*-completion.bash" -print0)
+
+    uninstall_gh_shim
     
     echo "✅ Git subcommands uninstalled successfully!"
 fi 

@@ -56,6 +56,8 @@ commit.gpgsign false
 
 # Special directives (prefixed with @)
 @hostname github-johndoe.com
+@gh-account example-login
+@gh-host ghe.example
 ```
 
 ### Special Directives
@@ -72,6 +74,16 @@ Pair with a custom SSH host entry in `~/.ssh/config` to automatically use the co
 Host github-johndoe.com
 	IdentityFile ~/.ssh/id_rsa_work
 ```
+
+`@hostname` is the SSH alias. It is not the GitHub API host.
+
+#### @gh-account
+
+Names the GitHub login `gh` should use for this checkout. `git identity use` stores it as the local `github.account` value, which a linked worktree reads too. An identity file that omits `@gh-account` clears a login set by the previous identity.
+
+#### @gh-host
+
+Names the GitHub API host for that login, such as `ghe.example` for a GitHub Enterprise Server. `@gh-host` is the API host. Omit it for github.com. An identity file that omits `@gh-host` clears a host set by the previous identity.
 
 ## Examples
 
