@@ -81,3 +81,15 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
 * Insights
     - The command's host and the token lookup's host are not the same fact. Setting one variable from `github.host` cannot cover both
 
+## 2026-10-23 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Re-checked the revised Level 3 plan against git-identity, the installer, the test layout, and gh 2.103.0 token selection
+    - Wrote `memory-bank/active/.preflight-status` with first line `PASS WITH ADVISORY`
+* Decisions made
+    - Build may proceed. The plan reads the pin with `git config --local --get` and exports the looked-up token as both `GH_TOKEN` and `GH_ENTERPRISE_TOKEN`
+    - Advisories do not block: the lookup inherits `GH_HOST`, gh 2.103 writes a refresh warning on the lookup's stderr, and the creative note still describes a single token variable
+* Insights
+    - `gh auth token` with no `--hostname` uses `DefaultHost()`: `GH_HOST`, else the sole host in `hosts.yml`, else `github.com`. The git remote is separate, and the command after exec reads that remote
+    - A non-empty `GH_TOKEN` or `GH_ENTERPRISE_TOKEN` is the credential for that host class, so the dual export keeps the active account out of the request
+
