@@ -45,7 +45,7 @@ graph TD
 ### Cross-Module Dependencies
 
 - `git identity use` writes `github.account` and `github.host`. It does not call `gh`.
-- The shim reads those keys with `git config --get` and calls the real `gh`. It does not call `git identity`.
+- The shim reads those keys with `git config --local --get` after it knows the directory is a repository. It does not call `git identity`. A global or system key is not a pin.
 - The installer copies `shims/gh.sh` to `~/.local/bin/gh`. The shim then finds the real binary at `~/.local/libexec/git-aliases/gh` or as the next `gh` on `PATH`.
 - `@hostname` still rewrites SSH remotes inside `git-identity`. The shim does not read that alias.
 
@@ -59,8 +59,9 @@ graph TD
 
 - A pin with no stored token must not fall through to the active account.
 - The shim must not call `gh auth switch` and must not print a token.
-- No pin, and not a repository, both leave the environment unchanged.
-- `@hostname` is not passed as `--hostname`.
+- No local pin, and not a repository, both leave the environment unchanged. A global `github.account` is not a pin.
+- `@hostname` is not passed as `--hostname`. The shim does not export `GH_HOST`. An SSH alias remote keeps working. A command that does not infer a host from the remote still follows the ambient `GH_HOST`.
+- A `gh` whose file contains the marker `git-aliases-gh-shim` is never the real binary, including when `$0` is a bare `gh`.
 - Tests and build verification stay inside a fake `HOME`. Do not run `make`, `make subcommands`, or `make clean` against the operator's real home.
 - Placeholders only. No real identities in source, tests, docs, or the memory bank.
 - Linux and macOS. No `cmd` or PowerShell shim in this pass.
@@ -81,16 +82,20 @@ None unresolved.
 - `git identity use` of an identity with no `@gh-account`, after a pin was set → `github.account` is unset
 - `@gh-host ghe.example` → `github.host` is `ghe.example`, and a later identity with no `@gh-host` unsets it
 - `@hostname vanity.example` on an SSH remote → the remote host becomes `vanity.example` and `github.host` stays unset
-- `@gh-account` with an empty value → `git identity use` exits non-zero and does not set `github.account`
-- `git identity use` on the core checkout → a linked worktree's `git config --get github.account` returns the same login
-- Shim, repository, no pin, `GH_TOKEN` already set → the stub `gh` sees that same `GH_TOKEN` and the original arguments
-- Shim, not a repository, `GH_TOKEN` already set → same passthrough
+- `@gh-account ""` and a bare `@gh-account` line → `git identity use` exits non-zero and does not set `github.account`
+- Identity with no `@gh-account` and no existing key → `git identity use` exits 0
+- `git identity use` on the core checkout → a linked worktree's `git config --local --get github.account` returns the same login
+- Shim, repository, no local pin, `GH_TOKEN` already set → the stub `gh` sees that same `GH_TOKEN` and the original arguments
+- Shim, repository, no local pin, global config file sets `github.account` to `example-login`, ambient `GH_TOKEN` set → ambient `GH_TOKEN` is preserved and `auth token` is not run
+- Shim, not a repository, same global key, ambient `GH_TOKEN` set → same passthrough
 - Shim, pin `example-login`, ambient `GH_TOKEN` and `GITHUB_TOKEN` set → lookup is `auth token --user example-login` with no `--hostname`; the command runs with `GH_TOKEN` equal to the stub token and `GITHUB_TOKEN` empty
 - Shim, pin whose token lookup exits non-zero → shim exits non-zero, stderr names the login, the requested command is not run, stdout has no token
-- `github.host` is `ghe.example` → lookup includes `--hostname ghe.example`, and the command runs with `GH_ENTERPRISE_TOKEN` set and `GH_TOKEN` empty
+- `github.host` is `ghe.example` → lookup includes `--hostname ghe.example`, the command runs with `GH_ENTERPRISE_TOKEN` set and `GH_TOKEN` empty, and an ambient `GH_HOST` is unchanged
+- `github.host` is `example.ghe.com` → lookup includes `--hostname example.ghe.com`, and the command runs with `GH_TOKEN` set and `GH_ENTERPRISE_TOKEN` empty
 - Remote host is `vanity.example` and `github.host` is unset → lookup has no `--hostname`
 - Pin set on the core checkout, shim invoked in the linked worktree → the stub sees that login
-- `~/.local/libexec/git-aliases/gh` exists and another `gh` is later on `PATH` → the libexec binary is the one invoked
+- `~/.local/libexec/git-aliases/gh` exists, has no shim marker, and another `gh` is later on `PATH` → the libexec binary is the one invoked
+- The shim is invoked as bare `gh` with `PATH` set to the shim directory then the stub directory → the stub runs once. A libexec file that contains the shim marker is skipped
 - Stub treats `auth switch` as a failure if it is ever invoked
 - Install under a fake home → `~/.local/bin/gh` is the shim
 - Install when `~/.local/bin/gh` is a foreign file → that file's bytes move to `~/.local/libexec/git-aliases/gh` and `~/.local/bin/gh` is the shim
@@ -120,20 +125,20 @@ None unresolved.
 - Files: `tests/test-git-identity.sh`, `subcommands/git-identity/git-identity.bash`
 - Creative ref: `memory-bank/active/creative/creative-gh-account-per-checkout.md`
 
-1. Stub tests: add `test_use_sets_github_account`, `test_use_without_gh_account_clears_pin`, `test_use_sets_github_host`, `test_hostname_does_not_set_github_host`, `test_gh_account_empty_fails`, and `test_worktree_sees_github_account`, each with an empty body, and call them from `run_one`.
-2. Stub interface: in `process_directive`, add `gh-account` and `gh-host` arms that return without writing config. In `use_identity`, add the two "directive was seen" flags, still unused.
-3. Write tests and run red: drive `git identity use` against identity files created inside the isolated home. Assert the `github.account` and `github.host` outcomes above, including the worktree read and the empty-value failure. Run `tests/test-git-identity.sh` and see the new cases fail.
-4. Write code and run green: `gh-account` runs `git config --replace-all github.account` with the login. `gh-host` does the same for `github.host`. After the identity file is applied, a missing `@gh-account` runs `git config --unset github.account`, and a missing `@gh-host` unsets `github.host`. A missing key is not an error. An empty directive value exits non-zero before any write. Update the `create` template with commented placeholder directives. Do not assert on the template text. Run `tests/test-git-identity.sh` until the new cases and the existing ones pass.
+1. Stub tests: add `test_use_sets_github_account`, `test_use_without_gh_account_clears_pin`, `test_use_sets_github_host`, `test_hostname_does_not_set_github_host`, `test_gh_account_empty_fails`, `test_bare_gh_account_fails`, `test_use_without_pin_exits_zero`, and `test_worktree_sees_github_account`, each with an empty body, and call them from `run_one`.
+2. Stub interface: in `process_directive`, add `gh-account` and `gh-host` arms that return without writing config. In `use_identity`, add the two "directive was seen" flags, still unused. Treat a line that is only `@gh-account` or `@gh-host` as a directive with an empty value, before the `eval git config` fallthrough.
+3. Write tests and run red: drive `git identity use` against identity files created inside the isolated home. Assert the `github.account` and `github.host` outcomes above, including the worktree read, both empty forms, and a use that unsets nothing and still exits 0. Run `tests/test-git-identity.sh` and see the new cases fail.
+4. Write code and run green: `gh-account` runs `git config --replace-all github.account` with the login. `gh-host` does the same for `github.host`. After the identity file is applied, a missing `@gh-account` runs `git config --unset github.account || true`, and a missing `@gh-host` unsets `github.host` the same way, before the success message. An empty or bare directive exits non-zero before any write. Update the `create` template with commented placeholder directives. Do not assert on the template text. Run `tests/test-git-identity.sh` until the new cases and the existing ones pass.
 
 ### 2. gh shim — executable
 
 - Files: `tests/test-gh-shim.sh`, `shims/gh.sh`, `Makefile`
 - Creative ref: `memory-bank/active/creative/creative-gh-account-per-checkout.md`
 
-1. Stub tests: create `tests/test-gh-shim.sh` in the same isolated-home style as `tests/test-git-identity.sh`. Add empty cases for the shim behaviors listed above, including libexec precedence, the vanity remote, the enterprise host, the missing token, and the worktree. Add the file to the `Makefile` `test` target.
+1. Stub tests: create `tests/test-gh-shim.sh` in the same isolated-home style as `tests/test-git-identity.sh`. Add empty cases for the shim behaviors listed above, including the global-key passthrough, libexec precedence, the marker skip, the vanity remote, both host forms, the missing token, and the worktree. Add the file to the `Makefile` `test` target.
 2. Stub interface: add `shims/gh.sh` with `#!/bin/sh`, the marker comment `git-aliases-gh-shim`, and empty `resolve_real_gh`, `exec_real`, and `main`. Follow `shell-posix-style`. The installed name has no extension. The source name is `gh.sh` so ShellCheck sees it.
-3. Write tests and run red: the stub `gh` on `PATH` records arguments and the four token variables to files under the fake home. `auth token --user example-login` prints `test-token`. `auth token --user missing-login` exits 1. Any `auth switch` exits 1. `PATH` in the test is the shim directory, then the stub directory, then `/usr/bin:/bin`. Run `tests/test-gh-shim.sh` and see the new cases fail. The suite must refuse to run when `HOME` is the operator's home.
-4. Write code and run green. `resolve_real_gh` uses `~/.local/libexec/git-aliases/gh` when that file is executable. Otherwise it walks `PATH` with `IFS=:` so entries that contain spaces stay intact, skips the directory of the running script, and takes the first executable `gh`. No real binary: exit non-zero. Outside a repo, or when `github.account` is unset, exec the real binary with the environment unchanged. When it is set, unset `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, and `GITHUB_ENTERPRISE_TOKEN`, then run `auth token --user` on the real binary, adding `--hostname` only from `github.host`. A failed or empty lookup exits non-zero and names the login. On success, export `GH_TOKEN` when the host is unset, `github.com`, or ends in `.ghe.com`. Export `GH_ENTERPRISE_TOKEN` for any other host. Exec the real binary. Do not print the token. Do not call `auth switch`. Run `tests/test-gh-shim.sh` and `shellcheck --severity=error shims/gh.sh`.
+3. Write tests and run red: the stub `gh` on `PATH` records arguments and `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`, and `GH_HOST` under the fake home. `auth token --user example-login` prints `test-token`. `auth token --user missing-login` exits 1. Any `auth switch` exits 1. For the global-key cases, point `GIT_CONFIG_GLOBAL` at a file that sets `github.account`, and do not set the local key. One case invokes the shim as bare `gh` on a `PATH` of shim directory then stub directory. A libexec file that contains the marker must not be the binary that runs. Run `tests/test-gh-shim.sh` and see the new cases fail. The suite must refuse to run when `HOME` is the operator's home.
+4. Write code and run green. `resolve_real_gh` uses `~/.local/libexec/git-aliases/gh` only when that file is executable and does not contain the marker. Otherwise it walks `PATH` with `IFS=:` so entries that contain spaces stay intact, and takes the first executable `gh` whose file does not contain the marker. Do not treat `dirname $0` as the shim directory. If `GIT_ALIASES_GH_SHIM` is already set, exit non-zero before any lookup so a bad resolve cannot loop. Export that variable only for the real exec. No real binary: exit non-zero. Confirm a repository with `git rev-parse`. Outside a repo, or when `git config --local --get github.account` fails, exec the real binary with the environment unchanged. When the local key is set, unset `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, and `GITHUB_ENTERPRISE_TOKEN`, then run `auth token --user` on the real binary, adding `--hostname` only from a local `github.host`. Leave `GH_HOST` as it was. A failed or empty lookup exits non-zero and names the login. On success, export `GH_TOKEN` when the host is unset, `github.com`, or ends in `.ghe.com`. Export `GH_ENTERPRISE_TOKEN` for any other host. Exec the real binary. Do not print the token. Do not call `auth switch`. Run `tests/test-gh-shim.sh` and `shellcheck --severity=error shims/gh.sh`.
 
 ### 3. Install and uninstall — executable
 
@@ -143,7 +148,7 @@ None unresolved.
 1. Stub tests: add empty `test_install_places_shim`, `test_install_parks_foreign_gh`, `test_reinstall_preserves_parked_gh`, `test_install_refuses_second_foreign_gh`, `test_uninstall_restores_parked_gh`, and `test_uninstall_leaves_foreign_gh` to the existing installer suite, and call them from `run_one`.
 2. Stub interface: add `install_gh_shim` and `uninstall_gh_shim` in `scripts/install-subcommands.sh` with the function signatures and comments, and call them from the install and uninstall branches. Bodies return 0 without copying files.
 3. Write tests and run red: under the suite's fake home, a foreign `~/.local/bin/gh` is a small text file with known bytes. Assert park, restore, reinstall, and the refusal when both a foreign `gh` and a parked file exist. Run `tests/test-install-subcommands.sh` and see the new cases fail.
-4. Write code and run green. The shim marker is the comment `git-aliases-gh-shim`. Install over an existing shim refreshes `~/.local/bin/gh` from `shims/gh.sh` and does not touch the parked file. Install over a foreign file moves it to `~/.local/libexec/git-aliases/gh` when that path is absent, then copies the shim. When the parked path already exists, exit non-zero and leave both files. Uninstall removes `~/.local/bin/gh` only when it contains the marker, then moves the parked file back. A foreign `~/.local/bin/gh` with nothing parked is left in place. Do not route the shim through the subcommand `-h` / cat-page loop. Run `tests/test-install-subcommands.sh` until the new cases and the existing ones pass.
+4. Write code and run green. The shim marker is the comment `git-aliases-gh-shim`. `mkdir -p` the libexec directory before any `mv`. Install over an existing shim refreshes `~/.local/bin/gh` from `shims/gh.sh` and does not touch the parked file. Install over a foreign file moves it to `~/.local/libexec/git-aliases/gh` when that path is absent, then copies the shim. When the parked path already exists, exit non-zero and leave both files. Uninstall removes `~/.local/bin/gh` only when it contains the marker, then moves the parked file back only when that file exists. A foreign `~/.local/bin/gh` with nothing parked is left in place. `test_uninstall_removes_help_pages` stays green. Do not route the shim through the subcommand `-h` / cat-page loop. Run `tests/test-install-subcommands.sh` until the new cases and the existing ones pass.
 
 ### 4. Docs — prose/policy
 
@@ -152,7 +157,7 @@ None unresolved.
 - Creative ref: `memory-bank/active/creative/creative-gh-account-per-checkout.md`
 
 1. In the identity README, document `@gh-account` and `@gh-host` next to `@hostname`. State that `@hostname` is the SSH alias and `@gh-host` is the API host. Use placeholder logins and hosts only.
-2. In `memory-bank/productContext.md`, extend the identity use case by one sentence: an identity can also name the GitHub login `gh` should use for that checkout.
+2. In `memory-bank/productContext.md`, extend the identity use case by one sentence: an identity can also name the GitHub login `gh` should use for that checkout. In Key Constraints, name the real `gh` beside git and bash. The shim does not run without it.
 3. In `memory-bank/systemPatterns.md`, add one sentence to the install description: `make subcommands` also installs the `gh` shim from `shims/gh.sh` and parks a foreign `~/.local/bin/gh` under `~/.local/libexec/git-aliases/`.
 
 ## Technology Validation
@@ -161,17 +166,19 @@ No new technology - validation not required. Runtime already has git and `gh`. T
 
 ## Challenges & Mitigations
 
-- Ambient `GH_TOKEN` could be what `gh auth token` returns, so the pin would be fake. Checked on the installed `gh`: `GH_TOKEN=obviously-fake gh auth token --user nosuchuser-example` exits 1 and does not print the ambient value. The shim still unsets all four token variables before the lookup so a later `gh` cannot change that.
+- Ambient `GH_TOKEN` could be what `gh auth token` returns, so the pin would be fake. Checked against `gh auth token --user` with a fake ambient token and a login that has no stored token: the command exits 1 and does not print the ambient value. The shim still unsets all four token variables before the lookup so a later `gh` cannot change that.
+- `git config --get` without `--local` honors a global `github.account`. Preflight failed the plan on that. The read is `git config --local --get`, and two cases set a global key the null-global harness cannot hide.
 - `PATH` entries contain spaces. Walk with `IFS=:` and do not echo the unquoted path through `sed`.
-- `$0` may be a bare `gh`. Skip the shim by comparing the candidate path with the running script, and prefer the libexec path when it exists.
+- `$0` may be a bare `gh`. Skip every candidate whose file contains the shim marker, including a marked file in libexec. Do not use `dirname $0`. `GIT_ALIASES_GH_SHIM` stops a resolve that picked the shim again.
 - `git config --unset` exits 5 when the key is absent. Treat that as success inside `use_identity`. The script has no `set -e` today. Keep the unset from failing the switch.
 - A real `make subcommands` would park whatever is at `~/.local/bin/gh` in the operator's home. Build verification is `make test` and `shellcheck --severity=error shims/gh.sh`. The install tests use the suite's fake home.
 - Test output could echo a real token if a test reached the real `gh`. The shim suite puts only the stub on `PATH` and uses the fixed string `test-token`.
-- `github.host` for GitHub Enterprise Server has to ride `GH_ENTERPRISE_TOKEN`, because `GH_TOKEN` applies to github.com and `*.ghe.com`. The shim picks the variable from the host. The test uses `ghe.example`.
+- `github.host` for GitHub Enterprise Server has to ride `GH_ENTERPRISE_TOKEN`, because `GH_TOKEN` applies to github.com and `*.ghe.com`. The shim picks the variable from the host. Tests use `ghe.example` and `example.ghe.com`. The shim does not export `GH_HOST`. Doing so would override SSH-alias translation, which is what `@hostname` is for. A command that does not infer a host from the remote still follows the ambient `GH_HOST`. That limit stays.
 
 ## Pre-Mortem
 
 - A test or a doc recorded a real login or host, and that landed in git. The plan allows placeholders only, and the shim suite never calls the real `gh`. Review the diff for that before the build phase ends.
+- The pin read walked global config, the tests nulled that file, and every checkout on a machine with a global key used the wrong account. The replan reads `--local` and tests a global key on purpose.
 - Development ran the installer in the real home and parked the operator's `gh`. Already covered by the "fake HOME only" challenge. The pre-mortem addition is that `shims/gh.sh` resolves libexec under `HOME`, so a shim test that forgets the existing "refused to run without isolated HOME" guard would talk to the real home. The new suite uses that same guard.
 - The feature shipped in this repository and the operator wanted it only as a design note. Placement is recorded in the brief and in Open Questions. Build waits for `/niko-build`.
 

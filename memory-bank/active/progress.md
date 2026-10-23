@@ -36,6 +36,17 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
 * Insights
     - The planned suites set `GIT_CONFIG_GLOBAL=/dev/null`, so that bug would have stayed green
 
+## 2026-10-23 - PLAN - COMPLETE
+
+* Work completed
+    - Re-planned the shim read, the marker skip, the empty directive, and the install restore
+* Decisions made
+    - A pin is a local key only
+    - Do not export `GH_HOST`. SSH alias remotes keep their translation
+    - Skip shim-marked binaries instead of resolving the real `gh` only at install time
+* Insights
+    - The install-time symlink would hide a `gh` installed after `make subcommands`. The marker skip still finds the next real binary
+
 ## 2026-10-23 - PREFLIGHT - COMPLETE
 
 * Work completed
