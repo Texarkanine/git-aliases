@@ -121,7 +121,7 @@ None unresolved.
 
 ## Implementation Plan
 
-### 1. git-identity directives — executable
+### 1. git-identity directives — executable (done)
 
 - Files: `tests/test-git-identity.sh`, `subcommands/git-identity/git-identity.bash`
 - Creative ref: `memory-bank/active/creative/creative-gh-account-per-checkout.md`
