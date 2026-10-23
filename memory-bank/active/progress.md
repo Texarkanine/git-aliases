@@ -118,3 +118,14 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
     - On git 2.34.1, `git config --unset` without `--local` edits the local file and does not remove a global `github.account`
     - The token lookup still inherits `GH_HOST`, which preflight accepted
 
+## 2026-10-23 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-gh-account-pin.md`
+    - Checked product context, system patterns, and tech context. The first two already match the pin and the shim. Tech context did not change
+* Decisions made
+    - No further doc or code edits. The QA advisories stay advisories
+* Insights
+    - A suite that nulls the global git config cannot catch a read that falls through to it
+    - A replan that leaves the creative note stale comes back as a QA advisory
+
