@@ -26,3 +26,23 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
     - A GitHub Enterprise Server host is forced with `GH_ENTERPRISE_TOKEN`. github.com and `*.ghe.com` use `GH_TOKEN`
 * Insights
     - `gh auth token --user` does not echo an ambient `GH_TOKEN`. The shim still clears the four token variables before the lookup
+
+## 2026-10-23 - PREFLIGHT - FAIL (fixable)
+
+* Work completed
+    - Ran preflight on the Level 3 plan
+* Decisions made
+    - Re-plan the shim's config read. `git config --get` would honor a global `github.account` and pin a checkout that never set one
+* Insights
+    - The planned suites set `GIT_CONFIG_GLOBAL=/dev/null`, so that bug would have stayed green
+
+## 2026-10-23 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Checked the Level 3 plan against `git-identity`, the installer, and the test layout
+    - Wrote `memory-bank/active/.preflight-status` with first line `FAIL (fixable)`
+* Decisions made
+    - Build stays blocked. The shim must read `github.account` with `git config --local --get`, and a test must set a global key so `GIT_CONFIG_GLOBAL=/dev/null` cannot hide a cascade read
+    - Advisories (PATH resolution, `GH_HOST`, empty directive syntax, unset exit status) do not by themselves require a redesign
+* Insights
+    - `git config --replace-all` inside a repository is local. `git config --get` is not. The planned suites null the global file, so they stay green either way
