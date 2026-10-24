@@ -129,3 +129,13 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
     - A suite that nulls the global git config cannot catch a read that falls through to it
     - A replan that leaves the creative note stale comes back as a QA advisory
 
+## 2026-10-24 - PR - OPEN
+
+* Work completed
+    - Opened draft pull request https://github.com/Texarkanine/git-aliases/pull/19
+    - Identity README says the pin keys do nothing until the `make subcommands` shim is the `gh` on PATH
+* Decisions made
+    - Archive stays unrun. The operator asked for the pull request, then a handoff
+* Insights
+    - A sentence that this repo provides no `gh` integration would have contradicted the shim in the same branch
+
