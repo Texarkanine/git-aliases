@@ -70,11 +70,54 @@ function process_directive() {
     			fi
     		done
     		;;
+    	gh-account)
+    		git config --replace-all github.account "${value}"
+    		;;
+    	gh-host)
+    		git config --replace-all github.host "${value}"
+    		;;
     	# Add more special directives here as needed
     	*)
     		echo "Warning: Unknown directive '@${directive}'"
     		;;
     esac
+}
+
+# Reject a bare or empty GitHub pin directive before any config write.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1 - path to the identity file
+# Outputs:
+#   An error to STDERR when @gh-account or @gh-host is bare or empty
+# Returns:
+#   0 when the file has no bare or empty pin directive
+#   1 when a pin directive is bare or empty
+function reject_empty_gh_directives() {
+	local identity_file="$1"
+	local line directive value
+
+	while IFS= read -r line || [[ -n "${line}" ]]; do
+		if [[ "${line}" =~ ^[[:space:]]*# || -z "${line// }" ]]; then
+			continue
+		fi
+		if [[ "${line}" =~ ^@(gh-account|gh-host)[[:space:]]*$ ]]; then
+			echo "Error: @${BASH_REMATCH[1]} requires a value" >&2
+			return 1
+		fi
+		if [[ "${line}" =~ ^@(gh-account|gh-host)[[:space:]]+(.+)$ ]]; then
+			directive="${BASH_REMATCH[1]}"
+			value="${BASH_REMATCH[2]}"
+			value="${value#\"}"
+			value="${value%\"}"
+			if [[ -z "${value}" ]]; then
+				echo "Error: @${directive} requires a value" >&2
+				return 1
+			fi
+		fi
+	done < "${identity_file}"
+	return 0
 }
 
 # Switch to the specified identity
@@ -88,6 +131,13 @@ function use_identity() {
     fi
 
     echo "Switching to identity: ${identity}"
+
+    local saw_gh_account=0
+    local saw_gh_host=0
+
+    if ! reject_empty_gh_directives "${identity_file}"; then
+    	exit 1
+    fi
 
     # Process the identity file
     while IFS= read -r line || [[ -n "${line}" ]]; do
@@ -105,12 +155,23 @@ function use_identity() {
     		value="${value%\"}"
     		
     		process_directive "${directive}" "${value}"
+    		case "${directive}" in
+    			gh-account) saw_gh_account=1 ;;
+    			gh-host) saw_gh_host=1 ;;
+    		esac
     	else
     		# Regular git config line - run it as-is
     		eval "git config --replace-all ${line}"
     		echo "Set ${line}"
     	fi
     done < "${identity_file}"
+
+    if [[ "${saw_gh_account}" -eq 0 ]]; then
+    	git config --unset github.account || true
+    fi
+    if [[ "${saw_gh_host}" -eq 0 ]]; then
+    	git config --unset github.host || true
+    fi
 
     echo "Successfully switched to identity: ${identity}"
 }
@@ -139,6 +200,8 @@ commit.gpgsign false
 
 # Special directives (prefixed with @)
 # @hostname github-${identity}.com
+# @gh-account example-login
+# @gh-host ghe.example
 EOF
 
     echo "Created new identity: ${identity}"

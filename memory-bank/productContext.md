@@ -7,7 +7,7 @@ Git power users on Linux/macOS who work with multiple branches, identities, or t
 ## Use Cases
 
 - **Branch synchronization** (`git sync`): Keep a feature branch up to date with `main` (or another source branch) via rebase or merge, with automatic stash/restore handling.
-- **Identity management** (`git-identity`): Switch between multiple Git identities (e.g., personal vs. work) without manually editing `.gitconfig`.
+- **Identity management** (`git-identity`): Switch between multiple Git identities (e.g., personal vs. work) without manually editing `.gitconfig`. An identity can also name the GitHub login `gh` should use for that checkout.
 - **Alias shortcuts**: Reduce keystrokes for everyday operations (staging, diffing, status, log, remote interaction, rebase/merge).
 - **Tab completion**: Tab-completion for the custom subcommands in bash and zsh.
 - **Linked worktrees** (`git wt`): Create and tear down linked worktrees at a predictable `~/worktrees/...` layout; optional shell wrappers auto-`cd`.
@@ -28,4 +28,4 @@ Git power users on Linux/macOS who work with multiple branches, identities, or t
 
 - Subcommands must run in `bash` (not `/bin/sh`); aliases and Makefile-embedded shell must remain POSIX-compatible.
 - Installation targets `~/.local/bin` for subcommands, `~/.local/share/git-aliases/completions/` for completion scripts, and (opt-in `make shell`) `~/.local/share/git-aliases/shell/` for wrappers.
-- No external runtime dependencies beyond `git` and `bash`.
+- No external runtime dependencies beyond `git`, `bash`, and `gh`. The shim does not run without the real `gh`.
