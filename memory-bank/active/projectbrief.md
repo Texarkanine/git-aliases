@@ -48,3 +48,15 @@ The checkout has no GitHub login recorded. `gh` behaves as it does today and use
 6. The shim does not pass `@hostname` to `gh auth token --hostname`.
 7. Two checkouts with different pins do not call `gh auth switch`.
 8. Install under a fake home parks a foreign `~/.local/bin/gh` and uninstall puts it back. Reinstall while the shim is already installed does not destroy the parked binary.
+
+## Rework
+
+Pull request #19 review item 1: `exec_real` exports `GIT_ALIASES_GH_SHIM`, so a shell alias or extension that runs `gh` again exits with `Error: gh shim invoked itself`. Unset that variable in the process that execs the real binary. The marker check still skips this shim file. The token lookup still calls the real binary by its path.
+
+The other two review items stay accepted advisories. `gh auth token` refresh warnings stay on stderr. A lookup with no local `github.host` still inherits `GH_HOST`.
+
+### Rework acceptance
+
+1. Outside a repository, in an unpinned checkout, and in a pinned checkout, the real `gh` process does not inherit `GIT_ALIASES_GH_SHIM`.
+2. A child `gh` started from that process runs, and does not exit with `Error: gh shim invoked itself`.
+3. A pinned lookup still uses the real binary. A missing token still exits before the requested command.

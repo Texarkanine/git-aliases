@@ -139,3 +139,13 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
 * Insights
     - A sentence that this repo provides no `gh` integration would have contradicted the shim in the same branch
 
+## 2026-10-24 - REWORK - INITIATED
+
+* Work completed
+    - Operator asked to rework pull request #19, review item 1
+* Decisions made
+    - Unset `GIT_ALIASES_GH_SHIM` in the process that execs the real `gh`
+    - Leave the refresh-stderr warning and the inherited `GH_HOST` lookup as accepted advisories
+* Insights
+    - The loop variable on the final exec makes a shell alias's child `gh` exit with `Error: gh shim invoked itself`
+
