@@ -1,0 +1,17 @@
+PASS
+
+QA of the Level 3 gh-account-pin build against the numbered plan and the creative decision. Nothing has to change before acceptance.
+
+The pin is a local `github.account` and an optional local `github.host`. `git identity use` writes them with `git config --replace-all`, clears each key the identity omits, and rejects a bare or empty directive before any write. On git 2.34.1, `git config --unset` without `--local` removes the local key, leaves a global key in place, and exits 5 with empty stderr when the local key is absent. A linked worktree reads that same local file. `@hostname` still rewrites the SSH remote and does not set `github.host`.
+
+The shim execs the real `gh` with the token environment unchanged when the directory is not a repository or the local account is unset, including when the account is only global. A local pin clears the four token variables, runs `gh auth token --user`, and adds `--hostname` only from local `github.host`. A non-zero or empty lookup exits and names the login. The requested command does not run. On success the same token is exported as `GH_TOKEN` and `GH_ENTERPRISE_TOKEN`, and the `GITHUB_*` pair stays unset. `GH_HOST` is not modified. The shim does not call `gh auth switch` and does not print the token. The real binary is the parked libexec file when that file is executable and has no `git-aliases-gh-shim` marker; otherwise it is the next unmarked executable `gh` on `PATH`. `GIT_ALIASES_GH_SHIM` stops a resolve that picked the shim again.
+
+Install copies `shims/gh.sh` to `~/.local/bin/gh`, parks a foreign file under `~/.local/libexec/git-aliases/gh`, refuses to install when both already exist, and on uninstall restores the parked file only when `~/.local/bin/gh` is already gone. `make`, `make subcommands`, and `make clean` already call that script. The Makefile `test` target runs `tests/test-gh-shim.sh`. Placeholders only. No new runtime dependency.
+
+Advisory. The token lookup inherits ambient `GH_HOST`, and the lookup's stderr is not captured. Preflight described both and did not block. The numbered steps say to leave `GH_HOST` as it was. A gh 2.103 refresh warning on the lookup's stderr will show up in front of the command.
+
+Advisory. `memory-bank/active/creative/creative-gh-account-per-checkout.md` still says to set only `GH_TOKEN`. The code follows the numbered steps and exports both token variables. Update that note when the design record is next touched.
+
+Advisory. `use_identity` prints "Switching to identity" before it rejects a bare or empty `@gh-account` or `@gh-host`. The command still exits non-zero and writes no key.
+
+Advisory. The root README install section does not say that `make subcommands` installs the shim or parks a foreign `~/.local/bin/gh`. The planned edits to the identity README, product context, and system patterns are present and match the plan.
