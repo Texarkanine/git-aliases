@@ -1,8 +1,8 @@
 # Progress
 
-Pin `gh` to the checkout's git identity. `git identity` records `github.account`, and a `gh` shim on `PATH` forces that login's token. Real logins and hosts stay out of this repository.
+Pin `gh` to the checkout's git identity. The active rework stops the shim from leaving `GIT_ALIASES_GH_SHIM` set on the real `gh`, so a shell alias can call `gh` again.
 
-**Complexity:** Level 3
+**Complexity:** Level 1
 
 ## 2026-10-23 - COMPLEXITY ANALYSIS - COMPLETE
 
@@ -148,4 +148,13 @@ Pin `gh` to the checkout's git identity. `git identity` records `github.account`
     - Leave the refresh-stderr warning and the inherited `GH_HOST` lookup as accepted advisories
 * Insights
     - The loop variable on the final exec makes a shell alias's child `gh` exit with `Error: gh shim invoked itself`
+
+## 2026-10-24 - COMPLEXITY ANALYSIS - COMPLETE
+
+* Work completed
+    - Classified the rework as a Level 1 bug fix
+* Decisions made
+    - Level 1, because the change is one guard in `shims/gh.sh`
+* Insights
+    - The marker check already refuses to treat this file as the real binary. The environment variable only has to stop a resolve that picked the shim again before `exec_real`
 
