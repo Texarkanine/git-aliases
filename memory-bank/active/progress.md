@@ -169,3 +169,15 @@ Pin `gh` to the checkout's git identity. The active rework stops the shim from l
     - The red run failed with `Error: gh shim invoked itself` in all three cases. The same suite passed after the unset
     - `make test` on this machine still stops in `tests/test-wt-wrappers.sh` because `zsh` is not on PATH. The suites this change owns passed, and the later suites were run directly. Their zsh cases fail for that same missing `zsh`
 
+## 2026-10-24 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed `exec_real` and the three reentry tests against the rework acceptance criteria
+    - Ran `tests/test-gh-shim.sh`. The suite passed
+    - Recorded PASS in `memory-bank/active/.qa-validation-status`
+* Decisions made
+    - No build or plan rerun. The passthrough marker-miss case stays an advisory
+* Insights
+    - The token lookup still runs before `exec_real`, so a pinned resolve that returns this shim still stops
+    - The reentry tests lock an empty guard on the real process. They do not lock the export in `main`
+

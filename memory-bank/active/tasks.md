@@ -22,3 +22,11 @@
 - `test_reentry_pinned`
 
 The stub `gh` records `GIT_ALIASES_GH_SHIM`. For the argument `reenter`, it runs `gh inner`.
+
+## QA
+
+PASS. No build or plan rerun.
+
+`exec_real` unsets `GIT_ALIASES_GH_SHIM` and leaves the export in place through resolve and the token lookup. The three reentry tests match the rework acceptance criteria. The shim suite passed.
+
+Advisory: a passthrough exec clears the guard, so a marker miss on that path can start this shim again. A pinned lookup still runs while the guard is exported. The reentry tests do not assert that export.

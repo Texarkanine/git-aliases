@@ -1,0 +1,9 @@
+PASS
+
+`exec_real` unsets `GIT_ALIASES_GH_SHIM` before it replaces the process. `main` still exports that guard before resolve and before the token lookup. The marker check is unchanged. The three reentry tests cover a directory that is not a repository, an unpinned checkout, and a pinned checkout. The shim suite passed.
+
+No blocking findings.
+
+Advisory: on a passthrough exec, a marker miss can start this shim again, because the guard is cleared before `exec`. A pinned checkout still stops in that case: the token lookup runs while the guard is exported. The rework requires the unset, and `file_has_marker` still skips a file that contains `git-aliases-gh-shim`.
+
+Advisory: the reentry tests lock an empty guard on the real process and a finished child command. They do not lock the export in `main`. The code still exports the guard before resolve and before the token lookup.
