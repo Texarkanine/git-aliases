@@ -158,3 +158,14 @@ Pin `gh` to the checkout's git identity. The active rework stops the shim from l
 * Insights
     - The marker check already refuses to treat this file as the real binary. The environment variable only has to stop a resolve that picked the shim again before `exec_real`
 
+## 2026-10-24 - BUILD - COMPLETE
+
+* Work completed
+    - Unset `GIT_ALIASES_GH_SHIM` in `exec_real`
+    - Added reentry tests for a directory that is not a repository, an unpinned checkout, and a pinned checkout
+* Decisions made
+    - Leave the variable exported through resolve and the token lookup. Clear it only on the final exec
+* Insights
+    - The red run failed with `Error: gh shim invoked itself` in all three cases. The same suite passed after the unset
+    - `make test` on this machine still stops in `tests/test-wt-wrappers.sh` because `zsh` is not on PATH. The suites this change owns passed, and the later suites were run directly. Their zsh cases fail for that same missing `zsh`
+

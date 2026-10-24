@@ -191,6 +191,66 @@ assert_passthrough() {
 	expect_field 1 GH_TOKEN "${ap_token}"
 }
 
+# Fail unless reenter spawned a child gh without the loop guard.
+#
+# Globals:
+#   last_rc, last_err, last_out - set by invoke
+# Arguments:
+#   $1 - yes when the checkout is pinned
+# Outputs:
+#   None
+# Returns:
+#   Does not return on failure
+assert_reentry() {
+	ar_pinned="$1"
+	if [ "${last_rc}" -ne 0 ]; then
+		fail "reenter should exit 0 (got ${last_rc}): $(cat "${last_err}")"
+	fi
+	case "$(cat "${last_err}")" in
+		*"gh shim invoked itself"*)
+			fail "child gh was treated as a loop"
+			;;
+	esac
+	if [ "${last_out}" != "stub-ok" ]; then
+		fail "child gh should print stub-ok (got [${last_out}])"
+	fi
+	if [ "${ar_pinned}" = "yes" ]; then
+		expect_count 4
+		expect_field 1 argv "auth token --user example-login"
+		expect_field 2 argv "reenter"
+		expect_field 2 GIT_ALIASES_GH_SHIM ""
+		expect_field 3 argv "auth token --user example-login"
+		expect_field 4 argv "inner"
+		expect_field 4 GIT_ALIASES_GH_SHIM ""
+	else
+		expect_count 2
+		expect_field 1 argv "reenter"
+		expect_field 1 GIT_ALIASES_GH_SHIM ""
+		expect_field 2 argv "inner"
+		expect_field 2 GIT_ALIASES_GH_SHIM ""
+	fi
+}
+
+test_reentry_outside_repo() {
+	tr_dir=$(mktemp -d)
+	cd "${tr_dir}" || fail "cd ${tr_dir} failed"
+	invoke "${SHIM_BIN}/gh" reenter
+	assert_reentry no
+}
+
+test_reentry_unpinned() {
+	init_repo
+	invoke "${SHIM_BIN}/gh" reenter
+	assert_reentry no
+}
+
+test_reentry_pinned() {
+	init_repo
+	git config --local github.account example-login
+	invoke "${SHIM_BIN}/gh" reenter
+	assert_reentry yes
+}
+
 test_no_pin_preserves_token() {
 	init_repo
 	invoke env GH_TOKEN=ambient-token "${SHIM_BIN}/gh" issue list
@@ -454,6 +514,7 @@ printf '%s\n' "${GITHUB_TOKEN-}" > "${entry}/GITHUB_TOKEN"
 printf '%s\n' "${GH_ENTERPRISE_TOKEN-}" > "${entry}/GH_ENTERPRISE_TOKEN"
 printf '%s\n' "${GITHUB_ENTERPRISE_TOKEN-}" > "${entry}/GITHUB_ENTERPRISE_TOKEN"
 printf '%s\n' "${GH_HOST-}" > "${entry}/GH_HOST"
+printf '%s\n' "${GIT_ALIASES_GH_SHIM-}" > "${entry}/GIT_ALIASES_GH_SHIM"
 
 if [ "${1-}" = "auth" ] && [ "${2-}" = "switch" ]; then
 	echo "auth switch invoked" >&2
@@ -492,6 +553,11 @@ if [ "${1-}" = "auth" ] && [ "${2-}" = "token" ]; then
 	esac
 fi
 
+if [ "${1-}" = "reenter" ]; then
+	gh inner
+	exit $?
+fi
+
 printf '%s\n' "stub-ok"
 exit 0
 EOF
@@ -510,6 +576,9 @@ EOF
 	run_one test_libexec_precedes_path
 	run_one test_marker_skips_libexec_and_self
 	run_one test_pinned_command_does_not_call_auth_switch
+	run_one test_reentry_outside_repo
+	run_one test_reentry_unpinned
+	run_one test_reentry_pinned
 
 	rm -rf "${SHIM_BIN}" "${STUB_BIN}"
 

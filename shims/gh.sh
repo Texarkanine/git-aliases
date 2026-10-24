@@ -74,7 +74,7 @@ resolve_real_gh() {
 # Replace this process with the real gh.
 #
 # Globals:
-#   GIT_ALIASES_GH_SHIM - exported so a later shim invocation stops
+#   GIT_ALIASES_GH_SHIM - unset so a child gh is a new command
 #   real_gh - path chosen by resolve_real_gh
 # Arguments:
 #   $@ - arguments for the real gh
@@ -83,7 +83,7 @@ resolve_real_gh() {
 # Returns:
 #   Does not return on success
 exec_real() {
-	export GIT_ALIASES_GH_SHIM=1
+	unset GIT_ALIASES_GH_SHIM
 	exec "${real_gh}" "$@"
 }
 
