@@ -81,9 +81,13 @@ Host github-johndoe.com
 
 Names the GitHub login `gh` should use for this checkout. `git identity use` stores it as the local `github.account` value, which a linked worktree reads too. An identity file that omits `@gh-account` clears a login set by the previous identity.
 
+Writing the key does not change `gh` by itself, and GitHub's CLI does not read it. `make subcommands` installs a `gh` shim that does: in this checkout it forces that login, and it exits without running the command when that login has no stored token.
+
 #### @gh-host
 
 Names the GitHub API host for that login, such as `ghe.example` for a GitHub Enterprise Server. `@gh-host` is the API host. Omit it for github.com. An identity file that omits `@gh-host` clears a host set by the previous identity.
+
+The same shim passes this value to `gh auth token --hostname`. GitHub's CLI does not read `github.host`.
 
 ## Examples
 
