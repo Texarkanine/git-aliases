@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: wt-go-branch-completions
-**Phase:** QA - COMPLETE (FAIL)
+**Phase:** BUILD - COMPLETE
 
 ## What Was Done
 - Bash and zsh completers offer local `refs/heads/` names after the word `go` for `wt`, `git wt`, and `git-wt`
@@ -25,6 +25,7 @@
 - Remote-ref test plants `refs/remotes/origin/remote-only` and rejects both `remote-only` and `origin/remote-only` (preflight advisory 1)
 - Bash suite includes `test_bash_missing_fails`, matching the zsh suite (preflight advisory 2)
 - Bash uses a `read` loop instead of `mapfile`
+- Removed `__git_complete wt _git_wt`. When git's bash completion is loaded, that call rebinds `wt` with `-o default` and `-o nospace`, so a prefix that matches no branch offers filenames. `complete -F _git_wt wt` is the binding. `test_wt_does_not_call_git_complete` locks that.
 
 ## Next Step
-- QA failed. Rerun `/niko-build`: remove `__git_complete wt _git_wt` from `git-wt-completion.bash`, and change `test_wt_calls_git_complete_when_present` to assert that sourcing does not call it (see QA Results in `tasks.md`)
+- QA review (rerun after the `__git_complete` fix)

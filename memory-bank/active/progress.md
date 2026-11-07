@@ -59,3 +59,14 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - FAIL: when git completion is loaded, `__git_complete wt _git_wt` re-binds `wt` with `-o default -o nospace`. A non-matching prefix then falls back to filenames, which breaks acceptance criterion 2. Build must rerun: remove that call and invert its test
 * Insights
     - `__git_complete` gives a function that already reads `COMP_WORDS` nothing, and it adds `-o default -o nospace`. `git <cmd>` finds `_git_<cmd>` by name without it
+
+## 2026-11-07 - BUILD - COMPLETE
+
+* Work completed
+    - Removed `__git_complete wt _git_wt` from `git-wt-completion.bash`
+    - Replaced `test_wt_calls_git_complete_when_present` with `test_wt_does_not_call_git_complete`
+    - `make test` and `make shellcheck` passed again
+* Decisions made
+    - `wt` stays on `complete -F _git_wt wt`. Do not hand that name to git's wrapper
+* Insights
+    - The plain binding is what keeps a non-matching prefix from falling through to filenames

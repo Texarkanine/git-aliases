@@ -46,7 +46,3 @@ _git_wt() {
 
 complete -F _git_wt git-wt
 complete -F _git_wt wt
-
-if declare -F __git_complete >/dev/null; then
-	__git_complete wt _git_wt
-fi

@@ -155,13 +155,16 @@ test_wt_source_binds_git_wt_and_wt() {
 		|| fail "wt should use _git_wt: ${tws_bind}"
 }
 
-test_wt_calls_git_complete_when_present() {
+test_wt_does_not_call_git_complete() {
 	twc_out=$(bash -c '
 		__git_complete() { printf "called %s %s\n" "$1" "$2"; }
 		. "$1"
+		complete -p wt
 	' bash "${WT_BASH}")
-	echo "${twc_out}" | grep -qx 'called wt _git_wt' \
-		|| fail "should call __git_complete for wt: ${twc_out}"
+	echo "${twc_out}" | grep -q 'called ' \
+		&& fail "should not call __git_complete: ${twc_out}"
+	echo "${twc_out}" | grep -qx 'complete -F _git_wt wt' \
+		|| fail "wt should stay bound to _git_wt: ${twc_out}"
 }
 
 test_bash_missing_fails() {
@@ -193,7 +196,7 @@ main() {
 	test_wt_without_go_completes_nothing
 	test_wt_ignores_remote_and_outside_repo
 	test_wt_source_binds_git_wt_and_wt
-	test_wt_calls_git_complete_when_present
+	test_wt_does_not_call_git_complete
 	test_bash_missing_fails
 
 	if [ "${failures}" -ne 0 ]; then

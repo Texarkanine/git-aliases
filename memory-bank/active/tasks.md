@@ -94,7 +94,7 @@ No new technology - validation not required. Completers use `git for-each-ref`, 
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA (ran 2026-11-07: FAIL; Build must rerun)
+- [ ] QA (ran 2026-11-07: FAIL; `__git_complete` call removed, rerun QA)
 
 ## QA Results
 
@@ -110,3 +110,7 @@ Result: FAIL. `make test` and `make shellcheck` pass. One finding blocks.
 - The bash path that runs when `_get_comp_words_by_ref` exists has no test, because the suite does not load bash-completion. The plan accepted that. The code is simple.
 - Zsh `_git_wt` does not skip a current word that starts with `-`, but bash does. This is harmless: `compadd` filters by prefix, and branch names do not start with `-`.
 - KISS, DRY, YAGNI, completeness, integrity, and docs: no other findings. The zsh completer follows `git-sync-completion.zsh` (register guard, conditional `compinit -C`, user-commands append). Both READMEs were updated. `systemPatterns.md` is still accurate.
+
+### Fix applied
+
+Removed the `__git_complete` block. `test_wt_does_not_call_git_complete` asserts sourcing does not call it and `complete -p wt` stays `complete -F _git_wt wt`. `make test` and `make shellcheck` passed after the change.
