@@ -6,7 +6,7 @@ The repo is a collection of independently-installed Git extensions. There is no 
 
 A Git subcommand is any executable on `PATH` named `git-<name>`; running `git <name>` dispatches to it. That's the entire extension mechanism. Each subcommand under `subcommands/<name>/` is a self-contained Bash script.
 
-Bash completion scripts are sourced by `~/.bash_completion` (written by `install-completions.bash`); zsh completion scripts are sourced from a fenced `~/.zshrc` block when `zsh` is on PATH. They must not produce output and must not modify global state when sourced. The zshrc fence and each completer's register function run `compinit` only when `compdef` is missing: a second `compinit -C` reloads `~/.zcompdump` and would drop later `compdef`s.
+Bash completion scripts are sourced by `~/.bash_completion` (written by `install-completions.bash`); zsh completion scripts are sourced from a fenced `~/.zshrc` block when `zsh` is on PATH. They must not produce output and must not modify global state when sourced. The zshrc fence and each completer's register function run `compinit` only when `compdef` is missing: a second `compinit -C` reloads `~/.zcompdump` and would drop later `compdef`s. Bind a shell function with `complete -F`. Do not pass that name to `__git_complete`: the helper adds `-o default` and `-o nospace`, so a prefix with no match falls through to filenames and a match gets no trailing space. Git still finds `_git_<name>` for `git <name>` without that call.
 
 **Coupling to be aware of:** `git-sync` depends on the stash stack. If it detects changes and decides to stash, it must not pop an unrelated pre-existing stash entry on restore. Any logic that consults `git stash list` or `git stash pop` must guard against this.
 

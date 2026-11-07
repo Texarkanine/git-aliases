@@ -80,3 +80,13 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - PASS. The prior blocker is resolved
 * Insights
     - Under git's own `git` binding (`-o default -o nospace`), `git wt go` gets no trailing space and falls back to filenames when nothing matches. That binding belongs to git-completion and affects `git sync` too. Advisory only
+
+## 2026-11-07 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-wt-go-branch-completions.md`
+    - Noted in `systemPatterns.md` that a shell function is bound with `complete -F`, not `__git_complete`
+* Decisions made
+    - Left `productContext.md` and `techContext.md` unchanged
+* Insights
+    - A test that requires a helper to be called can lock in the harmful call. Assert `complete -p` instead
