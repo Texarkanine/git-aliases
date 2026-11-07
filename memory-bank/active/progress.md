@@ -113,3 +113,15 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Not Level 3 or 4: no new subsystem and no architectural change
 * Insights
     - `git sync` joins the task only for the filename fallback
+
+## 2026-11-07 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the Level 2 rework plan: literal bash names, `%(refname:strip=2)` in both wt shells, `compopt +o default` for `git wt go` and `git sync`
+    - Checked a pty bash: `compopt +o default` left an unmatched word unchanged in a directory that contained a matching file; without it, Tab inserted the file name
+* Decisions made
+    - Tab tests drive interactive bash and read the transcript. A direct `COMPREPLY` read cannot see `-o default`
+    - `compopt` runs on every `go` return in `_git_wt`, and as the first command in `_git_sync`
+    - Do not change `git sync`'s `compgen -W`, its `%(refname:short)`, or `-o nospace`
+* Insights
+    - `+o default` alone stopped the file. `+o bashdefault` was not required for that result

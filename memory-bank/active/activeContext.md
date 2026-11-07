@@ -1,12 +1,13 @@
 # Active Context
 
 ## Current Task: wt-go-branch-completions
-**Phase:** COMPLEXITY-ANALYSIS - COMPLETE
+**Phase:** PLAN - COMPLETE
 
 ## What Was Done
-- Classified the PR #20 rework as Level 2
-- The work is a bug fix across the `git wt` bash completer, the `git wt` zsh completer, and the `git sync` bash completer
-- No architectural change: candidate quoting, ref prefix stripping, and `compopt` on the current completion attempt
+- Planned the PR #20 rework as four test-first steps
+- Literal bash branch names, then `%(refname:strip=2)` in both `git wt` shells, then `compopt +o default` for `git wt go` and for `git sync`
+- Tab tests read a pty transcript. `COMPREPLY` cannot see filename fallback
+- `git sync` keeps `compgen -W` and `%(refname:short)`. The missing trailing space stays out of scope
 
 ## Next Step
-- Load the Level 2 workflow and run the plan phase
+- Run preflight
