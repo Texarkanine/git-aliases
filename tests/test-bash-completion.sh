@@ -2,8 +2,9 @@
 #
 # test-bash-completion.sh - Bash completion tests for git-wt and git-sync
 #
-# Invokes _git_wt via bash -c with COMP_WORDS set. Does not drive git <TAB>.
-# Fails (does not skip) if bash is missing.
+# Direct cases set COMP_WORDS and read COMPREPLY. Tab cases drive one Tab
+# in an interactive bash. Fails (does not skip) if bash is missing, or if
+# python3 is missing when a Tab case runs.
 
 set -eu
 

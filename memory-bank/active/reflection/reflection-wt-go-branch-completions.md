@@ -8,31 +8,32 @@ complexity_level: 2
 
 ## Summary
 
-Bash and zsh now offer local branch names after `go` for `wt`, `git wt`, and `git-wt`, installed by the existing `make completions` target. The work succeeded after one QA fix.
+Bash and zsh offer local branch names after `go`. A rework then stopped bash from rewriting those names, stopped a same-named tag from turning `main` into `heads/main`, and stopped an unmatched `git wt go` or `git sync` prefix from falling through to filenames.
 
 ## Requirements vs Outcome
 
-The brief asked for existing branch names on `wt go` and `git wt go` in both shells, with nothing offered for a name that does not exist, on the current installer. That is what shipped. `git-wt go` is the same function. `done` stayed out of scope. The planned `__git_complete wt` call was removed: with git's bash completion loaded it rebinds `wt` so a prefix that matches nothing offers filenames.
+The brief's completion behavior shipped, then the rework covered the three review findings plus the same filename fallback on `git sync`. `git sync` still passes branch names through `compgen -W` and `%(refname:short)`. A matched `git wt go` name still has no trailing space under git's `-o nospace`. Both were left out on purpose. `git wt` words other than `go` can still fall through to filenames, because `compopt` runs only on the `go` path.
 
 ## Plan Accuracy
 
-The file list and the test-first order held. Two surprises were outside the challenge list. `bash` on `PATH` is 3.2, so `mapfile` does not exist and the bash completer fills `COMPREPLY` with a `read` loop. `__git_complete`, copied from `git-sync`, was the wrong binder for the `wt` function. Preflight's remote-only ref advice was used. The suggested hidden `git wt __complete` command was not built.
+The four steps and the file list held. The Tab tests had to drive a real bash, because `COMPREPLY` cannot see `-o default`. `compopt +o default` alone stopped the file. `zsh` is not usable on this machine, so the zsh tag test was written and the one-line format change was not executed here.
 
 ## Build & QA Observations
 
-The zsh completer followed `git-sync-completion.zsh` and went green on the first real implementation. QA failed once. The suite stubbed `__git_complete` and required that it be called, so it could not see `-o default`. The rerun passed. QA also drove `git wt go` through Homebrew's git completion: `ma` gave `main`, `zz` gave nothing.
+The literal-name and tag tests went red for the reason the review named: `feature/$USER` became the expanded value, and `main` plus a tag `main` was offered as `heads/main`. QA passed and did not change code. It flagged a stale header comment, since corrected, and the unverified zsh suite.
 
 ## Insights
 
 ### Technical
 
-- `__git_complete` is the wrong way to bind a shell function. It sets `-o default` and `-o nospace`. `complete -F` is the binding. `git <name>` still finds `_git_<name>` without the helper.
-- `bash` on this machine's `PATH` is 3.2. A new bash completer cannot use `mapfile`.
+- `__git_complete` is the wrong binder for `wt`, and skipping it does not fix `git wt`. Git's own `git` binding still has `-o default`. `compopt +o default` on that attempt is the override. `__gitcomp_nl` only adds a trailing space.
+- `compgen -W` evaluates `$`, quotes, and backticks in a branch name. `%(refname:short)` prints `heads/<name>` when a tag collides. `%(refname:strip=2)` does not.
 
 ### Process
 
-- Assert the binding you want (`complete -p`), not that a helper was invoked. A test that requires the helper call will lock the bug in.
+- A direct call of the completion function cannot prove a readline fallback. The test has to press Tab.
+- Asserting that a helper was called locked in `__git_complete` the first time. The rework asserts the transcript instead.
 
 ### Million-Dollar Question
 
-The candidate list stays in the two shell files. Each shell's completion API is the surface, and one `for-each-ref` does not justify a hidden `git wt` command. The change worth having from the start is the one QA forced: never call `__git_complete` for these bindings. `git-sync` still has that call, and that is a follow-up, not a redesign of `git wt`.
+One tested listing of `refs/heads/` names, literal and prefix-stripped, with each shell only doing `COMPREPLY` or `compadd` and `compopt`, would have made the tag bug and the `compgen` bug a single fix. Preflight left that as an advisory. This rework did not add that command. The change worth having was the one the review forced: literal names, `strip=2`, and `compopt` on the attempt that has `-o default`.

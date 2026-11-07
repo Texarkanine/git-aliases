@@ -151,6 +151,17 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
 * Insights
     - `zsh` is not usable here, so the zsh suite and the zsh half of `make test` did not run. The bash tag case showed `heads/main` before `strip=2` and `main` after
 
+## 2026-11-07 - REFLECT - COMPLETE
+
+* Work completed
+    - Wrote `memory-bank/active/reflection/reflection-wt-go-branch-completions.md`
+    - Noted `compopt +o default`, literal branch names, and `%(refname:strip=2)` in `memory-bank/systemPatterns.md`
+    - Corrected the bash completion test header
+* Decisions made
+    - Left `productContext.md` and `techContext.md` unchanged
+* Insights
+    - Skipping `__git_complete` does not stop filename fallback on `git <cmd>`. The completer has to clear `-o default` for that attempt
+
 ## 2026-11-07 - QA - COMPLETE (PASS)
 
 * Work completed
