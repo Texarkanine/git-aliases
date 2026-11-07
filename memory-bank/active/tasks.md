@@ -111,4 +111,14 @@ The Tab tests need `python3` on `PATH`. Verified here: a pty bash with `compopt 
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [x] QA (PASS)
+
+## QA Results
+
+PASS. Every plan step matches the diff: literal `case` match in `_git_wt`, `%(refname:strip=2)` in both wt completers, `compopt +o default` on the `go` path and first in `_git_sync`, `__git_complete` untouched. `tests/test-bash-completion.sh` and `make shellcheck` pass.
+
+- KISS / DRY / YAGNI: no findings. The `compopt` guard repeats in two files by design; the completers are independent files.
+- Completeness / Integrity: no stubs, TODOs, or debug artifacts.
+- Advisory (Documentation): the header of `tests/test-bash-completion.sh` still says "Does not drive git <TAB>", but the suite now drives Tab through a pty.
+- Advisory: zsh is not installed here, so the zsh tag-collision case did not run.
+- Advisory: `git wt <non-go word>` Tab still falls back to filenames under git's binding. Outside the plan.

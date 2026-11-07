@@ -150,3 +150,12 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Do not change `git sync`'s candidate generation
 * Insights
     - `zsh` is not usable here, so the zsh suite and the zsh half of `make test` did not run. The bash tag case showed `heads/main` before `strip=2` and `main` after
+
+## 2026-11-07 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Reviewed the rework diff against the plan and brief. `tests/test-bash-completion.sh` and `make shellcheck` passed
+* Decisions made
+    - PASS with advisories: stale test-file header comment, zsh cases not runnable here, `git wt <non-go word>` filename fallback out of scope
+* Insights
+    - The zsh tag-collision case is verified only by mirroring the bash change
