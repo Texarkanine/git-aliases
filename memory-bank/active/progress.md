@@ -14,3 +14,15 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Scope stays on `go`; a new branch name is typed, not completed
 * Insights
     - `git-sync` and `git-identity` already ship `*-completion.bash` and `*-completion.zsh`; `git wt` has none yet
+
+## 2026-11-07 - PLAN - COMPLETE
+
+* Work completed
+    - Wrote the Level 2 plan for local-branch completion after `go`
+    - Mapped behaviors onto `tests/test-zsh-completion.sh`, a new `tests/test-bash-completion.sh`, and the existing install suite
+* Decisions made
+    - Candidates are `refs/heads/` short names, and only when the previous word is `go`
+    - Register both the `git wt` hooks and the `wt` shell function name
+    - Do not drive a real Tab through git's completer; test the functions and the dispatcher hooks
+* Insights
+    - `git wt go` creates a branch when the name is not already local, so remote-tracking names are the wrong list
