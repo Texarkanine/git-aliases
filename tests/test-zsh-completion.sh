@@ -12,6 +12,7 @@ SCRIPT_DIR=$(CDPATH= cd "${SCRIPT_DIR}" && pwd)
 REPO_DIR=$(dirname "${SCRIPT_DIR}")
 SYNC_ZSH="${REPO_DIR}/subcommands/git-sync/git-sync-completion.zsh"
 IDENTITY_ZSH="${REPO_DIR}/subcommands/git-identity/git-identity-completion.zsh"
+WT_ZSH="${REPO_DIR}/subcommands/git-wt/git-wt-completion.zsh"
 
 failures=0
 
@@ -322,6 +323,156 @@ test_zsh_missing_fails() {
 	rm -f "${tzm_err}"
 }
 
+# Source git-wt-completion.zsh and print candidates from one completer.
+#
+# Globals:
+#   WT_ZSH
+# Arguments:
+#   $1 - completer function name (_git_wt or _git-wt)
+#   $2 - directory to cd into before completing
+#   $@ - words array (CURRENT is the last word)
+# Outputs:
+#   Candidate names, one per line
+# Returns:
+#   Completer status
+_complete_wt() {
+	cw_fn=$1
+	cw_dir=$2
+	shift 2
+	zsh -c '
+		GIT_ALIASES_COMPLETION_TEST=1
+		export GIT_ALIASES_COMPLETION_TEST
+		cd "$2" || exit 1
+		. "$1"
+		cw_fn=$3
+		shift 3
+		words=("$@")
+		CURRENT=$#
+		compadd() {
+			local a
+			for a; do
+				[[ "$a" == -- ]] && continue
+				print -r -- "$a"
+			done
+		}
+		"$cw_fn"
+	' zsh "${WT_ZSH}" "${cw_dir}" "${cw_fn}" "$@"
+}
+
+# Source git-wt-completion.zsh and print stdout from sourcing.
+#
+# Globals:
+#   WT_ZSH
+# Arguments:
+#   None
+# Outputs:
+#   Completer stdout
+# Returns:
+#   Source status
+_source_wt() {
+	zsh -c '
+		GIT_ALIASES_COMPLETION_TEST=1
+		export GIT_ALIASES_COMPLETION_TEST
+		. "$1"
+	' zsh "${WT_ZSH}"
+}
+
+test_wt_go_completes_local_branches() {
+	twg_repo=$(make_repo)
+	git -C "${twg_repo}" branch other
+	twg_out=$(_complete_wt _git_wt "${twg_repo}" git wt go "")
+	echo "${twg_out}" | grep -qx main || fail "git wt go should complete main: ${twg_out}"
+	echo "${twg_out}" | grep -qx other || fail "git wt go should complete other: ${twg_out}"
+	twg_out=$(_complete_wt _git_wt "${twg_repo}" wt go "")
+	echo "${twg_out}" | grep -qx main || fail "wt go should complete main: ${twg_out}"
+	echo "${twg_out}" | grep -qx other || fail "wt go should complete other: ${twg_out}"
+	twg_out=$(_complete_wt _git_wt "${twg_repo}" git-wt go "")
+	echo "${twg_out}" | grep -qx main || fail "git-wt go should complete main: ${twg_out}"
+	echo "${twg_out}" | grep -qx other || fail "git-wt go should complete other: ${twg_out}"
+	rm -rf "${twg_repo}"
+}
+
+test_wt_go_dispatcher_matches() {
+	twd_repo=$(make_repo)
+	git -C "${twd_repo}" branch other
+	twd_out=$(_complete_wt _git-wt "${twd_repo}" git wt go "")
+	echo "${twd_out}" | grep -qx main || fail "_git-wt should complete main: ${twd_out}"
+	echo "${twd_out}" | grep -qx other || fail "_git-wt should complete other: ${twd_out}"
+	rm -rf "${twd_repo}"
+}
+
+test_wt_without_go_completes_nothing() {
+	twn_repo=$(make_repo)
+	git -C "${twn_repo}" branch other
+	twn_out=$(_complete_wt _git_wt "${twn_repo}" git wt "")
+	if [ -n "${twn_out}" ]; then
+		fail "git wt should complete nothing: ${twn_out}"
+	fi
+	twn_out=$(_complete_wt _git_wt "${twn_repo}" git wt done "")
+	if [ -n "${twn_out}" ]; then
+		fail "git wt done should complete nothing: ${twn_out}"
+	fi
+	rm -rf "${twn_repo}"
+}
+
+test_wt_ignores_remote_and_outside_repo() {
+	twr_repo=$(make_repo)
+	git -C "${twr_repo}" update-ref refs/remotes/origin/remote-only HEAD
+	twr_out=$(_complete_wt _git_wt "${twr_repo}" git wt go "")
+	echo "${twr_out}" | grep -qx main || fail "local main should still complete: ${twr_out}"
+	echo "${twr_out}" | grep -qx remote-only \
+		&& fail "remote-only should not complete: ${twr_out}"
+	echo "${twr_out}" | grep -qx origin/remote-only \
+		&& fail "origin/remote-only should not complete: ${twr_out}"
+	twr_dir=$(mktemp -d)
+	twr_out=$(_complete_wt _git_wt "${twr_dir}" git wt go "")
+	if [ -n "${twr_out}" ]; then
+		fail "outside a repo should complete nothing: ${twr_out}"
+	fi
+	rm -rf "${twr_repo}" "${twr_dir}"
+}
+
+test_wt_source_is_silent() {
+	tws_out=$(_source_wt)
+	if [ -n "${tws_out}" ]; then
+		fail "sourcing git-wt-completion.zsh should print nothing: ${tws_out}"
+	fi
+}
+
+test_wt_registers_compdef_for_git_wt_and_wt() {
+	twc_got=$(zsh -f -c '
+		emulate -L zsh
+		. "$1"
+		twc_bad=""
+		if [[ -z ${_comps[git-wt]:-} ]]; then
+			twc_bad="${twc_bad} no-git-wt"
+		fi
+		if [[ -z ${_comps[wt]:-} ]]; then
+			twc_bad="${twc_bad} no-wt"
+		fi
+		local -a twc_uc
+		zstyle -a ":completion:*:*:git:*" user-commands twc_uc
+		twc_found=0
+		local twc_entry
+		for twc_entry in "${twc_uc[@]}"; do
+			if [[ "${twc_entry%%:*}" == wt ]]; then
+				twc_found=1
+			fi
+		done
+		if (( ! twc_found )); then
+			twc_bad="${twc_bad} no-user-command"
+		fi
+		if [[ -z "${twc_bad}" ]]; then
+			print -r -- yes
+		else
+			print -r -- "${twc_bad}"
+		fi
+	' zsh "${WT_ZSH}")
+	if [ "${twc_got}" != yes ]; then
+		fail "should register git-wt, wt, and user-commands: ${twc_got}"
+	fi
+}
+
 main() {
 	if [ ! -f "${SYNC_ZSH}" ]; then
 		echo "FAIL: missing ${SYNC_ZSH}" >&2
@@ -329,6 +480,10 @@ main() {
 	fi
 	if [ ! -f "${IDENTITY_ZSH}" ]; then
 		echo "FAIL: missing ${IDENTITY_ZSH}" >&2
+		exit 1
+	fi
+	if [ ! -f "${WT_ZSH}" ]; then
+		echo "FAIL: missing ${WT_ZSH}" >&2
 		exit 1
 	fi
 
@@ -345,6 +500,12 @@ main() {
 	test_identity_after_list_or_create_completes_nothing
 	test_identity_registers_compdef_without_prior_compinit
 	test_identity_source_is_silent
+	test_wt_go_completes_local_branches
+	test_wt_go_dispatcher_matches
+	test_wt_without_go_completes_nothing
+	test_wt_ignores_remote_and_outside_repo
+	test_wt_source_is_silent
+	test_wt_registers_compdef_for_git_wt_and_wt
 	test_zsh_missing_fails
 
 	if [ "${failures}" -ne 0 ]; then

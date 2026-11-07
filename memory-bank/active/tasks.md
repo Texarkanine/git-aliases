@@ -35,7 +35,7 @@ Add bash and zsh completion so `wt go`, `git wt go`, and `git-wt go` offer exist
 
 ## Implementation Plan
 
-### 1. Zsh candidates after `go` — executable
+### 1. [x] Zsh candidates after `go` — executable
 
 - Files: `tests/test-zsh-completion.sh`, `tests/test-install-completions.sh`, `subcommands/git-wt/git-wt-completion.zsh`
 
