@@ -201,6 +201,9 @@ test_bash_copy_and_fence_unregressed() {
 	if [ ! -f "${tic_dir}/git-identity-completion.bash" ]; then
 		fail "missing bash git-identity completion copy"
 	fi
+	if [ ! -f "${tic_dir}/git-wt-completion.bash" ]; then
+		fail "missing bash git-wt completion copy"
+	fi
 	if ! grep -q "${BASH_FENCE_START}" "${HOME}/.bash_completion"; then
 		fail "bash fence should still be written"
 	fi

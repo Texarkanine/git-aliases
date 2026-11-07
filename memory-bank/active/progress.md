@@ -37,3 +37,16 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
 * Insights
     - Remote-ref test should plant a remote-only name; `origin/main` cannot catch a prefix-stripping regression because `main` is local
     - Advisory: a hidden `git wt __complete` would put candidate policy in one tested place and make the shell completers thin adapters
+
+## 2026-11-07 - BUILD - COMPLETE
+
+* Work completed
+    - Added `git-wt-completion.zsh` and `git-wt-completion.bash`
+    - Extended the zsh suite, added `tests/test-bash-completion.sh`, and asserted the installer copies both files
+    - Documented `git wt go` and `wt go` branch completion
+    - `make test` and `make shellcheck` passed
+* Decisions made
+    - Bash `COMPREPLY` is filled with a `read` loop because `bash` on `PATH` is 3.2 and has no `mapfile`
+    - Kept candidate policy in the two completers. Did not add `git wt __complete`
+* Insights
+    - A real Tab press through git's completer is still untested, same as `git sync`. The suites call the completer functions and the registration hooks

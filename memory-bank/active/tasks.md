@@ -44,7 +44,7 @@ Add bash and zsh completion so `wt go`, `git wt go`, and `git-wt go` offer exist
 3. Write tests and run red: Fill the assertions. `_complete_wt` sources the zsh file with `GIT_ALIASES_COMPLETION_TEST=1`, stubs `compadd` to print arguments after `--`, and calls `_git_wt` or `_git-wt`. Branch cases use `make_repo` plus `git branch other`. Remote case adds `refs/remotes/origin/main` via `git update-ref` and expects that name absent. Registration case uses `zsh -f` and checks `_comps[git-wt]`, `_comps[wt]`, and `zstyle` user-commands for `wt`. Run `tests/test-zsh-completion.sh` and `tests/test-install-completions.sh`. New wt cases fail.
 4. Write code and run green: `_git_wt` reads `words[CURRENT-1]`. When that word is `go`, it runs `git --no-pager for-each-ref --format='%(refname:short)' refs/heads/` and `compadd`s the lines when non-empty. Any other previous word adds nothing. `_git-wt` calls `_git_wt`. `_git_wt_register` follows `_git_sync_register`: `compinit -C` only when `compdef` is missing, `compdef _git_wt git-wt`, `compdef _git_wt wt`, and append `wt:'create or enter a linked worktree'` to user-commands when absent. Re-run the two suites until the new cases pass.
 
-### 2. Bash candidates after `go` — executable
+### 2. [x] Bash candidates after `go` — executable
 
 - Files: `tests/test-bash-completion.sh`, `tests/test-install-completions.sh`, `Makefile`, `subcommands/git-wt/git-wt-completion.bash`
 
@@ -53,7 +53,7 @@ Add bash and zsh completion so `wt go`, `git wt go`, and `git-wt go` offer exist
 3. Write tests and run red: A helper runs `bash -c`, sources the file, sets `COMP_WORDS` and `COMP_CWORD`, calls `_git_wt`, and prints `COMPREPLY` one name per line. Prefix `ma` expects `main` and not `other`. Prefix `zz` expects no output. `__git_complete` case defines a stub that records its arguments, then sources the file. Run `tests/test-bash-completion.sh`. New cases fail. Do not load bash-completion; the function must work from `COMP_WORDS` alone.
 4. Write code and run green: `_git_wt` sets `cur` and `prev` from `COMP_WORDS` / `COMP_CWORD`. Call `_get_comp_words_by_ref` only when `declare -F` finds it, and do not `return` when it is missing. When `prev` is `go` and `cur` does not start with `-`, `compgen -W` the same `refs/heads/` list. Otherwise `COMPREPLY` is empty. Re-run `tests/test-bash-completion.sh` and `tests/test-install-completions.sh` until the new cases pass.
 
-### 3. Docs — prose/policy
+### 3. [x] Docs — prose/policy
 
 - Files: `README.md`, `subcommands/git-wt/README.md`
 - No tests: prose/policy artifact
@@ -92,6 +92,6 @@ No new technology - validation not required. Completers use `git for-each-ref`, 
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

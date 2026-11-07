@@ -66,7 +66,7 @@ For more information on each subcommand, check their individual README files in 
 
 ## Completions
 
-Bash and zsh completion is included for some Git subcommands (`git sync`, `git identity`). `git wt` has no completion.
+Bash and zsh completion is included for some Git subcommands (`git sync`, `git identity`). `git wt go` and `wt go` complete local branch names.
 
 The installation process (`make completions`, also part of default `make`):
 1. Copies completion scripts to `~/.local/share/git-aliases/completions/`
