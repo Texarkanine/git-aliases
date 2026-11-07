@@ -33,7 +33,7 @@ Existing cases stay: plain `main` / `other`, prefix `ma` and `zz`, `done` and ba
 
 ## Implementation Plan
 
-### 1. Literal bash branch names — executable
+### 1. [x] Literal bash branch names — executable
 
 - Files: `tests/test-bash-completion.sh`, `subcommands/git-wt/git-wt-completion.bash`
 
@@ -42,7 +42,7 @@ Existing cases stay: plain `main` / `other`, prefix `ma` and `zz`, `done` and ba
 3. Write tests and run red: Create the branches with single-quoted names so the test shell does not expand them. Assert with `grep -Fx`. The prefix case expects exactly one line, `feature/$USER`. Run `tests/test-bash-completion.sh`. The new cases fail while the list still goes through `compgen -W`.
 4. Write code and run green: Keep `%(refname:short)` for this step. Replace the `compgen -W` loop with `while IFS= read -r` over the for-each-ref lines. A non-empty line whose `case` pattern is `"${cur}"*` is appended to `COMPREPLY`. Do not word-split or eval the line. Re-run `tests/test-bash-completion.sh` until the new cases and the existing ones pass.
 
-### 2. Unambiguous head names — executable
+### 2. [x] Unambiguous head names — executable
 
 - Files: `tests/test-bash-completion.sh`, `tests/test-zsh-completion.sh`, `subcommands/git-wt/git-wt-completion.bash`, `subcommands/git-wt/git-wt-completion.zsh`
 
@@ -51,7 +51,7 @@ Existing cases stay: plain `main` / `other`, prefix `ma` and `zz`, `done` and ba
 3. Write tests and run red: `make_repo`, `git branch feature/foo`, `git tag main`. Bash and zsh empty-word `git wt go` must list `main` and `feature/foo` and must not list `heads/main`. Run both suites. The new cases fail while the format is `%(refname:short)`.
 4. Write code and run green: Change both for-each-ref formats from `%(refname:short)` to `%(refname:strip=2)`. Re-run both suites until the new cases and the existing ones pass.
 
-### 3. No filename fallback for git wt go — executable
+### 3. [x] No filename fallback for git wt go — executable
 
 - Files: `tests/test-bash-completion.sh`, `subcommands/git-wt/git-wt-completion.bash`
 
@@ -60,7 +60,7 @@ Existing cases stay: plain `main` / `other`, prefix `ma` and `zz`, `done` and ba
 3. Write tests and run red: The helper runs `python3`, which allocates a pty, execs `bash --noprofile --norc -i`, sources the completer, then runs `complete -o bashdefault -o default -o nospace -F _git_wt git`, then sends the words and one Tab. `test_wt_go_tab_skips_filenames` uses a directory that contains `zz-unique-file` and the words `git wt go zz`. Fail if the transcript contains `zz-unique-file`. `test_wt_go_tab_still_completes_branch` uses `make_repo` and the words `git wt go ma`. Fail if the transcript does not contain `git wt go main`. If `python3` is missing, fail. Run `tests/test-bash-completion.sh`. The filename case fails.
 4. Write code and run green: After `prev` is known, return when it is not `go`. On the `go` path, run `compopt +o default 2>/dev/null || true` before the `cur == -*` return and before filling `COMPREPLY`. Do not pass `+o nospace`. Do not call `__git_complete`. Re-run `tests/test-bash-completion.sh` until the new cases and the existing ones pass.
 
-### 4. No filename fallback for git sync — executable
+### 4. [x] No filename fallback for git sync — executable
 
 - Files: `tests/test-bash-completion.sh`, `subcommands/git-sync/git-sync-completion.bash`
 
@@ -109,6 +109,6 @@ The Tab tests need `python3` on `PATH`. Verified here: a pty bash with `compopt 
 - [x] Implementation plan complete
 - [x] Technology validation complete
 - [x] Pre-Mortem complete
-- [ ] Preflight
-- [ ] Build
+- [x] Preflight
+- [x] Build
 - [ ] QA

@@ -30,17 +30,24 @@ _git_wt() {
 	fi
 
 	COMPREPLY=()
-	if [[ "${prev}" != go || "${cur}" == -* ]]; then
+	if [[ "${prev}" != go ]]; then
+		return 0
+	fi
+	# git's own completion binds `git` with -o default. Without this,
+	# an unmatched prefix falls through to filenames.
+	compopt +o default 2>/dev/null || true
+	if [[ "${cur}" == -* ]]; then
 		return 0
 	fi
 
-	local branches branch_name
-	branches="$(git --no-pager for-each-ref \
-		--format='%(refname:short)' refs/heads/ 2>/dev/null || true)"
+	local branch_name
 	while IFS= read -r branch_name; do
 		[[ -n "${branch_name}" ]] || continue
-		COMPREPLY+=("${branch_name}")
-	done < <(compgen -W "${branches}" -- "${cur}")
+		case "${branch_name}" in
+			"${cur}"*) COMPREPLY+=("${branch_name}") ;;
+		esac
+	done < <(git --no-pager for-each-ref \
+		--format='%(refname:strip=2)' refs/heads/ 2>/dev/null || true)
 	return 0
 }
 

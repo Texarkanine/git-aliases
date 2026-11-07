@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# test-bash-completion.sh - Bash completion tests for git-wt
+# test-bash-completion.sh - Bash completion tests for git-wt and git-sync
 #
 # Invokes _git_wt via bash -c with COMP_WORDS set. Does not drive git <TAB>.
 # Fails (does not skip) if bash is missing.
@@ -11,6 +11,7 @@ SCRIPT_DIR=$(dirname "$0")
 SCRIPT_DIR=$(CDPATH= cd "${SCRIPT_DIR}" && pwd)
 REPO_DIR=$(dirname "${SCRIPT_DIR}")
 WT_BASH="${REPO_DIR}/subcommands/git-wt/git-wt-completion.bash"
+SYNC_BASH="${REPO_DIR}/subcommands/git-sync/git-sync-completion.bash"
 
 failures=0
 
@@ -81,6 +82,93 @@ _complete_wt() {
 			printf "%s\n" "${COMPREPLY[@]}"
 		fi
 	' bash "${WT_BASH}" "${cw_dir}" "$@"
+}
+
+# Print the transcript of one Tab in an interactive bash.
+#
+# Globals:
+#   TAB_HELPER - optional bash text run before the completer is sourced
+#   TAB_BIND_FN - function bound to git (default _git_wt)
+# Arguments:
+#   $1 - completer file
+#   $2 - directory to cd into
+#   $@ - words typed before Tab
+# Outputs:
+#   The screen text produced by that Tab
+# Returns:
+#   0, or exits 1 when python3 is missing
+_tab_transcript() {
+	tt_completer=$1
+	tt_dir=$2
+	shift 2
+	if ! command -v python3 >/dev/null 2>&1; then
+		echo "ERROR: python3 is required for tab completion tests" >&2
+		exit 1
+	fi
+	tt_bash=$(command -v bash)
+	TAB_HELPER="${TAB_HELPER-}" TAB_BIND_FN="${TAB_BIND_FN-_git_wt}" \
+		python3 - "$tt_bash" "$tt_completer" "$tt_dir" "$@" <<'PY'
+import os
+import pty
+import select
+import shlex
+import sys
+import time
+
+bash, completer, workdir = sys.argv[1:4]
+words = sys.argv[4:]
+helper = os.environ.get("TAB_HELPER", "")
+bind_fn = os.environ.get("TAB_BIND_FN") or "_git_wt"
+
+pid, fd = pty.fork()
+if pid == 0:
+    os.environ["PS1"] = "READY "
+    os.environ["TERM"] = "dumb"
+    os.execv(bash, ["bash", "--noprofile", "--norc", "-i"])
+
+def read_for(seconds):
+    buf = b""
+    end = time.time() + seconds
+    while time.time() < end:
+        ready, _, _ = select.select([fd], [], [], 0.1)
+        if not ready:
+            continue
+        try:
+            data = os.read(fd, 4096)
+        except OSError:
+            break
+        if not data:
+            break
+        buf += data
+    return buf
+
+read_for(0.2)
+setup = ""
+if helper:
+    setup += helper + "\n"
+setup += "cd %s\n" % shlex.quote(workdir)
+setup += ". %s\n" % shlex.quote(completer)
+setup += (
+    "complete -o bashdefault -o default -o nospace -F %s git\n" % bind_fn
+)
+os.write(fd, setup.encode())
+seen = read_for(1.0)
+if b" -F " not in seen:
+    sys.stderr.write("tab setup did not run\n")
+    os.kill(pid, 9)
+    os.waitpid(pid, 0)
+    sys.exit(1)
+os.write(fd, (" ".join(words) + "\t").encode())
+tabbed = read_for(0.8)
+os.write(fd, b"\nexit\n")
+read_for(0.3)
+os.kill(pid, 9)
+try:
+    os.waitpid(pid, 0)
+except OSError:
+    pass
+sys.stdout.buffer.write(tabbed)
+PY
 }
 
 test_wt_go_completes_local_branches() {
@@ -167,6 +255,110 @@ test_wt_does_not_call_git_complete() {
 		|| fail "wt should stay bound to _git_wt: ${twc_out}"
 }
 
+test_wt_go_keeps_literal_branch_names() {
+	twl_repo=$(make_repo)
+	git -C "${twl_repo}" branch 'feature/$USER'
+	git -C "${twl_repo}" branch 'cmd$(true)'
+	git -C "${twl_repo}" branch "has'quote"
+	twl_out=$(_complete_wt "${twl_repo}" git wt go "")
+	printf '%s\n' "${twl_out}" | grep -Fxq 'main' \
+		|| fail "literal list should include main: ${twl_out}"
+	printf '%s\n' "${twl_out}" | grep -Fxq 'feature/$USER' \
+		|| fail "literal list should keep feature/\$USER: ${twl_out}"
+	printf '%s\n' "${twl_out}" | grep -Fxq 'cmd$(true)' \
+		|| fail "literal list should keep cmd\$(true): ${twl_out}"
+	printf '%s\n' "${twl_out}" | grep -Fxq "has'quote" \
+		|| fail "literal list should keep has'quote: ${twl_out}"
+	printf '%s\n' "${twl_out}" | grep -Fxq 'cmd' \
+		&& fail "literal list should not run a substitution: ${twl_out}"
+	printf '%s\n' "${twl_out}" | grep -Fxq 'hasquote' \
+		&& fail "literal list should not drop a quote: ${twl_out}"
+	twl_feature=$(printf '%s\n' "${twl_out}" | grep '^feature/' || true)
+	if [ "${twl_feature}" != 'feature/$USER' ]; then
+		fail "feature/ line should be the literal name: ${twl_out}"
+	fi
+	rm -rf "${twl_repo}"
+}
+
+test_wt_go_literal_prefix() {
+	twq_repo=$(make_repo)
+	git -C "${twq_repo}" branch 'feature/$USER'
+	twq_out=$(_complete_wt "${twq_repo}" git wt go 'feature/$U')
+	if [ "${twq_out}" != 'feature/$USER' ]; then
+		fail "prefix feature/\$U should complete the literal: ${twq_out}"
+	fi
+	rm -rf "${twq_repo}"
+}
+
+test_wt_go_tag_collision_keeps_head_name() {
+	twt_repo=$(make_repo)
+	git -C "${twt_repo}" branch feature/foo
+	git -C "${twt_repo}" tag main
+	twt_out=$(_complete_wt "${twt_repo}" git wt go "")
+	printf '%s\n' "${twt_out}" | grep -Fxq 'main' \
+		|| fail "tag collision should still offer main: ${twt_out}"
+	printf '%s\n' "${twt_out}" | grep -Fxq 'feature/foo' \
+		|| fail "tag collision should offer feature/foo: ${twt_out}"
+	printf '%s\n' "${twt_out}" | grep -Fxq 'heads/main' \
+		&& fail "tag collision should not offer heads/main: ${twt_out}"
+	rm -rf "${twt_repo}"
+}
+
+test_wt_go_tab_skips_filenames() {
+	twf_dir=$(mktemp -d)
+	: > "${twf_dir}/zz-unique-file"
+	twf_out=$(_tab_transcript "${WT_BASH}" "${twf_dir}" git wt go zz)
+	printf '%s\n' "${twf_out}" | grep -F 'zz-unique-file' \
+		&& fail "unmatched git wt go should not offer a file: ${twf_out}"
+	rm -rf "${twf_dir}"
+}
+
+test_wt_go_tab_still_completes_branch() {
+	twm_repo=$(make_repo)
+	twm_out=$(_tab_transcript "${WT_BASH}" "${twm_repo}" git wt go ma)
+	printf '%s\n' "${twm_out}" | grep -Fq 'git wt go main' \
+		|| fail "git wt go ma should complete main: ${twm_out}"
+	rm -rf "${twm_repo}"
+}
+
+test_sync_tab_skips_filenames_when_helper_fails() {
+	tsf_dir=$(mktemp -d)
+	: > "${tsf_dir}/zz-unique-file"
+	tsf_out=$(
+		TAB_HELPER='_get_comp_words_by_ref() { return 1; }' \
+		TAB_BIND_FN=_git_sync \
+		_tab_transcript "${SYNC_BASH}" "${tsf_dir}" git sync zz
+	)
+	printf '%s\n' "${tsf_out}" | grep -F 'zz-unique-file' \
+		&& fail "git sync should not offer a file when the helper fails: ${tsf_out}"
+	rm -rf "${tsf_dir}"
+}
+
+test_sync_tab_skips_filenames_when_nothing_matches() {
+	tsn_repo=$(make_repo)
+	: > "${tsn_repo}/zz-unique-file"
+	tsn_out=$(
+		TAB_HELPER='_get_comp_words_by_ref() { cur=${COMP_WORDS[COMP_CWORD]}; prev=${COMP_WORDS[COMP_CWORD-1]}; }' \
+		TAB_BIND_FN=_git_sync \
+		_tab_transcript "${SYNC_BASH}" "${tsn_repo}" git sync zz
+	)
+	printf '%s\n' "${tsn_out}" | grep -F 'zz-unique-file' \
+		&& fail "unmatched git sync should not offer a file: ${tsn_out}"
+	rm -rf "${tsn_repo}"
+}
+
+test_sync_tab_still_completes_branch() {
+	tsm_repo=$(make_repo)
+	tsm_out=$(
+		TAB_HELPER='_get_comp_words_by_ref() { cur=${COMP_WORDS[COMP_CWORD]}; prev=${COMP_WORDS[COMP_CWORD-1]}; }' \
+		TAB_BIND_FN=_git_sync \
+		_tab_transcript "${SYNC_BASH}" "${tsm_repo}" git sync ma
+	)
+	printf '%s\n' "${tsm_out}" | grep -Fq 'git sync main' \
+		|| fail "git sync ma should complete main: ${tsm_out}"
+	rm -rf "${tsm_repo}"
+}
+
 test_bash_missing_fails() {
 	tbm_bin=$(mktemp -d)
 	ln -s "$(command -v dirname)" "${tbm_bin}/dirname"
@@ -197,6 +389,14 @@ main() {
 	test_wt_ignores_remote_and_outside_repo
 	test_wt_source_binds_git_wt_and_wt
 	test_wt_does_not_call_git_complete
+	test_wt_go_keeps_literal_branch_names
+	test_wt_go_literal_prefix
+	test_wt_go_tag_collision_keeps_head_name
+	test_wt_go_tab_skips_filenames
+	test_wt_go_tab_still_completes_branch
+	test_sync_tab_skips_filenames_when_helper_fails
+	test_sync_tab_skips_filenames_when_nothing_matches
+	test_sync_tab_still_completes_branch
 	test_bash_missing_fails
 
 	if [ "${failures}" -ne 0 ]; then

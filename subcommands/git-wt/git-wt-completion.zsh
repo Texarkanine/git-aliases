@@ -21,7 +21,7 @@ _git_wt() {
 		return 0
 	fi
 
-	gw_branches=$(git --no-pager for-each-ref --format='%(refname:short)' refs/heads/ 2>/dev/null)
+	gw_branches=$(git --no-pager for-each-ref --format='%(refname:strip=2)' refs/heads/ 2>/dev/null)
 	[[ -n "${gw_branches}" ]] && compadd -- ${(f)gw_branches}
 	return 0
 }

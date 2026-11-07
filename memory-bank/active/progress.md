@@ -136,3 +136,17 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Advisories only: centralize candidate policy behind one helper (future redesign, not this rework); pin TERM if pty transcripts flake on CI
 * Insights
     - `%(refname:strip=2)` needs git 2.7+; ubuntu-latest already ships python3 so no workflow change is owed
+
+## 2026-11-07 - BUILD - COMPLETE
+
+* Work completed
+    - Replaced `compgen -W` in `_git_wt` with a literal `case` match over for-each-ref lines
+    - Switched both `git wt` completers to `%(refname:strip=2)`
+    - Call `compopt +o default` on the `git wt go` path and as the first command in `_git_sync`
+    - `tests/test-bash-completion.sh` passed, including the new literal, tag, and Tab cases
+    - `make shellcheck` passed
+* Decisions made
+    - Do not clear `-o nospace` or `-o bashdefault`
+    - Do not change `git sync`'s candidate generation
+* Insights
+    - `zsh` is not usable here, so the zsh suite and the zsh half of `make test` did not run. The bash tag case showed `heads/main` before `strip=2` and `main` after

@@ -401,6 +401,20 @@ test_wt_go_dispatcher_matches() {
 	rm -rf "${twd_repo}"
 }
 
+test_wt_go_tag_collision_keeps_head_name() {
+	twt_repo=$(make_repo)
+	git -C "${twt_repo}" branch feature/foo
+	git -C "${twt_repo}" tag main
+	twt_out=$(_complete_wt _git_wt "${twt_repo}" git wt go "")
+	printf '%s\n' "${twt_out}" | grep -Fxq 'main' \
+		|| fail "tag collision should still offer main: ${twt_out}"
+	printf '%s\n' "${twt_out}" | grep -Fxq 'feature/foo' \
+		|| fail "tag collision should offer feature/foo: ${twt_out}"
+	printf '%s\n' "${twt_out}" | grep -Fxq 'heads/main' \
+		&& fail "tag collision should not offer heads/main: ${twt_out}"
+	rm -rf "${twt_repo}"
+}
+
 test_wt_without_go_completes_nothing() {
 	twn_repo=$(make_repo)
 	git -C "${twn_repo}" branch other
@@ -502,6 +516,7 @@ main() {
 	test_identity_source_is_silent
 	test_wt_go_completes_local_branches
 	test_wt_go_dispatcher_matches
+	test_wt_go_tag_collision_keeps_head_name
 	test_wt_without_go_completes_nothing
 	test_wt_ignores_remote_and_outside_repo
 	test_wt_source_is_silent
