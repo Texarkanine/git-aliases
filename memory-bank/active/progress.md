@@ -26,3 +26,14 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Do not drive a real Tab through git's completer; test the functions and the dispatcher hooks
 * Insights
     - `git wt go` creates a branch when the name is not already local, so remote-tracking names are the wrong list
+
+## 2026-11-07 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the plan against the codebase: TDD order, conventions, dependencies, conflicts, completeness
+    - `.preflight-status` first line: `PASS WITH ADVISORY`
+* Decisions made
+    - Struck the planned `make -n test` assertion for `test-bash-completion.sh` (change-detector on developer tooling); the Makefile wiring stays
+* Insights
+    - Remote-ref test should plant a remote-only name; `origin/main` cannot catch a prefix-stripping regression because `main` is local
+    - Advisory: a hidden `git wt __complete` would put candidate policy in one tested place and make the shell completers thin adapters

@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: wt-go-branch-completions
-**Phase:** PLAN - COMPLETE
+**Phase:** PREFLIGHT - COMPLETE (PASS WITH ADVISORY)
 
 ## What Was Done
 - Level 2 plan: bash and zsh completers offer local `refs/heads/` names after the word `go` for `wt`, `git wt`, and `git-wt`

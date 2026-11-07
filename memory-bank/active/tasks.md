@@ -25,7 +25,6 @@ Add bash and zsh completion so `wt go`, `git wt go`, and `git-wt go` offer exist
 - Sourcing `git-wt-completion.bash` → no stdout, and `complete -p` binds both `git-wt` and `wt` to `_git_wt`.
 - When `__git_complete` is defined, sourcing the bash script calls it for `wt` and `_git_wt`.
 - `scripts/install-completions.bash` copies `git-wt-completion.bash` and `git-wt-completion.zsh`, and the zsh fence sources the zsh file.
-- `make -n test` invokes `tests/test-bash-completion.sh`.
 
 ### Test Infrastructure
 
@@ -49,7 +48,7 @@ Add bash and zsh completion so `wt go`, `git wt go`, and `git-wt go` offer exist
 
 - Files: `tests/test-bash-completion.sh`, `tests/test-install-completions.sh`, `Makefile`, `subcommands/git-wt/git-wt-completion.bash`
 
-1. Stub tests: Add `tests/test-bash-completion.sh` with the suite header, `fail`, `make_repo`, and empty `test_wt_go_completes_local_branches`, `test_wt_go_prefix_filters`, `test_wt_without_go_completes_nothing`, `test_wt_ignores_remote_and_outside_repo`, `test_wt_source_binds_git_wt_and_wt`, `test_wt_calls_git_complete_when_present`. Wire it from `main`. In `test_bash_copy_and_fence_unregressed`, assert the copied bash file exists. In `test_make_n_test_runs_new_suites`, assert `make -n test` mentions `test-bash-completion.sh`. Add the suite to the `Makefile` `test` recipe (chmod and run) so `make test` would execute it.
+1. Stub tests: Add `tests/test-bash-completion.sh` with the suite header, `fail`, `make_repo`, and empty `test_wt_go_completes_local_branches`, `test_wt_go_prefix_filters`, `test_wt_without_go_completes_nothing`, `test_wt_ignores_remote_and_outside_repo`, `test_wt_source_binds_git_wt_and_wt`, `test_wt_calls_git_complete_when_present`. Wire it from `main`. In `test_bash_copy_and_fence_unregressed`, assert the copied bash file exists. Add the suite to the `Makefile` `test` recipe (chmod and run) so `make test` would execute it.
 2. Stub interface: Create `subcommands/git-wt/git-wt-completion.bash` (`#!/usr/bin/env bash`) with documented empty `_git_wt` and the three registration lines (`complete -F _git_wt git-wt`, `complete -F _git_wt wt`, and `__git_complete wt _git_wt` only when that function exists). `_git_wt` returns 0 without setting `COMPREPLY`.
 3. Write tests and run red: A helper runs `bash -c`, sources the file, sets `COMP_WORDS` and `COMP_CWORD`, calls `_git_wt`, and prints `COMPREPLY` one name per line. Prefix `ma` expects `main` and not `other`. Prefix `zz` expects no output. `__git_complete` case defines a stub that records its arguments, then sources the file. Run `tests/test-bash-completion.sh`. New cases fail. Do not load bash-completion; the function must work from `COMP_WORDS` alone.
 4. Write code and run green: `_git_wt` sets `cur` and `prev` from `COMP_WORDS` / `COMP_CWORD`. Call `_get_comp_words_by_ref` only when `declare -F` finds it, and do not `return` when it is missing. When `prev` is `go` and `cur` does not start with `-`, `compgen -W` the same `refs/heads/` list. Otherwise `COMPREPLY` is empty. Re-run `tests/test-bash-completion.sh` and `tests/test-install-completions.sh` until the new cases pass.
