@@ -1,7 +1,0 @@
-PASS
-Task: wt-go-branch-completions (QA rerun, 2026-11-07)
-- Prior blocker resolved: git-wt-completion.bash no longer calls __git_complete; `complete -p wt` is `complete -F _git_wt wt`.
-- make test and make shellcheck pass; shellcheck on git-wt-completion.bash is clean.
-- Simulated `git wt go` through Homebrew git-completion.bash: `ma` -> main, `zz` -> nothing, empty -> main, other.
-- Advisory: under git's own `git` binding (-o default -o nospace, owned by git-completion), `git wt go ma<Tab>` leaves no trailing space and `git wt go zz<Tab>` falls back to filenames. Same as git-sync and git's built-in ref completers. Not blocking.
-- Advisory: git-sync-completion.bash still calls `__git_complete sync _git_sync` (out of scope follow-up).

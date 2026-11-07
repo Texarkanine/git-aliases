@@ -90,3 +90,15 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Left `productContext.md` and `techContext.md` unchanged
 * Insights
     - A test that requires a helper to be called can lock in the harmful call. Assert `complete -p` instead
+
+## 2026-11-07 - REWORK - INITIATED
+
+* Work completed
+    - Recorded the operator's rework request from the PR #20 review
+* Decisions made
+    - Rework, not archive
+    - Fix literal branch names, fixed `refs/heads/` names, and filename fallback for `git wt go`
+    - Fix the same filename fallback for `git sync`
+    - Leave `git sync`'s `compgen -W` and `%(refname:short)` uses, and the missing trailing space on a matched `git wt go` name, out of this request
+* Insights
+    - `__gitcomp_nl` adds a trailing space and leaves `-o default` set. `compopt +o default` is the per-attempt override git itself uses
