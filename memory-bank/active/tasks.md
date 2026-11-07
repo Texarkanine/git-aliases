@@ -94,4 +94,19 @@ No new technology - validation not required. Completers use `git for-each-ref`, 
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA
+- [ ] QA (ran 2026-11-07: FAIL; Build must rerun)
+
+## QA Results
+
+Result: FAIL. `make test` and `make shellcheck` pass. One finding blocks.
+
+### Blocking
+
+1. **`__git_complete wt _git_wt` breaks acceptance criterion 2 for `wt` in bash.** git-completion's `__git_complete` re-binds the name with `complete -o bashdefault -o default -o nospace -F __git_wrap_git_wt wt`. This was checked by sourcing `/Library/Developer/CommandLineTools/usr/share/git-core/git-completion.bash` and then the completer: `complete -p wt` prints that line. Because of `-o default`, when the completer returns no matches (`wt go zz<Tab>`), bash falls back to filename completion. That breaks "A prefix that matches no branch completes nothing." Because of `-o nospace`, `wt go ma<Tab>` leaves no space after `main`. The branch runs in the common setup: bash-completion loads git completion from its `bash_completion.d` compat dir before it sources `~/.bash_completion`. The call gives `wt` nothing. `_git_wt` reads `COMP_WORDS` itself, and the plain `complete -F _git_wt wt` binding already gives the right behavior. `git wt go` does not need the call either: git's completer finds `_git_wt` by name. Fix: remove the `__git_complete` block from `git-wt-completion.bash`. Change `test_wt_calls_git_complete_when_present` so that, when a `__git_complete` stub is defined, sourcing the file does not call it and `complete -p wt` still shows `-F _git_wt wt`. Plan step 2.2 prescribed this call. Record the change as a plan deviation. It is narrow, so Plan does not need to rerun.
+
+### Non-blocking
+
+- `git-sync-completion.bash` has the same `__git_complete sync _git_sync` pattern. That is outside this task's scope. It can be a follow-up.
+- The bash path that runs when `_get_comp_words_by_ref` exists has no test, because the suite does not load bash-completion. The plan accepted that. The code is simple.
+- Zsh `_git_wt` does not skip a current word that starts with `-`, but bash does. This is harmless: `compadd` filters by prefix, and branch names do not start with `-`.
+- KISS, DRY, YAGNI, completeness, integrity, and docs: no other findings. The zsh completer follows `git-sync-completion.zsh` (register guard, conditional `compinit -C`, user-commands append). Both READMEs were updated. `systemPatterns.md` is still accurate.

@@ -50,3 +50,12 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Kept candidate policy in the two completers. Did not add `git wt __complete`
 * Insights
     - A real Tab press through git's completer is still untested, same as `git sync`. The suites call the completer functions and the registration hooks
+
+## 2026-11-07 - QA - COMPLETE (FAIL)
+
+* Work completed
+    - Reviewed the diff against the plan and the brief. Re-ran `make test` and `make shellcheck`. Both passed
+* Decisions made
+    - FAIL: when git completion is loaded, `__git_complete wt _git_wt` re-binds `wt` with `-o default -o nospace`. A non-matching prefix then falls back to filenames, which breaks acceptance criterion 2. Build must rerun: remove that call and invert its test
+* Insights
+    - `__git_complete` gives a function that already reads `COMP_WORDS` nothing, and it adds `-o default -o nospace`. `git <cmd>` finds `_git_<cmd>` by name without it

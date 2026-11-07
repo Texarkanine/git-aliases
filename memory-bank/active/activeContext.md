@@ -1,7 +1,7 @@
 # Active Context
 
 ## Current Task: wt-go-branch-completions
-**Phase:** BUILD - COMPLETE
+**Phase:** QA - COMPLETE (FAIL)
 
 ## What Was Done
 - Bash and zsh completers offer local `refs/heads/` names after the word `go` for `wt`, `git wt`, and `git-wt`
@@ -27,4 +27,4 @@
 - Bash uses a `read` loop instead of `mapfile`
 
 ## Next Step
-- QA review
+- QA failed. Rerun `/niko-build`: remove `__git_complete wt _git_wt` from `git-wt-completion.bash`, and change `test_wt_calls_git_complete_when_present` to assert that sourcing does not call it (see QA Results in `tasks.md`)
