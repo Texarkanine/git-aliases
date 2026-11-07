@@ -102,3 +102,14 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Leave `git sync`'s `compgen -W` and `%(refname:short)` uses, and the missing trailing space on a matched `git wt go` name, out of this request
 * Insights
     - `__gitcomp_nl` adds a trailing space and leaves `-o default` set. `compopt +o default` is the per-attempt override git itself uses
+
+## 2026-11-07 - COMPLEXITY-ANALYSIS - COMPLETE
+
+* Work completed
+    - Classified the rework
+* Decisions made
+    - Level 2: a bug fix in the `git wt` bash completer, the `git wt` zsh completer, and the `git sync` bash completer
+    - Not Level 1: the change crosses two subcommands
+    - Not Level 3 or 4: no new subsystem and no architectural change
+* Insights
+    - `git sync` joins the task only for the filename fallback
