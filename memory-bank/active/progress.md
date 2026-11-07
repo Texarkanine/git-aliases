@@ -125,3 +125,14 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - Do not change `git sync`'s `compgen -W`, its `%(refname:short)`, or `-o nospace`
 * Insights
     - `+o default` alone stopped the file. `+o bashdefault` was not required for that result
+
+## 2026-11-07 - PREFLIGHT - COMPLETE
+
+* Work completed
+    - Validated the rework plan against the codebase: TDD order, conventions, dependencies, conflicts, completeness
+    - `.preflight-status` first line: `PASS WITH ADVISORY`
+* Decisions made
+    - No plan edits: test steps already precede code in all four units, and no numbered step is a change-detector
+    - Advisories only: centralize candidate policy behind one helper (future redesign, not this rework); pin TERM if pty transcripts flake on CI
+* Insights
+    - `%(refname:strip=2)` needs git 2.7+; ubuntu-latest already ships python3 so no workflow change is owed
