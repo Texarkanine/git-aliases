@@ -70,3 +70,13 @@ Add bash and zsh completion of existing git branch names for `wt go` and `git wt
     - `wt` stays on `complete -F _git_wt wt`. Do not hand that name to git's wrapper
 * Insights
     - The plain binding is what keeps a non-matching prefix from falling through to filenames
+
+## 2026-11-07 - QA - COMPLETE (PASS)
+
+* Work completed
+    - Re-reviewed the diff after the `__git_complete` fix. `make test` and `make shellcheck` passed
+    - Simulated `git wt go` through Homebrew git-completion: correct candidates, none for `zz`
+* Decisions made
+    - PASS. The prior blocker is resolved
+* Insights
+    - Under git's own `git` binding (`-o default -o nospace`), `git wt go` gets no trailing space and falls back to filenames when nothing matches. That binding belongs to git-completion and affects `git sync` too. Advisory only

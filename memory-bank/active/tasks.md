@@ -94,7 +94,7 @@ No new technology - validation not required. Completers use `git for-each-ref`, 
 - [x] Pre-Mortem complete
 - [x] Preflight
 - [x] Build
-- [ ] QA (ran 2026-11-07: FAIL; `__git_complete` call removed, rerun QA)
+- [x] QA (first run 2026-11-07: FAIL; `__git_complete` call removed; rerun 2026-11-07: PASS)
 
 ## QA Results
 
@@ -114,3 +114,13 @@ Result: FAIL. `make test` and `make shellcheck` pass. One finding blocks.
 ### Fix applied
 
 Removed the `__git_complete` block. `test_wt_does_not_call_git_complete` asserts sourcing does not call it and `complete -p wt` stays `complete -F _git_wt wt`. `make test` and `make shellcheck` passed after the change.
+
+### QA Rerun (2026-11-07)
+
+Result: PASS. `make test` and `make shellcheck` pass. `shellcheck` on `git-wt-completion.bash` is clean.
+
+- The blocking finding is resolved. `git-wt-completion.bash` binds `git-wt` and `wt` with plain `complete -F _git_wt`, and does not call `__git_complete`. `test_wt_does_not_call_git_complete` locks that.
+- Checked `git wt go` through Homebrew `git-completion.bash` (`__git_wrap__git_main`): `ma` gives `main`, `zz` gives nothing, an empty word gives `main` and `other`.
+- Advisory (non-blocking): git's own `git` binding uses `-o default -o nospace`. So in bash, `git wt go ma<Tab>` leaves no space after `main`, and `git wt go zz<Tab>` falls back to filenames. That binding belongs to git-completion and affects `git sync` the same way. `wt go` and `git-wt go` are not affected. A follow-up could use `__gitcomp_nl` when it exists, to add the trailing space.
+- Advisory (non-blocking): `git-sync-completion.bash` still calls `__git_complete sync _git_sync`. That is outside this task's scope.
+- KISS, DRY, YAGNI, completeness, integrity, docs: no findings. Both completers are small and follow the `git-sync` pattern. Both READMEs describe the new behavior.
