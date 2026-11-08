@@ -81,6 +81,8 @@ Makes a linked worktree for `<branch>`, and prints its absolute path.
 - If the branch does not exist, `go` creates it from the commit that you are on now (`HEAD`).
 - If the worktree already exists, `go` prints its path and changes nothing.
 
+Bash and zsh offer local branch names after `go`. A new branch name is not in that list, so you type it.
+
 You can run `go` from the main checkout or from any linked worktree of the repository.
 
 To start a new branch from a different commit, create the branch first:

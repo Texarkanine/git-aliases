@@ -5,6 +5,11 @@
 
 # Define completion function using Git's own naming convention
 _git_sync() {
+	# git's own completion binds `git` with -o default. Without this,
+	# an unmatched prefix falls through to filenames. Run it before the
+	# early return below, which leaves COMPREPLY empty.
+	compopt +o default 2>/dev/null || true
+
 	local cur prev
 	_get_comp_words_by_ref -n : cur prev 2>/dev/null || return
 

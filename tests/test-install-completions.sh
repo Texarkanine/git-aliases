@@ -74,6 +74,9 @@ test_install_copies_zsh_and_writes_fence() {
 	if [ ! -f "${tic_dir}/git-identity-completion.zsh" ]; then
 		fail "missing ${tic_dir}/git-identity-completion.zsh"
 	fi
+	if [ ! -f "${tic_dir}/git-wt-completion.zsh" ]; then
+		fail "missing ${tic_dir}/git-wt-completion.zsh"
+	fi
 	if ! grep -qx "${ZSH_FENCE_START}" "${HOME}/.zshrc"; then
 		fail ".zshrc missing zsh fence start"
 	fi
@@ -91,6 +94,9 @@ test_install_copies_zsh_and_writes_fence() {
 	fi
 	if ! grep -q 'git-identity-completion.zsh' "${HOME}/.zshrc"; then
 		fail ".zshrc should source git-identity-completion.zsh"
+	fi
+	if ! grep -q 'git-wt-completion.zsh' "${HOME}/.zshrc"; then
+		fail ".zshrc should source git-wt-completion.zsh"
 	fi
 }
 
@@ -194,6 +200,9 @@ test_bash_copy_and_fence_unregressed() {
 	fi
 	if [ ! -f "${tic_dir}/git-identity-completion.bash" ]; then
 		fail "missing bash git-identity completion copy"
+	fi
+	if [ ! -f "${tic_dir}/git-wt-completion.bash" ]; then
+		fail "missing bash git-wt completion copy"
 	fi
 	if ! grep -q "${BASH_FENCE_START}" "${HOME}/.bash_completion"; then
 		fail "bash fence should still be written"
