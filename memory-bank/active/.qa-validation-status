@@ -1,6 +1,0 @@
-PASS
-Rework wt-go-branch-completions reviewed against plan and brief. tests/test-bash-completion.sh and make shellcheck pass. zsh unavailable on this machine, so test-zsh-completion.sh was not run.
-Advisory: tests/test-bash-completion.sh header comment still says "Does not drive git <TAB>", but the file now drives Tab through a pty.
-Advisory: the zsh tag-collision test and the zsh half of make test are unverified here; the one-line format change mirrors the bash change that went red then green.
-Advisory: `git wt <non-go word><Tab>` under git's -o default still falls back to filenames. Out of scope (scope is go; plan limits compopt to the go path).
-Advisory: git sync keeps compgen -W and %(refname:short) by operator direction.
